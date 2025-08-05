@@ -1,4 +1,5 @@
 apply plugin: "com.android.application"
+apply plugin: 'com.google.gms.google-services'
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
@@ -76,10 +77,12 @@ android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
-
-    namespace "com.urbancommunityfayhaa"
+    buildFeatures {
+        buildConfig = true
+    }
+    namespace "lb.urbancommunityfayhaa"
     defaultConfig {
-        applicationId "com.urbancommunityfayhaa"
+        applicationId "lb.urbancommunityfayhaa"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

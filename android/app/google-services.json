@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "354421777339",
+    "firebase_url": "https://urban-community-fayhaa-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "urban-community-fayhaa",
+    "storage_bucket": "urban-community-fayhaa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:354421777339:android:d245eebc8f8772f21f1a9e",
+        "android_client_info": {
+          "package_name": "lb.urbancommunityfayhaa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBY0mMyWnuJQ9eGAyONml81hVgBaL1lvMQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -53,3 +53,16 @@ export const SCREEN_BREAKPOINTS = {
   medium: 768,
   large: 1024,
 };
+
+export const routeNames = {
+  SIGN_IN: 'Signin',
+  OTP: 'Otp',
+  HOME: 'Home',
+  MAIN: 'Main',
+  COMPLAINTS: 'Complaints',
+  ADD_COMPLAINT: 'Add Complaint',
+  COMPLAINT_DETAILS: 'Complaint Details',
+  PROFILE: 'Profile',
+  WASTE: 'Waste',
+  SETTINGS: 'Settings',
+};

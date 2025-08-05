@@ -1,4 +1,4 @@
-package com.urbancommunityfayhaa
+package lb.urbancommunityfayhaa
 
 import android.app.Application
 import com.facebook.react.PackageList

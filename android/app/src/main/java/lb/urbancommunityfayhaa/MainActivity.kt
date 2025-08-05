@@ -1,4 +1,4 @@
-package com.urbancommunityfayhaa
+package lb.urbancommunityfayhaa
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
