@@ -51,7 +51,7 @@ export default function ComplaintDetails() {
       <View
         style={{
           flex: 1,
-          flexDirection: 'row-reverse',
+          flexDirection: 'row',
           justifyContent: 'center',
           marginBottom: 10,
           backgroundColor: '#ecf0f1',
@@ -67,7 +67,7 @@ export default function ComplaintDetails() {
           </Text>
           <View
             style={{
-              flexDirection: 'row-reverse',
+              flexDirection: 'row',
               justifyContent: 'space-between',
             }}
           >
@@ -111,14 +111,17 @@ export default function ComplaintDetails() {
                 maxCenterCoordinateDistance: 1,
               }}
               initialRegion={{
-                latitude,
-                longitude,
+                latitude: Number(latitude),
+                longitude: Number(longitude),
                 latitudeDelta: 0.01,
                 longitudeDelta: 0.01,
               }}
             >
               <Marker
-                coordinate={{ latitude, longitude }}
+                coordinate={{
+                  latitude: Number(latitude),
+                  longitude: Number(longitude),
+                }}
                 onPress={() => {
                   Alert.alert('تأكيد', 'هل تريد فتح الموقع في خرائط جوجل؟', [
                     { text: 'إلغاء', style: 'cancel' },

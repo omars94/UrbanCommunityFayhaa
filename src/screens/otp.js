@@ -23,7 +23,6 @@ export default function OTPScreen() {
       );
       const userCredential = await auth().signInWithCredential(credential);
       console.log('✅ signed in!', userCredential);
-      navigation.replace(routeNames.HOME);
     } catch (e) {
       console.log(e);
     }

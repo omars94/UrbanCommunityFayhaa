@@ -50,6 +50,8 @@ export default function AuthScreen() {
   const sendVerificationCode = async () => {
     setError('');
     try {
+      debugger;
+
       const confirmation = await auth().signInWithPhoneNumber(formattedValue);
       console.log('Confirmation:', confirmation);
       setConfirm(confirmation);
@@ -83,7 +85,6 @@ export default function AuthScreen() {
       //     ...userCredential.user,
       //   }),
       // );
-      navigation.replace(routeNames.MAIN);
     } catch (err) {
       setError('رمز التحقق غير صحيح');
     }
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   toggleContainer: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     marginBottom: 24,
     backgroundColor: '#e9ecef',
     borderRadius: 20,
