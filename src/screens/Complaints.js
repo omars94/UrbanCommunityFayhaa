@@ -20,6 +20,8 @@ import {
 import { useSelector } from 'react-redux';
 import SimplePicker from '../components/SimplePicker';
 import { routeNames } from '../constants';
+import database from '@react-native-firebase/database';
+import moment from 'moment';
 
 const { width, height } = Dimensions.get('window');
 
@@ -45,9 +47,33 @@ export default function ComplaintsScreen() {
       : true;
     return areaMatch && indicatorMatch;
   });
+  const fetchComplaints = async () => {
+    setLoading(true);
+    try {
+      const snapshot = await database().ref('/complaints').once('value');
+
+      const complaintsData = snapshot.val();
+      const complaintsArray = complaintsData
+        ? Object.keys(complaintsData).map(key => ({
+            id: key,
+            ...complaintsData[key],
+          }))
+        : [];
+
+      setComplaints(complaintsArray);
+    } catch (error) {
+      console.error('Error fetching complaints:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Refresh complaints when screen comes into focus
-  useFocusEffect(React.useCallback(() => {}, []));
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchComplaints();
+    }, []),
+  );
   const isFocused = useIsFocused();
   useEffect(() => {}, [isFocused]);
 
@@ -74,7 +100,7 @@ export default function ComplaintsScreen() {
       >
         <View
           style={{
-            flexDirection: 'row-reverse',
+            flexDirection: 'row',
             borderWidth: 1,
             overflow: 'hidden',
             margin: 5,
@@ -98,7 +124,7 @@ export default function ComplaintsScreen() {
                 {status === 'pending' ? 'قيد الانتظار' : 'تم الحل'}
               </Text>
               <Text style={styles.cardSubtitle}>
-                {new Date(created_at).toLocaleString('ar')}
+                {moment(created_at).format('DD/MM/YYYY hh:mm A')}
               </Text>
             </View>
 
@@ -207,7 +233,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     marginBottom: 8,
   },
   cardTitle: { flex: 1, fontSize: 18, fontWeight: '600', textAlign: 'right' },
@@ -265,7 +291,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   filterBar: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#f8f9fa',

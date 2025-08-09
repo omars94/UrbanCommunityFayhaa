@@ -2,7 +2,7 @@ import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { launchCamera } from 'react-native-image-picker';
 import Geolocation from '@react-native-community/geolocation';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Image,
