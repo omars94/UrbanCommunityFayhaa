@@ -5,24 +5,30 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { OtpInput } from 'react-native-otp-entry';
 import { routeNames } from '../constants';
 import auth from '@react-native-firebase/auth';
+import { signUp } from '../api/authApi';
 
 export default function OTPScreen() {
-  const {
-    params: { phone, id: verificationId, provider },
-  } = useRoute();
+  const { params: { phone, confirm, user, signIn } } = useRoute();
   const navigation = useNavigation();
-  const recaptchaVerifier = useRef(null);
+  // const recaptchaVerifier = useRef(null);
 
   const [code, setCode] = useState('');
 
-  const handleVerify = async code => {
+  const handleVerify = async () => {
     try {
-      const credential = auth.PhoneAuthProvider.credential(
-        verificationId,
-        code,
-      );
-      const userCredential = await auth().signInWithCredential(credential);
-      console.log('✅ signed in!', userCredential);
+      console.log("Code value:", code, typeof code);
+      if (!confirm) {
+        console.log('No confirmation object provided to OTP screen');
+        return;
+      }
+      const credential = await confirm.confirm(code);
+      // const userCredential = await auth().signInWithCredential(credential);
+      // console.log('signed in!', userCredential);
+      if (!signIn) {
+        // user = {...user, firebase_uid :credential.user.uid };
+        await signUp({ ...user, firebase_uid: credential.user.uid });
+      }
+
     } catch (e) {
       console.log(e);
     }

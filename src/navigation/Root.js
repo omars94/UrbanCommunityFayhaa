@@ -10,10 +10,11 @@ import store from '../../store';
 import { ActivityIndicator } from 'react-native-paper';
 import auth from '@react-native-firebase/auth';
 import { clearUser, setUser } from '../slices/userSlice';
-import { routeNames } from '../constants';
-import AuthScreen from '../screens/SignIn';
+import { ROUTE_NAMES } from '../constants';
+import AuthScreen from '../screens/Auth';
 import OTPScreen from '../screens/otp';
 import TabLayout from './AppTabs';
+import { getUserByFbUID } from '../api/userApi';
 const Stack = createNativeStackNavigator();
 
 if (typeof global.structuredClone === 'undefined') {
@@ -55,9 +56,13 @@ function Layout() {
       if (firebaseUser) {
         // User is signed in
         const token = await firebaseUser.getIdToken();
+        console.log("UID from user object:", firebaseUser.uid);   
+        const user = await getUserByFbUID(firebaseUser.uid);
+        console.log(user);
         dispatch(
           setUser({
-            access_token: token,
+            // access_token: token,
+            user
           }),
         );
         setReady(true);
@@ -79,11 +84,11 @@ function Layout() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!user ? (
         <>
-          <Stack.Screen name={routeNames.SIGN_IN} component={AuthScreen} />
-          <Stack.Screen name={routeNames.OTP} component={OTPScreen} />
+          <Stack.Screen name={ROUTE_NAMES.SIGN_IN} component={AuthScreen} />
+          <Stack.Screen name={ROUTE_NAMES.OTP} component={OTPScreen} />
         </>
       ) : (
-        <Stack.Screen name={routeNames.MAIN} component={TabLayout} />
+        <Stack.Screen name={ROUTE_NAMES.MAIN} component={TabLayout} />
       )}
     </Stack.Navigator>
   );

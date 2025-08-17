@@ -5,7 +5,7 @@ import HomeScreen from '../screens/home';
 import WasteScreen from '../screens/waste';
 import ProfileScreen from '../screens/profile';
 import ComplaintsStack from './ComplaintsStack';
-import { routeNames } from '../constants';
+import { ROUTE_NAMES } from '../constants';
 import { View } from 'react-native';
 
 const Tab = createBottomTabNavigator();
@@ -17,31 +17,31 @@ export default function TabLayout(props) {
         lazy: false,
         tabBarIcon: ({ color, size }) => {
           let icon;
-          if (route.name === routeNames.HOME) icon = 'home-outline';
-          if (route.name === routeNames.COMPLAINTS) icon = 'chatbubble-outline';
-          if (route.name === routeNames.WASTE) icon = 'trash-outline';
-          if (route.name === routeNames.PROFILE) icon = 'person-outline';
+          if (route.name === ROUTE_NAMES.HOME) icon = 'home-outline';
+          if (route.name === ROUTE_NAMES.COMPLAINTS) icon = 'chatbubble-outline';
+          if (route.name === ROUTE_NAMES.WASTE) icon = 'trash-outline';
+          if (route.name === ROUTE_NAMES.PROFILE) icon = 'person-outline';
           return <Ionicons name={icon} size={size} color={color} />;
         },
       })}
     >
       <Tab.Screen
-        name={routeNames.COMPLAINTS}
+        name={ROUTE_NAMES.COMPLAINTS}
         component={ComplaintsStack}
         options={{ title: 'الشكاوى' }}
       />
       <Tab.Screen
-        name={routeNames.HOME}
+        name={ROUTE_NAMES.HOME}
         component={HomeScreen}
         options={{ title: 'الرئيسية' }}
       />
       <Tab.Screen
-        name={routeNames.WASTE}
+        name={ROUTE_NAMES.WASTE}
         component={WasteScreen}
         options={{ title: 'النفايات' }}
       />
       <Tab.Screen
-        name={routeNames.PROFILE}
+        name={ROUTE_NAMES.PROFILE}
         component={ProfileScreen}
         options={{ title: 'الملف الشخصي' }}
       />
