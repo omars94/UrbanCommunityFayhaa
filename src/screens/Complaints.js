@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import SimplePicker from '../components/SimplePicker';
-import { routeNames } from '../constants';
+import { ROUTE_NAMES } from '../constants';
 import database from '@react-native-firebase/database';
 import moment from 'moment';
 
@@ -95,7 +95,7 @@ export default function ComplaintsScreen() {
     return (
       <TouchableOpacity
         onPress={() =>
-          navigation.navigate(routeNames.COMPLAINT_DETAILS, { complaint: item })
+          navigation.navigate(ROUTE_NAMES.COMPLAINT_DETAILS, { complaint: item })
         }
       >
         <View
@@ -214,7 +214,7 @@ export default function ComplaintsScreen() {
       />
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate(routeNames.ADD_COMPLAINT)}
+        onPress={() => navigation.navigate(ROUTE_NAMES.ADD_COMPLAINT)}
       >
         <Text style={styles.fabIcon}>+</Text>
       </TouchableOpacity>

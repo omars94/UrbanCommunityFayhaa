@@ -3,7 +3,7 @@ import React, { useRef, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { OtpInput } from 'react-native-otp-entry';
-import { routeNames } from '../constants';
+import { ROUTE_NAMES } from '../constants';
 import auth from '@react-native-firebase/auth';
 import { signUp } from '../api/authApi';
 
