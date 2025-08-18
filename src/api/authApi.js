@@ -9,10 +9,10 @@ export const checkIfUserExist = async (phoneNb) => {
             .once('value');
 
         // Get the first matching user if exists
-        userData = snapshot.val();
+        const userData = snapshot.val();
 
         return {
-            inRTDB: userData ? !!userData : false,
+            inRTDB: userData ? true : false,
             profile: userData ? Object.values(userData)[0] : null
         };
     } catch (error) {

@@ -56,7 +56,7 @@ function Layout() {
       if (firebaseUser) {
         // User is signed in
         const token = await firebaseUser.getIdToken();
-        console.log("UID from user object:", firebaseUser.uid);   
+        console.log("UID from user object:", firebaseUser.uid);
         const user = await getUserByFbUID(firebaseUser.uid);
         console.log(user);
         dispatch(

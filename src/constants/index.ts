@@ -247,6 +247,8 @@ export const ROUTE_NAMES = {
   PROFILE: 'Profile',
   USERS: 'Users',
   ADD_USER: 'AddUser',
+  ADD_MANAGER:'AddManager',
+  ADD_WORKER:'AddWorker',
   WASTE: 'Waste',
   SETTINGS: 'Settings',
   EMERGENCY: 'Emergency',
