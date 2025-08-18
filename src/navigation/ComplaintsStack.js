@@ -17,7 +17,7 @@ export default function ComplaintsStack() {
       <Stack.Screen
         name={ROUTE_NAMES.ADD_COMPLAINT}
         component={AddComplaintScreen}
-        options={{ title: 'إضافة شكوى' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name={ROUTE_NAMES.COMPLAINT_DETAILS}

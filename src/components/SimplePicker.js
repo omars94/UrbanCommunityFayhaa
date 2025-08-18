@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
+import { COLORS } from '../constants';
+import { FONT_SIZES } from '../constants';
+import { FONT_WEIGHTS } from '../constants';
 function SimplePicker({
   label,
   options,
@@ -21,15 +23,28 @@ function SimplePicker({
   const [visible, setVisible] = useState(false);
 
   return (
-    <View style={{ paddingHorizontal: 5, flex: 1, maxHeight: 80 }}>
+    // <View style={{ paddingHorizontal: 5, flex: 1, maxHeight: 120 }}>
+    <View style={{ paddingHorizontal: 5, marginBottom: 5 }}>
       {showLabel && (
-        <Text style={{ marginBottom: 5, textAlign: 'center' }}>{label}</Text>
+        <Text
+          style={{
+            marginBottom: 5,
+            fontSize: FONT_SIZES.md,
+            fontWeight: FONT_WEIGHTS.medium,
+            color: COLORS.text.primary,
+          }}
+        >
+          {label}
+        </Text>
       )}
       <TouchableOpacity
         style={styles.pickerButton}
         onPress={() => setVisible(true)}
       >
-        <Text numberOfLines={1} style={{ textAlign: 'center' }}>
+        <Text
+          numberOfLines={1}
+          style={{ textAlign: 'center', color: COLORS.text.black }}
+        >
           {selectedValue || `اختر ${label}`}
         </Text>
       </TouchableOpacity>
@@ -71,12 +86,12 @@ function SimplePicker({
 
 const styles = StyleSheet.create({
   pickerButton: {
-    textAlign: 'right',
+    // textAlign: 'right',
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: 'rgba(0,0,0,0.3)',
   },
   modalOverlay: {
     flex: 1,

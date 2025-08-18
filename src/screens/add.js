@@ -1,259 +1,469 @@
-import { Ionicons } from '@react-native-vector-icons/ionicons';
-import { launchCamera } from 'react-native-image-picker';
-import Geolocation from '@react-native-community/geolocation';
-
 import React, { useState } from 'react';
 import {
   Alert,
+  Text,
   Image,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
+  TextInput,
+  PermissionsAndroid,
+  Platform,
 } from 'react-native';
 import { Button } from 'react-native-paper';
 import { useSelector } from 'react-redux';
-import SimplePicker from '../components/SimplePicker';
 import { useNavigation } from '@react-navigation/native';
+import { launchCamera } from 'react-native-image-picker';
+import Geolocation from '@react-native-community/geolocation';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
+import { Formik } from 'formik';
+import * as Yup from 'yup';
+import SimplePicker from '../components/SimplePicker';
+import database from '@react-native-firebase/database';
+import storage from '@react-native-firebase/storage';
+import {
+  COLORS,
+  SPACING,
+  BORDER_RADIUS,
+  FONT_SIZES,
+  FONT_WEIGHTS,
+  SHADOWS,
+  SIZES,
+} from '../constants/index.ts';
+import { ScrollView } from 'react-native-gesture-handler';
+
+//Yup validation schema
+const ComplaintSchema = Yup.object().shape({
+  indicator: Yup.object().required('يرجى اختيار المؤشر'),
+  area: Yup.object().required('يرجى اختيار المنطقة'),
+  description: Yup.string().trim().required('يرجى إدخال الوصف'),
+  photo: Yup.mixed().required('يرجى إرفاق صورة'),
+});
 
 export default function AddComplaintScreen() {
   const navigation = useNavigation();
   const [submitting, setSubmitting] = useState(false);
-  const [indicator, setIndicator] = useState(1);
-  const [area, setArea] = useState(2);
-  const [description, setDescription] = useState('hello world');
-  const [photo, setPhoto] = useState(null);
   const [metadata, setMetadata] = useState(null);
+
   const { areas, indicators } = useSelector(state => state.data);
   const { user } = useSelector(state => state.user);
-  console.log(user);
-  // useEffect(() => {
-  //   (async () => {
-  //     await ImagePicker.requestCameraPermissionsAsync();
-  //     await Location.requestForegroundPermissionsAsync();
-  //   })();
-  // }, []);
 
-  const takePhoto = async () => {
+  console.log('Areas from Redux:', areas);
+  console.log('Indicators from Redux:', indicators);
+  console.log('Current User:', user);
+
+  // location and camera permissions
+  const requestPermissions = async () => {
+    if (Platform.OS === 'android') {
+      // Check current permission status first
+      const cameraStatus = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.CAMERA,
+      );
+
+      const locationStatus = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      );
+
+      // Only request camera permission if not already granted
+      let cameraGranted = cameraStatus;
+      if (!cameraStatus) {
+        const result = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+        );
+        cameraGranted = result === PermissionsAndroid.RESULTS.GRANTED;
+      }
+
+      // Only request location permission if not already granted
+      let locationGranted = locationStatus;
+      if (!locationStatus) {
+        const result = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        );
+        locationGranted = result === PermissionsAndroid.RESULTS.GRANTED;
+      }
+
+      // Show your custom Arabic alerts if permissions denied
+      if (!cameraGranted) {
+        Alert.alert('تم رفض الإذن', 'يلزم منح إذن الكاميرا!');
+        return false;
+      }
+
+      if (!locationGranted) {
+        Alert.alert('تم رفض الإذن', 'يلزم منح إذن الموقع!');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const takePhoto = async setFieldValue => {
+    const granted = await requestPermissions();
+    if (!granted) return; // stop if permissions not granted
+
     const result = await launchCamera({
       mediaType: 'photo',
       quality: 0.8,
-      saveToPhotos: true,
-      includeBase64: false,
+      saveToPhotos: false,
     });
 
-    if (!result.didCancel && result.assets) {
+    console.log('Camera result:', result);
+
+    if (!result.didCancel && result.assets?.[0]?.uri) {
       Geolocation.getCurrentPosition(
         position => {
-          setPhoto(result.assets[0].uri);
+          setFieldValue('photo', result.assets[0].uri); //  set Formik value
           setMetadata({
             location: {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
+              latitude: position.coords.latitude.toString(),
+              longitude: position.coords.longitude.toString(),
             },
             timestamp: new Date().toISOString(),
           });
         },
-        error => console.log(error),
+        error => {
+          Alert.alert('خطأ', 'تعذر الحصول على الموقع');
+          console.error(error);
+        },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
       );
     }
   };
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    // Validate required fields
-    if (!indicator || !area || !description.trim()) {
-      Alert.alert(
-        'خطأ في البيانات',
-        'يرجى ملء جميع الحقول المطلوبة (المؤشر، المنطقة، الوصف)',
-      );
-      return;
-    }
+  const uploadPhoto = async uri => {
+    const filename = `issues/${Date.now()}.jpg`;
+    const reference = storage().ref(filename);
+    await reference.putFile(uri);
+    return await reference.getDownloadURL();
+  };
 
+  const handleSubmitComplaint = async values => {
+    setSubmitting(true);
     try {
-      let photoUrl = null;
-      if (photo) {
-        console.log(photoUrl);
+      let photoUrl = '';
+      if (values.photo) {
+        photoUrl = await uploadPhoto(values.photo);
       }
 
       const complaintData = {
-        indicator_id: indicator?.id,
-        user_id: user.id,
-        area_id: area?.id,
-        description: description.trim(),
+        indicator_id: values.indicator.id,
+        area_id: values.area.id,
+        description: values.description.trim(),
         photo_url: photoUrl,
-        longitude: metadata?.location?.longitude ?? '',
-        latitude: metadata?.location?.latitude ?? '',
+        longitude: metadata?.location?.longitude || '',
+        latitude: metadata?.location?.latitude || '',
         status: 'pending',
-        // Add other fields as needed (e.g., user_id, created_at)
+        user_id: user.id,
+        created_at: new Date().toISOString(),
+        area_name: values.area.name_ar,
+        indicator_name: values.indicator.description_ar,
       };
 
-      if (data) {
-        Alert.alert('تم الحفظ بنجاح', 'تم حفظ الشكوى بنجاح', [
-          {
-            text: 'حسناً',
-            onPress: () => navigation.back(),
-          },
-        ]);
-      } else {
-        throw error;
-      }
+      await database().ref('/complaints').push(complaintData);
+
+      Alert.alert('تم الحفظ بنجاح', 'تم حفظ الشكوى بنجاح', [
+        { text: 'حسناً', onPress: () => navigation.goBack() },
+      ]);
     } catch (error) {
       console.error('Error submitting complaint:', error);
-      Alert.alert(
-        'خطأ في الحفظ',
-        'حدث خطأ أثناء حفظ الشكوى. يرجى المحاولة مرة أخرى.',
-      );
+      Alert.alert('خطأ', 'حدث خطأ أثناء الحفظ');
     } finally {
       setSubmitting(false);
     }
   };
-  return (
-    <View style={[styles.container]}>
-      <View style={styles.content}>
-        <View style={{ padding: 15, flex: 1 }}>
-          <TouchableOpacity onPress={takePhoto} style={styles.photoButton}>
-            {photo ? (
-              <Image
-                source={{ uri: photo }}
-                width={200}
-                height={200}
-                style={styles.photoIconPreview}
-              />
-            ) : (
-              <Ionicons name="camera-outline" size={32} color="#fff" />
-            )}
-          </TouchableOpacity>
-          <View style={{ paddingVertical: 10, flexDirection: 'row' }}>
-            <SimplePicker
-              label="المؤشر"
-              options={indicators}
-              labelKey={'description_ar'}
-              selectedValue={indicator?.description_ar}
-              onValueChange={setIndicator}
-            />
-            <SimplePicker
-              label="المنطقة"
-              columns={3}
-              labelKey={'name_ar'}
-              options={areas}
-              selectedValue={area?.name_ar}
-              onValueChange={setArea}
-            />
-          </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="وصف الشكوى"
-            multiline
-            maxLength={300}
-            numberOfLines={4}
-            value={description}
-            onChangeText={setDescription}
-          />
+  // Your form component return statement (updated)
+  return (
+    <ScrollView>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()} // or your navigation function
+          >
+            <Ionicons name="arrow-forward" size={24} color={COLORS.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>تقديم شكوى</Text>
+          <Text style={styles.headerSub}>الإبلاغ عن مشكلة في منطقتك</Text>
         </View>
-        <Button
-          disabled={submitting}
-          icon="email-send"
-          mode="contained"
-          onPress={handleSubmit}
+
+        <Formik
+          initialValues={{
+            indicator: null,
+            area: null,
+            description: '',
+            photo: null,
+          }}
+          validationSchema={ComplaintSchema}
+          onSubmit={handleSubmitComplaint}
         >
-          إرسال الشكوى
-        </Button>
+          {({
+            handleChange,
+            handleSubmit,
+            setFieldValue,
+            values,
+            errors,
+            touched,
+          }) => (
+            <View style={styles.content}>
+              {/* Info Box */}
+              {/* <View style={styles.infoBox}>
+              <Text style={styles.infoText}>الموقع الحالي: طرابلس، لبنان</Text>
+            </View> */}
+
+              {/* Form Card */}
+              <View style={styles.formCard}>
+                {/* Photo Capture */}
+                <View style={styles.photoSection}>
+                  <TouchableOpacity
+                    onPress={() => takePhoto(setFieldValue)}
+                    style={[
+                      styles.photoButton,
+                      values.photo && styles.photoButtonWithImage,
+                    ]}
+                  >
+                    {values.photo ? (
+                      <Image
+                        source={{ uri: values.photo }}
+                        style={styles.photoPreview}
+                      />
+                    ) : (
+                      <View style={styles.photoPlaceholder}>
+                        <Ionicons
+                          name="camera-outline"
+                          size={40}
+                          color={COLORS.gray[400]}
+                        />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                  {touched.photo && errors.photo && (
+                    <Text style={styles.errorText}>{errors.photo}</Text>
+                  )}
+                </View>
+
+                {/* Pickers Section */}
+                <View style={styles.pickersSection}>
+                  <View style={styles.pickerContainer}>
+                    <SimplePicker
+                      label="المؤشر"
+                      options={indicators}
+                      labelKey="description_ar"
+                      selectedValue={values.indicator?.description_ar}
+                      onValueChange={val => setFieldValue('indicator', val)}
+                    />
+                    {touched.indicator && errors.indicator && (
+                      <Text style={styles.errorText}>{errors.indicator}</Text>
+                    )}
+                  </View>
+
+                  <View style={styles.pickerContainer}>
+                    <SimplePicker
+                      label="المنطقة"
+                      labelKey="name_ar"
+                      options={areas}
+                      selectedValue={values.area?.name_ar}
+                      onValueChange={val => setFieldValue('area', val)}
+                    />
+                    {touched.area && errors.area && (
+                      <Text style={styles.errorText}>{errors.area}</Text>
+                    )}
+                  </View>
+                </View>
+
+                {/* Description Input */}
+                <View style={styles.inputSection}>
+                  <Text style={styles.inputLabel}>وصف الشكوى</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="اكتب تفاصيل الشكوى هنا..."
+                    placeholderTextColor={COLORS.text.hint}
+                    multiline
+                    maxLength={300}
+                    value={values.description}
+                    onChangeText={handleChange('description')}
+                    textAlign="right"
+                  />
+                  <Text style={styles.characterCount}>
+                    {values.description.length}/300
+                  </Text>
+                  {touched.description && errors.description && (
+                    <Text style={styles.errorText}>{errors.description}</Text>
+                  )}
+                </View>
+
+                {/* Submit Button */}
+                <TouchableOpacity
+                  disabled={submitting}
+                  onPress={handleSubmit}
+                  style={[
+                    styles.submitButton,
+                    submitting && styles.submitButtonDisabled,
+                  ]}
+                >
+                  <Ionicons
+                    name="send"
+                    size={20}
+                    color={COLORS.white}
+                    style={styles.submitIcon}
+                  />
+                  <Text style={styles.submitButtonText}>
+                    {submitting ? 'جاري الإرسال...' : 'إرسال الشكوى'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </Formik>
       </View>
-    </View>
+    </ScrollView>
   );
 }
-
+// Updated StyleSheet using your constants
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.background,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 40,
-    paddingBottom: 10,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    backgroundColor: COLORS.primary,
+    padding: SPACING.lg,
+    paddingTop: SPACING.xl + 10, // Extra padding for status bar
   },
   backButton: {
-    padding: 8,
+    position: 'absolute',
+    top: SPACING.lg + 20,
+    left: SPACING.lg,
+    zIndex: 1,
+    padding: SPACING.xs,
   },
-  backButtonText: {
-    fontSize: 16,
-    color: '#007bff',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+
+  headerTitle: {
+    color: COLORS.white,
+    fontSize: FONT_SIZES.xxxl,
+    fontWeight: FONT_WEIGHTS.bold,
     textAlign: 'center',
+    marginBottom: SPACING.xs,
   },
-  emptyHeader: {
-    width: 40,
+  headerSub: {
+    color: COLORS.white,
+    fontSize: FONT_SIZES.md,
+    textAlign: 'center',
+    opacity: 0.9,
   },
   content: {
     flex: 1,
-    padding: 15,
+    padding: SPACING.lg,
   },
-  input: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-    textAlign: 'right',
-    fontSize: 16,
-    minHeight: 100,
-    textAlignVertical: 'top',
+  infoBox: {
+    backgroundColor: COLORS.location,
+    borderRadius: BORDER_RADIUS.sm,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoText: {
+    color: COLORS.text.secondary,
+    fontSize: FONT_SIZES.sm,
+    marginLeft: SPACING.sm,
+  },
+  formCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.xl,
+    ...SHADOWS.md,
+  },
+  photoSection: {
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
   },
   photoButton: {
-    backgroundColor: '#007bff',
-    width: 150,
-    height: 150,
-    alignSelf: 'center',
-    borderRadius: 30,
-    padding: 20,
+    width: 300,
+    height: 215,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 15,
+    backgroundColor: COLORS.gray[50],
   },
-  photoButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  photoButtonWithImage: {
+    borderStyle: 'solid',
+    borderColor: COLORS.gray[300],
+  },
+  photoPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   photoPreview: {
     width: '100%',
-    height: 200,
-    borderRadius: 8,
-    marginBottom: 15,
+    height: '100%',
+    borderRadius: BORDER_RADIUS.md - 2,
+  },
+  pickersSection: {
+    marginBottom: SPACING.lg,
+  },
+  pickerContainer: {
+    marginBottom: SPACING.sm,
+  },
+  inputSection: {
+    marginBottom: SPACING.lg,
+  },
+  inputLabel: {
+    fontSize: FONT_SIZES.md,
+    fontWeight: FONT_WEIGHTS.medium,
+    color: COLORS.text.primary,
+    marginBottom: SPACING.sm,
+    marginLeft: SPACING.sm,
+    // textAlign: 'right',
+  },
+  textInput: {
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 1,
+    borderColor: COLORS.gray[500],
+    padding: SPACING.md,
+    fontSize: FONT_SIZES.md,
+    minHeight: 120,
+    textAlignVertical: 'top',
+    color: COLORS.text.primary,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    marginLeft: SPACING.sm,
+  },
+  characterCount: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.text.hint,
+    // textAlign: 'right',
+    marginTop: SPACING.xs,
+    marginLeft: SPACING.sm,
   },
   submitButton: {
-    backgroundColor: '#28a745',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.md,
+    height: SIZES.button.height,
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    justifyContent: 'center',
+    ...SHADOWS.primary,
   },
   submitButtonDisabled: {
-    backgroundColor: '#ccc',
-    opacity: 0.7,
+    backgroundColor: COLORS.gray[400],
   },
-  photoIconPreview: {
-    width: 200,
-    height: 200,
-    borderWidth: 1,
-    borderRadius: 100,
-    backgroundColor: '#eee',
+  submitIcon: {
+    marginRight: SPACING.sm,
+  },
+  submitButtonText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZES.lg,
+    fontWeight: FONT_WEIGHTS.semibold,
+  },
+  errorText: {
+    color: COLORS.danger,
+    fontSize: FONT_SIZES.xs,
+    marginTop: SPACING.xs,
+    // textAlign: 'right',
   },
 });
