@@ -9,11 +9,6 @@ const userSlice = createSlice({
   initialState,
   reducers: {
     setUser(state, action) {
-      if (action.payload.user) {
-        let user = action.payload.user;
-        delete action.payload.user;
-        action.payload = { ...action.payload, ...user };
-      }
       state.user = action.payload;
     },
     clearUser(state) {

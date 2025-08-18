@@ -11,12 +11,12 @@ import auth from '@react-native-firebase/auth';
 export default function SettingsScreen() {
     const dispatch = useDispatch();
     const navigation = useNavigation();
-    const user = useSelector(state => state.user.user);
+    const user = useSelector(state => state.user);
     console.log(user);
 
-    const phone = user.user.phone_number;
-    const fullname = user.user.full_name;
-    const role = user.user.role;
+    const phone = user?.user.phone_number;
+    const fullname = user?.user.full_name;
+    const role = user?.user.role;
     let role_text = '';
     switch (role) {
         case 1:

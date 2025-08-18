@@ -60,10 +60,7 @@ function Layout() {
         const user = await getUserByFbUID(firebaseUser.uid);
         console.log(user);
         dispatch(
-          setUser({
-            // access_token: token,
-            user
-          }),
+          setUser(user),
         );
         setReady(true);
       } else {

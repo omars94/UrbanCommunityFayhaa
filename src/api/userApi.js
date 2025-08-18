@@ -12,9 +12,7 @@ export const getUserByFbUID = async (fbuid) => {
         // Get the first matching user if exists
         const userData = snapshot.val();
 
-        return {
-            user: userData ? Object.values(userData)[0] : null
-        };
+        return userData ? Object.values(userData)[0] : null ;
     } catch (error) {
         console.log("User fetch failed:", error);
         throw error;
@@ -109,6 +107,32 @@ export const revokeRole = async (id) => {
             .ref(`users/${userKey}`)
             .update({ invite_role: null, role: ROLES.CITIZEN });
         return true;
+    } catch (error) {
+        throw error;
+    }
+}
+
+export const updateUser = async (user) => {
+    try {
+        if(!user?.id) throw new Error('لم يتم الحصول على رقم التعريف ID');
+
+        const snapshot = await database()
+            .ref('users')
+            .orderByChild('id')
+            .equalTo(user.id)
+            .once('value');
+
+        if (!snapshot.exists()) {
+            throw new Error('المستخدم غير موجود');
+        }
+
+        await database()
+            .ref(`users/${user.id}`)
+            .update({
+                full_name: user.full_name,
+                date_of_birth: user.date_of_birth,
+                area_id: user.area_id
+            });
     } catch (error) {
         throw error;
     }
