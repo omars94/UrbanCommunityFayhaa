@@ -7,7 +7,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
+  // Dimensions,
   Image,
   FlatList,
   RefreshControl,
@@ -18,26 +18,30 @@ import {
   ScrollView,
 } from 'react-native';
 import Icon from '@react-native-vector-icons/ionicons';
-import MaterialIcon from '@react-native-vector-icons/material-design-icons';
-import { useSelector } from 'react-redux';
+// import MaterialIcon from '@react-native-vector-icons/material-design-icons';
+import { useSelector, useDispatch } from 'react-redux';
 import SimplePicker from '../components/SimplePicker';
-import { ROUTE_NAMES, COLORS, ROLES, COMPLAINT_STATUS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../constants';
-import database from '@react-native-firebase/database';
+import { ROUTE_NAMES, COLORS, ROLES, COMPLAINT_STATUS, COMPLAINT_STATUS_AR, SPACING, FONT_SIZES, BORDER_RADIUS, FONT_WEIGHTS } from '../constants';
+// import database from '@react-native-firebase/database';
 import moment from 'moment';
+import { fetchComplaints } from '../api/complaintsApi';
+import { setComplaints } from '../slices/complaintsSlice';
 
-const { width, height } = Dimensions.get('window');
+// const { width, height } = Dimensions.get('window');
 
 export default function ComplaintsScreen() {
   const navigation = useNavigation();
-  const [complaints, setComplaints] = useState([]);
+  // const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedArea, setSelectedArea] = useState(null);
   const [selectedIndicator, setSelectedIndicator] = useState(null);
   const [selectedFilter, setSelectedFilter] = useState('all');
 
+  const dispatch = useDispatch();
+  const complaints = useSelector(state => state.complaints.complaints)
   const { areas, indicators } = useSelector(state => state.data);
-  const user = useSelector(state => state.user.user.user);
+  const user = useSelector(state => state.user.user);
 
   // Get role-based filter options
   const getFilterOptions = () => {
@@ -48,11 +52,12 @@ export default function ComplaintsScreen() {
     switch (user?.role) {
       case ROLES.ADMIN:
         return [
-          { id: 'pending', label: 'قيد الانتظار', value: 'pending' },
+          { id: 'pending', label: COMPLAINT_STATUS_AR.PENDING, value: 'pending' },
           { id: 'all', label: 'جميع الشكاوى', value: 'all' },
-          { id: 'assigned', label: 'مُعيّنة', value: 'assigned' },
-          { id: 'resolved', label: 'محلولة', value: 'resolved' },
-          { id: 'completed', label: 'مكتملة', value: 'completed' },
+          { id: 'assigned', label: COMPLAINT_STATUS_AR.ASSIGNED, value: 'assigned' },
+          { id: 'resolved', label: COMPLAINT_STATUS_AR.RESOLVED, value: 'resolved' },
+          { id: 'completed', label: COMPLAINT_STATUS_AR.COMPLETED, value: 'completed' },
+          { id: 'rejected', label: COMPLAINT_STATUS_AR.REJECTED, value: 'rejected' },
           ...baseOptions,
         ];
 
@@ -79,7 +84,7 @@ export default function ComplaintsScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchComplaints();
+    await getComplaints();
     setRefreshing(false);
   };
 
@@ -110,6 +115,9 @@ export default function ComplaintsScreen() {
         case 'completed':
           return item.status === COMPLAINT_STATUS.COMPLETED;
 
+        case 'rejected':
+          return item.status === COMPLAINT_STATUS.REJECTED;
+
         case 'assigned_to_me':
           return (user?.role === ROLES.MANAGER && item.manager_assignee_id === user.id) ||
             (user?.role === ROLES.WORKER && item.worker_assignee_id === user.id);
@@ -137,19 +145,11 @@ export default function ComplaintsScreen() {
     return filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   }, [complaints, selectedArea, selectedIndicator, selectedFilter, user]);
 
-  const fetchComplaints = async () => {
+  const getComplaints = async () => {
     setLoading(true);
     try {
-      const snapshot = await database().ref('/complaints').once('value');
-      const complaintsData = snapshot.val();
-      const complaintsArray = complaintsData
-        ? Object.keys(complaintsData).map(key => ({
-          id: key,
-          ...complaintsData[key],
-        }))
-        : [];
-
-      setComplaints(complaintsArray);
+      const complaintsArray = await fetchComplaints();
+      dispatch(setComplaints(complaintsArray));
     } catch (error) {
       console.error('خطأ في جلب الشكاوى:', error);
       Alert.alert('خطأ', 'حدث خطأ أثناء جلب الشكاوى');
@@ -172,20 +172,23 @@ export default function ComplaintsScreen() {
   // Refresh complaints when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      fetchComplaints();
+      getComplaints();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   );
 
   const getStatusText = (status) => {
     switch (status) {
       case COMPLAINT_STATUS.PENDING:
-        return 'قيد الانتظار';
+        return COMPLAINT_STATUS_AR.PENDING;
       case COMPLAINT_STATUS.ASSIGNED:
-        return 'مُعيّنة';
+        return COMPLAINT_STATUS_AR.ASSIGNED;
       case COMPLAINT_STATUS.RESOLVED:
-        return 'محلولة';
+        return (user?.role === ROLES.CITIZEN) ? COMPLAINT_STATUS_AR.ASSIGNED : COMPLAINT_STATUS_AR.RESOLVED;
       case COMPLAINT_STATUS.COMPLETED:
-        return 'مكتملة';
+        return (user?.role === ROLES.CITIZEN) ? COMPLAINT_STATUS_AR.RESOLVED : COMPLAINT_STATUS_AR.COMPLETED;
+      case COMPLAINT_STATUS.REJECTED:
+        return COMPLAINT_STATUS_AR.REJECTED;
       default:
         return 'غير محدد';
     }
@@ -198,9 +201,11 @@ export default function ComplaintsScreen() {
       case COMPLAINT_STATUS.ASSIGNED:
         return COLORS.status.assigned;
       case COMPLAINT_STATUS.RESOLVED:
-        return COLORS.status.resolved;
+        return (user?.role === ROLES.CITIZEN) ? COLORS.status.assigned : COLORS.status.resolved;
       case COMPLAINT_STATUS.COMPLETED:
-        return COLORS.status.completed;
+        return (user?.role === ROLES.CITIZEN) ? COLORS.status.resolved : COLORS.status.completed;
+      case COMPLAINT_STATUS.REJECTED:
+        return COLORS.status.rejected;
       default:
         return { background: COLORS.gray[200], text: COLORS.gray[600] };
     }
@@ -208,8 +213,8 @@ export default function ComplaintsScreen() {
 
   // Check if any filters are active
   const hasActiveFilters = () => {
-    const defaultFilter = user?.role === ROLES.CITIZEN ? 'my' : 
-                         user?.role === ROLES.ADMIN ? 'pending' : 'assigned_to_me';
+    const defaultFilter = user?.role === ROLES.CITIZEN ? 'my' :
+      user?.role === ROLES.ADMIN ? 'pending' : 'assigned_to_me';
     return selectedArea || selectedIndicator || selectedFilter !== defaultFilter;
   };
 
@@ -228,24 +233,24 @@ export default function ComplaintsScreen() {
 
   const renderComplaint = ({ item }) => {
     const {
-      user_id,
+      // user_id,
       indicator_id,
       area_id,
       description,
       status,
       photo_url,
       created_at,
-      updated_at,
-      latitude,
-      longitude,
-      manager_assignee_id,
-      worker_assignee_id,
-      resolved_photo_url,
-      resolved_at
+      // updated_at,
+      // latitude,
+      // longitude,
+      // manager_assignee_id,
+      // worker_assignee_id,
+      // resolved_photo_url,
+      // resolved_at
     } = item;
 
-    const area = areas.find(area => area.id == area_id);
-    const indicator = indicators.find(indicator => indicator.id == indicator_id);
+    const area = areas.find(a => a.id === area_id);
+    const indicator = indicators.find(i => i.id === indicator_id);
     const statusColor = getStatusColor(status);
 
     return (
@@ -256,7 +261,7 @@ export default function ComplaintsScreen() {
         }
       >
         {/* Status Strip */}
-        <View style={[styles.statusStrip, { backgroundColor: statusColor.background }]} />
+        {/* <View style={[styles.statusStrip, { backgroundColor: statusColor.background }]} /> */}
 
         <View style={styles.cardContainer}>
           {/* Right Image */}
@@ -292,8 +297,14 @@ export default function ComplaintsScreen() {
 
           {/* Left Content */}
           <View style={styles.leftContent}>
-            {/* Status Badge - Top Left */}
+            {/* Top Section */}
             <View style={styles.topSection}>
+              {/* Location Section */}
+              <View style={styles.locationSection}>
+                <Icon name="location-outline" size={16} color={COLORS.primary} />
+                <Text style={styles.areaText}>{area?.name_ar || 'غير محدد'}</Text>
+              </View>
+              {/* Status Badge - Top Left */}
               <View style={[styles.statusBadge, { backgroundColor: statusColor.background }]}>
                 <Text style={[styles.statusText, { color: statusColor.text }]} numberOfLines={1}>
                   {getStatusText(status)}
@@ -303,19 +314,19 @@ export default function ComplaintsScreen() {
 
             {/* Title Section */}
             <View style={styles.titleSection}>
-              <Text style={styles.indicatorTitle} numberOfLines={2}>
+              <Text style={styles.indicatorTitle} numberOfLines={2} ellipsizeMode='tail'>
                 {indicator?.description_ar || 'غير محدد'}
               </Text>
             </View>
 
             {/* Location Section */}
-            <View style={styles.locationSection}>
+            {/* <View style={styles.locationSection}>
               <Text style={styles.areaText}>{area?.name_ar || 'غير محدد'}</Text>
               <Icon name="location-outline" size={16} color={COLORS.primary} />
-            </View>
+            </View> */}
 
             {/* Description */}
-            <Text style={styles.description} numberOfLines={3} ellipsizeMode='tail'>
+            <Text style={styles.description} numberOfLines={1} ellipsizeMode='tail'>
               {description || 'لا يوجد وصف'}
             </Text>
 
@@ -325,20 +336,20 @@ export default function ComplaintsScreen() {
                 <Text style={styles.dateText}>
                   {moment(created_at).format('DD/MM/YYYY - hh:mm A')}
                 </Text>
-                <Icon name="time-outline" size={14} color={COLORS.text.secondary} />
+                <Icon name="time-outline" size={10} color={COLORS.text.secondary} />
               </View>
 
-              {resolved_at && (
+              {/* {resolved_at && (
                 <View style={styles.resolvedContainer}>
                   <Text style={styles.resolvedText}>
                     تم الحل: {moment(resolved_at).format('DD/MM/YYYY')}
                   </Text>
                   <Icon name="checkmark-circle" size={14} color={COLORS.success} />
                 </View>
-              )}
+              )} */}
 
               {/* Assignment Tags */}
-              {(manager_assignee_id || worker_assignee_id) && (
+              {/* {(manager_assignee_id || worker_assignee_id) && (
                 <View style={styles.assignmentTags}>
                   {manager_assignee_id && (
                     <View style={styles.assignmentTag}>
@@ -353,13 +364,13 @@ export default function ComplaintsScreen() {
                     </View>
                   )}
                 </View>
-              )}
+              )} */}
             </View>
           </View>
         </View>
 
         {/* Progress Indicator */}
-        <View style={styles.progressContainer}>
+        {/* <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
             <View
               style={[
@@ -373,7 +384,7 @@ export default function ComplaintsScreen() {
               ]}
             />
           </View>
-        </View>
+        </View> */}
       </TouchableOpacity>
     );
   };
@@ -402,15 +413,19 @@ export default function ComplaintsScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>الشكاوى</Text>
+        <Text style={styles.headerSubtitle}>تابع حالة شكواك خطوة بخطوة</Text>
+      </View>
       {/* Filter Bar */}
       <View style={styles.filterBar}>
         <View style={styles.filterContent}>
-          {/* <ScrollView
+          <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filterScrollContent}
             style={styles.filtersContainer}
-          > */}
+          >
             {/* Role-based Filter */}
             {user?.role !== ROLES.CITIZEN && (
               <SimplePicker
@@ -420,6 +435,7 @@ export default function ComplaintsScreen() {
                 selectedValue={getFilterOptions().find(opt => opt.value === selectedFilter)?.label}
                 onValueChange={(item) => setSelectedFilter(item.value)}
                 style={styles.filterPicker}
+                showLabel={false}
               />
             )}
 
@@ -431,6 +447,7 @@ export default function ComplaintsScreen() {
               selectedValue={selectedArea?.name_ar}
               onValueChange={setSelectedArea}
               style={styles.filterPicker}
+              showLabel={false}
             />
 
             {/* Indicator Filter */}
@@ -441,8 +458,9 @@ export default function ComplaintsScreen() {
               selectedValue={selectedIndicator?.description_ar}
               onValueChange={setSelectedIndicator}
               style={styles.filterPicker}
+              showLabel={false}
             />
-          {/* </ScrollView> */}
+          </ScrollView>
 
           {/* Clear Filters Icon */}
           {hasActiveFilters() && (
@@ -454,14 +472,15 @@ export default function ComplaintsScreen() {
             </TouchableOpacity>
           )}
         </View>
+        {/* Results Count */}
+        <View style={styles.resultsContainer}>
+          <Text style={styles.resultsText}>
+            {filteredComplaints.length} شكاوى
+          </Text>
+        </View>
       </View>
 
-      {/* Results Count */}
-      <View style={styles.resultsContainer}>
-        <Text style={styles.resultsText}>
-          {filteredComplaints.length} شكوى
-        </Text>
-      </View>
+
 
       {/* Complaints List */}
       <FlatList
@@ -498,23 +517,44 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  
+  header: {
+    backgroundColor: COLORS.primary,
+    padding: SPACING.lg,
+    paddingTop: SPACING.xxxl,
+  },
+  headerTitle: {
+    fontSize: FONT_SIZES.xxl,
+    fontWeight: FONT_WEIGHTS.bold,
+    color: COLORS.white,
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.white,
+    textAlign: 'center',
+  },
+
   // Filter Bar Styles
   filterBar: {
     backgroundColor: COLORS.white,
-    paddingVertical: SPACING.md,
+    paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.sm,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray[200],
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    // shadowColor: COLORS.shadow,
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 4,
     elevation: 3,
+    borderRadius: BORDER_RADIUS.lg,
+    marginTop: SPACING.sm,
+    marginHorizontal: SPACING.md,
   },
   filterContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[200],
   },
   filtersContainer: {
     flex: 1,
@@ -525,23 +565,25 @@ const styles = StyleSheet.create({
   },
   filterPicker: {
     marginRight: SPACING.sm,
-    // width: 'fit-content',
+    // maxWidth: 140, // ✅ limit width
+    // flexShrink: 1, // ✅ allow shrinking instead of pushing out
   },
   clearFilterIcon: {
     paddingHorizontal: SPACING.xs,
     paddingVertical: SPACING.md,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 'auto'
   },
 
   // Results Counter
   resultsContainer: {
     backgroundColor: COLORS.white,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.gray[100],
+    paddingTop: SPACING.sm,
+    // paddingHorizontal: SPACING.md,
+    // borderBottomWidth: 1,
+    // borderBottomColor: COLORS.gray[100],
+    // borderBottomEndRadius: BORDER_RADIUS.lg,
+    // borderBottomStartRadius: BORDER_RADIUS.lg,
   },
   resultsText: {
     fontSize: FONT_SIZES.sm,
@@ -565,13 +607,13 @@ const styles = StyleSheet.create({
   complaintCard: {
     backgroundColor: COLORS.white,
     marginHorizontal: SPACING.md,
-    marginVertical: SPACING.sm,
+    marginTop: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 5,
+    // shadowColor: COLORS.shadow,
+    // shadowOffset: { width: 0, height: 4 },
+    // shadowOpacity: 0.12,
+    // shadowRadius: 8,
+    elevation: 2,
     overflow: 'hidden',
   },
   statusStrip: {
@@ -580,18 +622,19 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     flexDirection: 'row',
-    padding: SPACING.lg,
+    padding: SPACING.md,
     minHeight: 140,
   },
-  
+
   // Right Content (Image Section) - appears first in RTL
   imageSection: {
-    width: 110,
+    width: 128,
     alignItems: 'center',
+    justifyContent: 'center',
     gap: SPACING.sm,
     // marginRight: SPACING.md,
   },
-  
+
   // Left Content (Text Section) - appears second in RTL
   leftContent: {
     flex: 1,
@@ -599,38 +642,40 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   topSection: {
-    alignItems: 'flex-start',
-    marginBottom: SPACING.sm,
+    // alignItems: 'flex-end',
+    marginBottom: SPACING.xs,
+    flexDirection: 'row',
+    justifyContent: "space-between",
   },
   titleSection: {
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.xs,
     writingDirection: "rtl"
   },
   locationSection: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    marginBottom: SPACING.md,
+    // marginBottom: SPACING.md,
   },
   indicatorTitle: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '700',
     color: COLORS.text.primary,
     // textAlign: 'auto',
-    lineHeight: 24,
+    lineHeight: 22,
   },
   areaText: {
-    fontSize: FONT_SIZES.md,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.primary,
-    fontWeight: '600',
+    fontWeight: '700',
     // textAlign: 'right',
     marginLeft: 4,
   },
   statusBadge: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: BORDER_RADIUS.lg,
-    minWidth: 80,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.md,
+    // minWidth: 80,
     alignItems: 'center',
   },
   statusText: {
@@ -643,7 +688,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     textAlign: 'auto',
     lineHeight: 22,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
 
   // Footer Info
@@ -656,7 +701,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   dateText: {
-    fontSize: FONT_SIZES.sm,
+    fontSize: FONT_SIZES.xs,
     color: COLORS.text.secondary,
     fontWeight: '500',
     marginLeft: 4,
@@ -698,8 +743,8 @@ const styles = StyleSheet.create({
   // Image Container Styles
   imageContainer: {
     position: 'relative',
-    width: 110,
-    height: 110,
+    width: 128,
+    height: 128,
     borderRadius: BORDER_RADIUS.md,
     overflow: 'hidden',
     shadowColor: COLORS.shadow,

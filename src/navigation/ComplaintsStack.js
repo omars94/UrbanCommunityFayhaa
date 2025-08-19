@@ -12,7 +12,7 @@ export default function ComplaintsStack() {
       <Stack.Screen
         name={ROUTE_NAMES.COMPLAINTS}
         component={ComplaintsScreen}
-        options={{ title: 'الشكاوى' }}
+        options={{ title: 'الشكاوى', headerShown: false  }}
       />
       <Stack.Screen
         name={ROUTE_NAMES.ADD_COMPLAINT}

@@ -50,17 +50,21 @@ export const COLORS = {
       background: '#fff3cd',
       text: '#856404',
     },
-    assigned: {
+    resolved: {
       background: '#d4edda',
       text: '#155724',
     },
-    resolved: {
+    rejected: {
+      background: '#f8d7da',
+      text: '#721c24',
+    },
+    assigned: {
       background: '#cce7ff',
       text: '#004085',
     },
     completed: {
-      background: '#cce7ff',
-      text: '#004085',
+      background: '#e2e3e5',
+      text: '#383d41',
     },
   },
   
@@ -262,6 +266,16 @@ export const COMPLAINT_STATUS = {
   // IN_PROGRESS: 'in_progress',
   RESOLVED: 'resolved',
   COMPLETED: 'completed',
+  REJECTED: 'rejected',
+};
+
+export const COMPLAINT_STATUS_AR = {
+  PENDING: 'قيد الانتظار',
+  ASSIGNED: 'مُعيّنة',
+  // IN_PROGRESS: 'in_progress',
+  RESOLVED: 'محلولة',
+  COMPLETED: 'مكتملة',
+  REJECTED: 'ملغاة',
 };
 
 // Complaint Types
@@ -347,6 +361,7 @@ export default {
   SIZES,
   ROUTE_NAMES,
   COMPLAINT_STATUS,
+  COMPLAINT_STATUS_AR,
   // COMPLAINT_TYPES,
   // API_ENDPOINTS,
   STORAGE_KEYS,
