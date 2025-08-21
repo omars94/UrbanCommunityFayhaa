@@ -30,7 +30,7 @@ function SimplePicker({
           style={{
             marginBottom: 5,
             fontSize: FONT_SIZES.md,
-            fontWeight: FONT_WEIGHTS.medium,
+            fontWeight: FONT_WEIGHTS.semibold,
             color: COLORS.text.primary,
           }}
         >

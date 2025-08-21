@@ -1,3 +1,380 @@
+// import React, { useState } from 'react';
+// import {
+//   Alert,
+//   Text,
+//   Image,
+//   StyleSheet,
+//   TouchableOpacity,
+//   View,
+//   TextInput,
+//   PermissionsAndroid,
+//   Platform,
+//   Linking,
+// } from 'react-native';
+// // import { Button } from 'react-native-paper';
+// import { useDispatch, useSelector } from 'react-redux';
+// import { useNavigation } from '@react-navigation/native';
+// import { launchCamera } from 'react-native-image-picker';
+// import Geolocation from '@react-native-community/geolocation';
+// import { Ionicons } from '@react-native-vector-icons/ionicons';
+// import { Formik } from 'formik';
+// import * as Yup from 'yup';
+// import SimplePicker from '../components/SimplePicker';
+// import database from '@react-native-firebase/database';
+// import storage from '@react-native-firebase/storage';
+// import {
+//   COLORS,
+//   SPACING,
+//   BORDER_RADIUS,
+//   FONT_SIZES,
+//   FONT_WEIGHTS,
+//   SHADOWS,
+//   SIZES,
+// } from '../constants/index.ts';
+// import { ScrollView } from 'react-native-gesture-handler';
+// import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
+// import { addComplaint } from '../slices/complaintsSlice.js';
+
+// //Yup validation schema
+// const ComplaintSchema = Yup.object().shape({
+//   indicator: Yup.object().required('يرجى اختيار نوع المشكلة'),
+//   area: Yup.object().required('يرجى اختيار المنطقة'),
+//   description: Yup.string().trim().required('يرجى إدخال الوصف'),
+//   photo: Yup.mixed().required('يرجى إرفاق صورة'),
+// });
+
+// export default function AddComplaintScreen() {
+//   const navigation = useNavigation();
+//   const dispatch = useDispatch();
+//   const [submitting, setSubmitting] = useState(false);
+//   const [metadata, setMetadata] = useState(null);
+
+//   const { areas, indicators } = useSelector(state => state.data);
+//   const { user } = useSelector(state => state.user);
+
+//   console.log('Areas from Redux:', areas);
+//   console.log('Indicators from Redux:', indicators);
+//   console.log('Current User:', user);
+
+//   const requestPermissions = async () => {
+//     if (Platform.OS === 'android') {
+//       try {
+//         // Request camera permission
+//         const cameraGranted = await PermissionsAndroid.request(
+//           PermissionsAndroid.PERMISSIONS.CAMERA,
+//           {
+//             title: 'إذن الكاميرا',
+//             message: 'التطبيق يحتاج إلى إذن الكاميرا ليعمل بشكل صحيح',
+//             buttonNeutral: 'اسألني لاحقاً',
+//             buttonNegative: 'إلغاء',
+//             buttonPositive: 'موافق',
+//           },
+//         );
+
+//         // Request location permission
+//         const locationGranted = await PermissionsAndroid.request(
+//           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+//           {
+//             title: 'إذن الموقع',
+//             message: 'التطبيق يحتاج إلى إذن الموقع ليعمل بشكل صحيح',
+//             buttonNeutral: 'اسألني لاحقاً',
+//             buttonNegative: 'إلغاء',
+//             buttonPositive: 'موافق',
+//           },
+//         );
+
+//         // Handle camera permission results
+//         if (cameraGranted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+//           Alert.alert(
+//             'تم رفض الإذن نهائياً',
+//             'من فضلك قم بتمكين إذن الكاميرا من إعدادات التطبيق.',
+//             [
+//               { text: 'إلغاء', style: 'cancel' },
+//               {
+//                 text: 'فتح الإعدادات',
+//                 onPress: () => Linking.openSettings(),
+//               },
+//             ],
+//           );
+//           return false;
+//         }
+
+//         if (cameraGranted !== PermissionsAndroid.RESULTS.GRANTED) {
+//           // Show alert with option to try again
+//           await new Promise(resolve => {
+//             Alert.alert('تم رفض الإذن', 'يلزم منح إذن الكاميرا!', [
+//               { text: 'إلغاء', onPress: () => resolve(false), style: 'cancel' },
+//               { text: 'حاول مرة أخرى', onPress: () => resolve(true) },
+//             ]);
+//           });
+//           return await requestPermissions(); // Recursively call to request again
+//         }
+
+//         // Handle location permission results
+//         if (locationGranted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+//           Alert.alert(
+//             'تم رفض الإذن نهائياً',
+//             'من فضلك قم بتمكين إذن الموقع من إعدادات التطبيق.',
+//             [
+//               { text: 'إلغاء', style: 'cancel' },
+//               {
+//                 text: 'فتح الإعدادات',
+//                 onPress: () => Linking.openSettings(),
+//               },
+//             ],
+//           );
+//           return false;
+//         }
+
+//         if (locationGranted !== PermissionsAndroid.RESULTS.GRANTED) {
+//           // Show alert with option to try again
+//           await new Promise(resolve => {
+//             Alert.alert('تم رفض الإذن', 'يلزم منح إذن الموقع!', [
+//               { text: 'إلغاء', onPress: () => resolve(false), style: 'cancel' },
+//               { text: 'حاول مرة أخرى', onPress: () => resolve(true) },
+//             ]);
+//           });
+//           return await requestPermissions(); // Recursively call to request again
+//         }
+
+//         return true;
+//       } catch (err) {
+//         console.warn(err);
+//         return false;
+//       }
+//     }
+//     return true;
+//   };
+
+//   const takePhoto = async setFieldValue => {
+//     const granted = await requestPermissions();
+//     if (!granted) return; // stop if permissions not granted
+
+//     const result = await launchCamera({
+//       mediaType: 'photo',
+//       quality: 0.8,
+//       saveToPhotos: false,
+//     });
+
+//     console.log('Camera result:', result);
+
+//     if (!result.didCancel && result.assets?.[0]?.uri) {
+//       Geolocation.getCurrentPosition(
+//         position => {
+//           setFieldValue('photo', result.assets[0].uri); //  set Formik value
+//           setMetadata({
+//             location: {
+//               latitude: position.coords.latitude.toString(),
+//               longitude: position.coords.longitude.toString(),
+//             },
+//             timestamp: new Date().toISOString(),
+//           });
+//         },
+//         error => {
+//           Alert.alert('خطأ', 'تعذر الحصول على الموقع');
+//           console.error(error);
+//         },
+//         { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
+//       );
+//     }
+//   };
+
+//   const uploadPhoto = async uri => {
+//     const filename = `issues/${Date.now()}.jpg`;
+//     const reference = storage().ref(filename);
+//     await reference.putFile(uri);
+//     return await reference.getDownloadURL();
+//   };
+
+//   const handleSubmitComplaint = async values => {
+//     setSubmitting(true);
+//     try {
+//       let photoUrl = '';
+//       if (values.photo) {
+//         photoUrl = await uploadPhoto(values.photo);
+//       }
+
+//       const complaintData = {
+//         indicator_id: values.indicator.id,
+//         area_id: values.area.id,
+//         description: values.description.trim(),
+//         photo_url: photoUrl,
+//         longitude: metadata?.location?.longitude || '',
+//         latitude: metadata?.location?.latitude || '',
+//         status: 'pending',
+//         user_id: user?.user?.id,
+//         created_at: new Date().toISOString(),
+//         area_name: values.area.name_ar,
+//         indicator_name: values.indicator.description_ar,
+//       };
+
+//       await database().ref('/complaints').push(complaintData);
+//       dispatch(addComplaint(complaintData));
+
+//       Alert.alert('تم الحفظ بنجاح', 'تم حفظ الشكوى بنجاح', [
+//         { text: 'حسناً', onPress: () => navigation.goBack() },
+//       ]);
+//     } catch (error) {
+//       console.error('Error submitting complaint:', error);
+//       Alert.alert('خطأ', 'حدث خطأ أثناء الحفظ');
+//     } finally {
+//       setSubmitting(false);
+//     }
+//   };
+
+//   // Your form component return statement (updated)
+//   return (
+//     <ScrollView>
+//       <View style={styles.container}>
+//         {/* Header */}
+//         <View style={styles.header}>
+//           <TouchableOpacity
+//             style={styles.backButton}
+//             onPress={() => navigation.goBack()} // or your navigation function
+//           >
+//             <Ionicons name="arrow-forward" size={24} color={COLORS.white} />
+//           </TouchableOpacity>
+//           <Text style={styles.headerTitle}>تقديم شكوى</Text>
+//           <Text style={styles.headerSub}>الإبلاغ عن مشكلة في منطقتك</Text>
+//         </View>
+
+//         <Formik
+//           initialValues={{
+//             indicator: null,
+//             area: null,
+//             description: '',
+//             photo: null,
+//           }}
+//           validationSchema={ComplaintSchema}
+//           onSubmit={handleSubmitComplaint}
+//         >
+//           {({
+//             handleChange,
+//             handleSubmit,
+//             setFieldValue,
+//             values,
+//             errors,
+//             touched,
+//           }) => (
+//             <View style={styles.content}>
+//               {/* Info Box */}
+//               {/* <View style={styles.infoBox}>
+//               <Text style={styles.infoText}>الموقع الحالي: طرابلس، لبنان</Text>
+//             </View> */}
+
+//               {/* Form Card */}
+//               <View style={styles.formCard}>
+//                 {/* Photo Capture */}
+//                 <View style={styles.photoSection}>
+//                   <TouchableOpacity
+//                     onPress={() => takePhoto(setFieldValue)}
+//                     style={[
+//                       styles.photoButton,
+//                       values.photo && styles.photoButtonWithImage,
+//                     ]}
+//                   >
+//                     {values.photo ? (
+//                       <Image
+//                         source={{ uri: values.photo }}
+//                         style={styles.photoPreview}
+//                       />
+//                     ) : (
+//                       <View style={styles.photoPlaceholder}>
+//                         <MaterialDesignIcons
+//                           name="camera-plus-outline"
+//                           size={40}
+//                           color={COLORS.text.black}
+//                         />
+//                         <Text style={styles.photoText}>
+//                           التقط صورة لتوضيح المشكلة
+//                         </Text>
+//                       </View>
+//                     )}
+//                   </TouchableOpacity>
+//                   {touched.photo && errors.photo && (
+//                     <Text style={styles.errorText}>{errors.photo}</Text>
+//                   )}
+//                 </View>
+
+//                 {/* Pickers Section */}
+//                 <View style={styles.pickersSection}>
+//                   <View style={styles.pickerContainer}>
+//                     <SimplePicker
+//                       label="نوع المشكلة"
+//                       options={indicators}
+//                       labelKey="description_ar"
+//                       selectedValue={values.indicator?.description_ar}
+//                       onValueChange={val => setFieldValue('indicator', val)}
+//                     />
+//                     {touched.indicator && errors.indicator && (
+//                       <Text style={styles.errorText}>{errors.indicator}</Text>
+//                     )}
+//                   </View>
+
+//                   <View style={styles.pickerContainer}>
+//                     <SimplePicker
+//                       label="المنطقة"
+//                       labelKey="name_ar"
+//                       options={areas}
+//                       selectedValue={values.area?.name_ar}
+//                       onValueChange={val => setFieldValue('area', val)}
+//                     />
+//                     {touched.area && errors.area && (
+//                       <Text style={styles.errorText}>{errors.area}</Text>
+//                     )}
+//                   </View>
+//                 </View>
+
+//                 {/* Description Input */}
+//                 <View style={styles.inputSection}>
+//                   <Text style={styles.inputLabel}>وصف الشكوى</Text>
+//                   <TextInput
+//                     style={styles.textInput}
+//                     placeholder="اكتب تفاصيل الشكوى هنا..."
+//                     placeholderTextColor={COLORS.text.black}
+//                     multiline
+//                     maxLength={300}
+//                     value={values.description}
+//                     onChangeText={handleChange('description')}
+//                     textAlign="right"
+//                   />
+//                   <Text style={styles.characterCount}>
+//                     {values.description.length}/300
+//                   </Text>
+//                   {touched.description && errors.description && (
+//                     <Text style={styles.errorText}>{errors.description}</Text>
+//                   )}
+//                 </View>
+
+//                 {/* Submit Button */}
+//                 <TouchableOpacity
+//                   disabled={submitting}
+//                   onPress={handleSubmit}
+//                   style={[
+//                     styles.submitButton,
+//                     submitting && styles.submitButtonDisabled,
+//                   ]}
+//                 >
+//                   <Text style={styles.submitButtonText}>
+//                     {submitting ? 'جاري الإرسال...' : 'إرسال الشكوى'}
+//                   </Text>
+//                   <Ionicons
+//                     name="send"
+//                     // name="paper-plane"
+//                     size={20}
+//                     color={COLORS.white}
+//                     style={styles.submitIcon}
+//                   />
+//                 </TouchableOpacity>
+//               </View>
+//             </View>
+//           )}
+//         </Formik>
+//       </View>
+//     </ScrollView>
+//   );
+// }
+
 import React, { useState } from 'react';
 import {
   Alert,
@@ -7,11 +384,8 @@ import {
   TouchableOpacity,
   View,
   TextInput,
-  PermissionsAndroid,
-  Platform,
 } from 'react-native';
-import { Button } from 'react-native-paper';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { launchCamera } from 'react-native-image-picker';
 import Geolocation from '@react-native-community/geolocation';
@@ -19,8 +393,6 @@ import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import SimplePicker from '../components/SimplePicker';
-import database from '@react-native-firebase/database';
-import storage from '@react-native-firebase/storage';
 import {
   COLORS,
   SPACING,
@@ -31,10 +403,15 @@ import {
   SIZES,
 } from '../constants/index.ts';
 import { ScrollView } from 'react-native-gesture-handler';
+import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
+import { addComplaint } from '../slices/complaintsSlice.js';
+import { requestPermissions } from '../utils/Permissions.js';
+import storage from '@react-native-firebase/storage';
+import { addNewComplaint } from '../api/complaintsApi.js';
 
 //Yup validation schema
 const ComplaintSchema = Yup.object().shape({
-  indicator: Yup.object().required('يرجى اختيار المؤشر'),
+  indicator: Yup.object().required('يرجى اختيار نوع المشكلة'),
   area: Yup.object().required('يرجى اختيار المنطقة'),
   description: Yup.string().trim().required('يرجى إدخال الوصف'),
   photo: Yup.mixed().required('يرجى إرفاق صورة'),
@@ -42,6 +419,7 @@ const ComplaintSchema = Yup.object().shape({
 
 export default function AddComplaintScreen() {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
   const [submitting, setSubmitting] = useState(false);
   const [metadata, setMetadata] = useState(null);
 
@@ -52,48 +430,11 @@ export default function AddComplaintScreen() {
   console.log('Indicators from Redux:', indicators);
   console.log('Current User:', user);
 
-  // location and camera permissions
-  const requestPermissions = async () => {
-    if (Platform.OS === 'android') {
-      // Check current permission status first
-      const cameraStatus = await PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.CAMERA,
-      );
-
-      const locationStatus = await PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      );
-
-      // Only request camera permission if not already granted
-      let cameraGranted = cameraStatus;
-      if (!cameraStatus) {
-        const result = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.CAMERA,
-        );
-        cameraGranted = result === PermissionsAndroid.RESULTS.GRANTED;
-      }
-
-      // Only request location permission if not already granted
-      let locationGranted = locationStatus;
-      if (!locationStatus) {
-        const result = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        );
-        locationGranted = result === PermissionsAndroid.RESULTS.GRANTED;
-      }
-
-      // Show your custom Arabic alerts if permissions denied
-      if (!cameraGranted) {
-        Alert.alert('تم رفض الإذن', 'يلزم منح إذن الكاميرا!');
-        return false;
-      }
-
-      if (!locationGranted) {
-        Alert.alert('تم رفض الإذن', 'يلزم منح إذن الموقع!');
-        return false;
-      }
-    }
-    return true;
+  const uploadPhoto = async uri => {
+    const filename = `issues/${Date.now()}.jpg`;
+    const reference = storage().ref(filename);
+    await reference.putFile(uri);
+    return await reference.getDownloadURL();
   };
 
   const takePhoto = async setFieldValue => {
@@ -129,19 +470,15 @@ export default function AddComplaintScreen() {
     }
   };
 
-  const uploadPhoto = async uri => {
-    const filename = `issues/${Date.now()}.jpg`;
-    const reference = storage().ref(filename);
-    await reference.putFile(uri);
-    return await reference.getDownloadURL();
-  };
-
   const handleSubmitComplaint = async values => {
+    console.log('Starting submission...');
     setSubmitting(true);
     try {
+      console.log('Uploading photo...');
       let photoUrl = '';
       if (values.photo) {
         photoUrl = await uploadPhoto(values.photo);
+        console.log('Photo uploaded:', photoUrl);
       }
 
       const complaintData = {
@@ -152,21 +489,40 @@ export default function AddComplaintScreen() {
         longitude: metadata?.location?.longitude || '',
         latitude: metadata?.location?.latitude || '',
         status: 'pending',
-        user_id: user.id,
+        user_id: user?.user?.id,
         created_at: new Date().toISOString(),
         area_name: values.area.name_ar,
         indicator_name: values.indicator.description_ar,
       };
 
-      await database().ref('/complaints').push(complaintData);
+      console.log('Submitting to database...');
+      const result = await addNewComplaint(
+        complaintData,
+        dispatch,
+        addComplaint,
+      );
+      console.log('Database result:', result);
 
-      Alert.alert('تم الحفظ بنجاح', 'تم حفظ الشكوى بنجاح', [
-        { text: 'حسناً', onPress: () => navigation.goBack() },
-      ]);
+      if (result.success) {
+        console.log('Success! Showing alert...');
+        Alert.alert('تم الحفظ بنجاح', 'تم حفظ الشكوى بنجاح', [
+          {
+            text: 'حسناً',
+            onPress: () => {
+              console.log('Navigating back...');
+              navigation.goBack();
+            },
+          },
+        ]);
+      } else {
+        console.log('Database error, showing error alert');
+        Alert.alert('خطأ', 'حدث خطأ أثناء الحفظ');
+      }
     } catch (error) {
       console.error('Error submitting complaint:', error);
       Alert.alert('خطأ', 'حدث خطأ أثناء الحفظ');
     } finally {
+      console.log('Setting submitting to false');
       setSubmitting(false);
     }
   };
@@ -229,11 +585,14 @@ export default function AddComplaintScreen() {
                       />
                     ) : (
                       <View style={styles.photoPlaceholder}>
-                        <Ionicons
-                          name="camera-outline"
+                        <MaterialDesignIcons
+                          name="camera-plus-outline"
                           size={40}
-                          color={COLORS.gray[400]}
+                          color={COLORS.text.black}
                         />
+                        <Text style={styles.photoText}>
+                          التقط صورة لتوضيح المشكلة
+                        </Text>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -246,7 +605,7 @@ export default function AddComplaintScreen() {
                 <View style={styles.pickersSection}>
                   <View style={styles.pickerContainer}>
                     <SimplePicker
-                      label="المؤشر"
+                      label="نوع المشكلة"
                       options={indicators}
                       labelKey="description_ar"
                       selectedValue={values.indicator?.description_ar}
@@ -277,7 +636,7 @@ export default function AddComplaintScreen() {
                   <TextInput
                     style={styles.textInput}
                     placeholder="اكتب تفاصيل الشكوى هنا..."
-                    placeholderTextColor={COLORS.text.hint}
+                    placeholderTextColor={COLORS.text.black}
                     multiline
                     maxLength={300}
                     value={values.description}
@@ -301,15 +660,16 @@ export default function AddComplaintScreen() {
                     submitting && styles.submitButtonDisabled,
                   ]}
                 >
+                  <Text style={styles.submitButtonText}>
+                    {submitting ? 'جاري الإرسال...' : 'إرسال الشكوى'}
+                  </Text>
                   <Ionicons
                     name="send"
+                    // name="paper-plane"
                     size={20}
                     color={COLORS.white}
                     style={styles.submitIcon}
                   />
-                  <Text style={styles.submitButtonText}>
-                    {submitting ? 'جاري الإرسال...' : 'إرسال الشكوى'}
-                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -318,6 +678,11 @@ export default function AddComplaintScreen() {
       </View>
     </ScrollView>
   );
+
+  // Note: You'll need to add your styles object here or import it from a separate styles file
+  // const styles = StyleSheet.create({
+  //   // Your existing styles go here
+  // });
 }
 // Updated StyleSheet using your constants
 const styles = StyleSheet.create({
@@ -355,19 +720,19 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: SPACING.lg,
   },
-  infoBox: {
-    backgroundColor: COLORS.location,
-    borderRadius: BORDER_RADIUS.sm,
-    padding: SPACING.md,
-    marginBottom: SPACING.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  infoText: {
-    color: COLORS.text.secondary,
-    fontSize: FONT_SIZES.sm,
-    marginLeft: SPACING.sm,
-  },
+  // infoBox: {
+  //   backgroundColor: COLORS.location,
+  //   borderRadius: BORDER_RADIUS.sm,
+  //   padding: SPACING.md,
+  //   marginBottom: SPACING.lg,
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  // },
+  // infoText: {
+  //   color: COLORS.text.secondary,
+  //   fontSize: FONT_SIZES.sm,
+  //   marginLeft: SPACING.sm,
+  // },
   formCard: {
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.lg,
@@ -402,8 +767,12 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: BORDER_RADIUS.md - 2,
   },
+  photoText: {
+    color: COLORS.text.black,
+    fontSize: FONT_SIZES.md,
+  },
   pickersSection: {
-    marginBottom: SPACING.lg,
+    marginBottom: 5,
   },
   pickerContainer: {
     marginBottom: SPACING.sm,
@@ -413,7 +782,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: FONT_SIZES.md,
-    fontWeight: FONT_WEIGHTS.medium,
+    fontWeight: FONT_WEIGHTS.semibold,
     color: COLORS.text.primary,
     marginBottom: SPACING.sm,
     marginLeft: SPACING.sm,
@@ -454,16 +823,19 @@ const styles = StyleSheet.create({
   },
   submitIcon: {
     marginRight: SPACING.sm,
+    transform: [{ rotate: '180deg' }],
   },
   submitButtonText: {
     color: COLORS.white,
     fontSize: FONT_SIZES.lg,
     fontWeight: FONT_WEIGHTS.semibold,
+    marginRight: SPACING.xs,
   },
   errorText: {
-    color: COLORS.danger,
-    fontSize: FONT_SIZES.xs,
+    color: COLORS.primary,
+    fontSize: FONT_SIZES.sm,
     marginTop: SPACING.xs,
+    fontWeight: FONT_WEIGHTS.medium,
     // textAlign: 'right',
   },
 });
