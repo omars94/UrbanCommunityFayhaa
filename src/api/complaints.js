@@ -32,12 +32,10 @@ export const assignComplaint = async (complaintId, assignedUserId, assignedUserN
     updates.manager_assignee_id = assignedUserId;
     updates.manager_name = assignedUserName;
     updates.assigned_at = new Date().toISOString();
-    updates.assigned_by = userId;
   } else if (userRole === ROLES.MANAGER) {
     updates.worker_assignee_id = assignedUserId;
     updates.worker_name = assignedUserName;
     updates.assigned_to_worker_at = new Date().toISOString();
-    updates.assigned_to_worker_by = userId;
   }
 
   return await updateComplaintInDB(complaintId, updates);
@@ -47,7 +45,6 @@ export const resolveComplaint = async (complaintId, userId, photo_url) => {
   const updates = {
     status: COMPLAINT_STATUS.RESOLVED,
     resolved_at: new Date().toISOString(),
-    resolved_by: userId,
     resolved_photo_url: photo_url
   };
 
@@ -58,7 +55,6 @@ export const completeComplaint = async (complaintId, userId) => {
   const updates = {
     status: COMPLAINT_STATUS.COMPLETED,
     completed_at: new Date().toISOString(),
-    completed_by: userId,
   };
 
   return await updateComplaintInDB(complaintId, updates);
@@ -68,7 +64,6 @@ export const rejectComplaint = async (complaintId, userId, rejectionReason) => {
   const updates = {
     status: COMPLAINT_STATUS.REJECTED,
     rejected_at: new Date().toISOString(),
-    rejected_by: userId,
     rejection_reason: rejectionReason,
   };
 

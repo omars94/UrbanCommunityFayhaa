@@ -10,6 +10,8 @@ import {
   Alert,
   StatusBar,
   SafeAreaView,
+  FlatList,
+  Image,
   Modal,
   TextInput,
   ActivityIndicator,
@@ -138,6 +140,7 @@ export default function ComplaintDetailsScreen() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [showResolutionComponent, setShowResolutionComponent] = useState(false);
@@ -225,6 +228,73 @@ export default function ComplaintDetailsScreen() {
     };
     return statusMap[status] || status || 'غير محدد';
   };
+
+const renderImageSlider = () => {
+  const images = [complaint.photo_url];
+  if (complaint.resolved_photo_url) {
+    images.push(complaint.resolved_photo_url);
+  }
+
+  // Filter out null/undefined images
+  const validImages = images.filter(img => img);
+
+  if (validImages.length === 0) {
+    return null;
+  }
+
+  return (
+    <View style={styles.imageSliderContainer}>
+      <FlatList
+        data={validImages}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item, index) => index.toString()}
+        onMomentumScrollEnd={(event) => {
+          const index = Math.round(event.nativeEvent.contentOffset.x / width);
+          setCurrentImageIndex(index);
+        }}
+        renderItem={({ item }) => (
+          <TouchableOpacity activeOpacity={0.9}>
+            <Image 
+              source={{ uri: item }} 
+              style={styles.complaintImage}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
+        )}
+        snapToInterval={width}
+        decelerationRate="fast"
+        bounces={false}
+      />
+      
+      {validImages.length > 1 && (
+        <>
+          {/* Dot indicators */}
+          <View style={styles.imageIndicators}>
+            {validImages.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.indicator,
+                  index === currentImageIndex && styles.activeIndicator
+                ]}
+              />
+            ))}
+          </View>
+          
+          {/* Image counter */}
+          <View style={styles.imageCounter}>
+            <Text style={styles.counterText}>
+              {currentImageIndex + 1}/{validImages.length}
+            </Text>
+          </View>
+        </>
+      )}
+    </View>
+  );
+};
+
 
   const handleAssignComplaint = useCallback(async (assignedUserId, assignedUserName) => {
     setIsLoading(true);
@@ -698,6 +768,9 @@ export default function ComplaintDetailsScreen() {
       >
         <View style={styles.contentContainer}>
           <View style={styles.section}>
+            {renderImageSlider()}
+          </View>
+          <View style={styles.section}>
             <View style={styles.statusHeader}>
               <Text style={styles.sectionTitle}>حالة الشكوى</Text>
               <View style={[
@@ -752,21 +825,20 @@ export default function ComplaintDetailsScreen() {
               </View>
             )}
 
-            {currentComplaint.manager_name && (
+            {user.role === ROLES.ADMIN && currentComplaint.manager_name && (
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>👨‍💼 المدير المسؤول</Text>
                 <Text style={styles.infoValue}>{currentComplaint.manager_name}</Text>
               </View>
             )}
 
-            {currentComplaint.worker_name && (
+            {(user.role === ROLES.ADMIN || user.role === ROLES.MANAGER) && currentComplaint.worker_name && (
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>👷‍♂️ العامل المسؤول</Text>
                 <Text style={styles.infoValue}>{currentComplaint.worker_name}</Text>
               </View>
             )}
           </View>
-
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📍 الموقع على الخريطة</Text>
             <View style={styles.locationContainer}>
@@ -881,6 +953,52 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: SPACING.xl,
+  },
+
+  imageSliderContainer: {
+    position: 'relative',
+  },
+  complaintImage: {
+    width: width,
+    height: 250, // Made more flexible height
+    borderRadius: 8, // Added border radius for better look
+  },
+  imageIndicators: {
+    position: 'absolute',
+    bottom: 16,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  indicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    marginHorizontal: 3,
+  },
+  activeIndicator: {
+    backgroundColor: 'white',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  imageCounter: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  counterText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
   },
 
   section: {
