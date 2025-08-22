@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { Picker } from '@react-native-picker/picker';
+import { launchCamera } from 'react-native-image-picker';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { listenUsersByRole } from '../api/userApi';
@@ -34,12 +35,22 @@ import {
   FONT_FAMILIES,
   COMPLAINT_STATUS_AR,
 } from '../constants';
+import { requestCameraPermissions } from '../utils/Permissions.js';
+import { ImageResolutionComponent } from '../components/resolveComponent.js'
+import storage from '@react-native-firebase/storage';
 
 const { width } = Dimensions.get('window');
 
+const uploadPhoto = async uri => {
+  const filename = `issues/${Date.now()}.jpg`;
+  const reference = storage().ref(filename);
+  await reference.putFile(uri);
+  return await reference.getDownloadURL();
+};
+
 const getTimeAgo = (timestamp) => {
   if (!timestamp) return '';
-  
+
   try {
     const now = new Date();
     const date = new Date(timestamp);
@@ -47,7 +58,7 @@ const getTimeAgo = (timestamp) => {
     const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
     const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffInMinutes < 1) {
       return 'الآن';
     } else if (diffInMinutes < 60) {
@@ -129,6 +140,8 @@ export default function ComplaintDetailsScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [showResolutionComponent, setShowResolutionComponent] = useState(false);
+  const [capturedImageUri, setCapturedImageUri] = useState('');
 
   const user = useSelector((state) => state.user.user);
   useEffect(() => {
@@ -136,8 +149,8 @@ export default function ComplaintDetailsScreen() {
     let workersUnsubscribe;
 
     const setupListeners = async () => {
-      try {        
-        managersUnsubscribe = listenUsersByRole(ROLES.MANAGER,setManagers);
+      try {
+        managersUnsubscribe = listenUsersByRole(ROLES.MANAGER, setManagers);
         workersUnsubscribe = listenUsersByRole(ROLES.WORKER, setWorkers);
       } catch (error) {
         console.error('Setup error:', error);
@@ -176,7 +189,7 @@ export default function ComplaintDetailsScreen() {
     try {
       const snapshot = await database().ref(`complaints/${complaint.id}`).once('value');
       const data = snapshot.val();
-      
+
       if (data) {
         setComplaintData({ ...data, id: complaint.id });
         setStatus(data.status);
@@ -192,15 +205,15 @@ export default function ComplaintDetailsScreen() {
   }, [complaint?.id]);
 
   const getStatusColor = (status) => {
-  const statusMap = {
-    [COMPLAINT_STATUS.PENDING]: {bg: COLORS.status.pending.background, text: COLORS.status.pending.text },
-    [COMPLAINT_STATUS.ASSIGNED]: {bg: COLORS.status.assigned.background, text: COLORS.status.assigned.text },
-    [COMPLAINT_STATUS.RESOLVED]: {bg: COLORS.status.resolved.background, text: COLORS.status.resolved.text },
-    [COMPLAINT_STATUS.COMPLETED]: {bg: COLORS.status.completed.background, text: COLORS.status.completed.text },
-    [COMPLAINT_STATUS.REJECTED]: {bg: COLORS.status.rejected.background, text: COLORS.status.rejected.text },
+    const statusMap = {
+      [COMPLAINT_STATUS.PENDING]: { bg: COLORS.status.pending.background, text: COLORS.status.pending.text },
+      [COMPLAINT_STATUS.ASSIGNED]: { bg: COLORS.status.assigned.background, text: COLORS.status.assigned.text },
+      [COMPLAINT_STATUS.RESOLVED]: { bg: COLORS.status.resolved.background, text: COLORS.status.resolved.text },
+      [COMPLAINT_STATUS.COMPLETED]: { bg: COLORS.status.completed.background, text: COLORS.status.completed.text },
+      [COMPLAINT_STATUS.REJECTED]: { bg: COLORS.status.rejected.background, text: COLORS.status.rejected.text },
+    };
+    return statusMap[status] || { bg: COLORS.gray[200], text: COLORS.text.secondary };
   };
-  return statusMap[status] || { bg: COLORS.gray[200], text: COLORS.text.secondary };
-};
 
   const getStatusText = (status) => {
     const statusMap = {
@@ -228,29 +241,50 @@ export default function ComplaintDetailsScreen() {
   }, [complaint?.id, user]);
 
   const handleResolveComplaint = useCallback(async () => {
-    Alert.alert(
-      'تأكيد الحل',
-      'هل أنت متأكد من أن هذه الشكوى تم حلها؟',
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'تأكيد',
-          onPress: async () => {
-            setIsLoading(true);
-            try {
-              await resolveComplaint(complaint.id, user.id);
-              Alert.alert('نجح', 'تم تحديث حالة الشكوى إلى "تم الحل"');
-            } catch (error) {
-              console.error('Error resolving complaint:', error);
-              Alert.alert('خطأ', 'حدث خطأ أثناء تحديث الشكوى');
-            } finally {
-              setIsLoading(false);
-            }
-          },
-        },
-      ]
-    );
+    const granted = await requestCameraPermissions();
+    if (!granted) return;
+
+    const result = await launchCamera({
+      mediaType: 'photo',
+      quality: 0.8,
+      saveToPhotos: false,
+    });
+
+    console.log('Camera result:', result);
+    if (!result.didCancel && result.assets?.[0]?.uri) {
+      const uri = result.assets[0].uri;
+      setCapturedImageUri(uri);
+      console.log("New captured image:", uri);
+      setShowResolutionComponent(true);
+    }
   }, [complaint?.id, user?.id]);
+
+  useEffect(() => {
+    if (capturedImageUri) {
+      console.log("capturedImageUri updated:", capturedImageUri);
+    }
+  }, [capturedImageUri]);  
+
+  const submitResolveComplaint = async () => {
+
+    setIsLoading(true);
+    try {
+      const photo_url = await uploadPhoto(capturedImageUri);
+      console.log('Photo uploaded:', photo_url);
+      if(photo_url){
+        await resolveComplaint(complaint.id, user.id, photo_url);
+        Alert.alert('نجح', 'تم تحديث حالة الشكوى إلى "تم الحل"');
+      }else{
+        Alert.alert('خطأ', 'حدث خطأ أثناء تحديث الشكوى');
+      }
+    } catch (error) {
+      console.error('Error resolving complaint:', error);
+      Alert.alert('خطأ', 'حدث خطأ أثناء تحديث الشكوى');
+    } finally {
+      setIsLoading(false);
+    }
+
+  };
 
   const handleCompleteComplaint = useCallback(async () => {
     Alert.alert(
@@ -299,21 +333,21 @@ export default function ComplaintDetailsScreen() {
 
   const renderStatusTimeline = useCallback(() => {
     const currentComplaint = complaintData || complaint;
-    
+
     if (status === COMPLAINT_STATUS.REJECTED) {
       const rejectedSteps = [
-        { 
-          key: 'submitted', 
-          label: 'تم استلام الشكوى', 
-          completed: true, 
-          date: currentComplaint.created_at 
+        {
+          key: 'submitted',
+          label: 'تم استلام الشكوى',
+          completed: true,
+          date: currentComplaint.created_at
         },
-        { 
-          key: 'rejected', 
-          label: 'تم رفض الشكوى', 
-          completed: true, 
-          date: currentComplaint.rejected_at, 
-          isRejected: true 
+        {
+          key: 'rejected',
+          label: 'تم رفض الشكوى',
+          completed: true,
+          date: currentComplaint.rejected_at,
+          isRejected: true
         },
       ];
 
@@ -343,29 +377,29 @@ export default function ComplaintDetailsScreen() {
     }
 
     const timelineSteps = [
-      { 
-        key: 'submitted', 
-        label: 'تم استلام الشكوى', 
-        completed: true, 
-        date: currentComplaint.created_at 
+      {
+        key: 'submitted',
+        label: 'تم استلام الشكوى',
+        completed: true,
+        date: currentComplaint.created_at
       },
-      { 
-        key: 'assigned', 
-        label: 'تم تعيين الشكوى', 
-        completed: status !== COMPLAINT_STATUS.PENDING, 
-        date: currentComplaint.assigned_at || currentComplaint.assigned_to_worker_at 
+      {
+        key: 'assigned',
+        label: 'تم تعيين الشكوى',
+        completed: status !== COMPLAINT_STATUS.PENDING,
+        date: currentComplaint.assigned_at || currentComplaint.assigned_to_worker_at
       },
-      { 
-        key: 'resolved', 
-        label: 'قيد الحل', 
-        completed: [COMPLAINT_STATUS.RESOLVED, COMPLAINT_STATUS.COMPLETED].includes(status), 
-        date: currentComplaint.resolved_at 
+      {
+        key: 'resolved',
+        label: 'قيد الحل',
+        completed: [COMPLAINT_STATUS.RESOLVED, COMPLAINT_STATUS.COMPLETED].includes(status),
+        date: currentComplaint.resolved_at
       },
-      { 
-        key: 'completed', 
-        label: 'تم الحل', 
-        completed: status === COMPLAINT_STATUS.COMPLETED, 
-        date: currentComplaint.completed_at 
+      {
+        key: 'completed',
+        label: 'تم الحل',
+        completed: status === COMPLAINT_STATUS.COMPLETED,
+        date: currentComplaint.completed_at
       },
     ];
 
@@ -406,7 +440,7 @@ export default function ComplaintDetailsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>{modalTitle}</Text>
-            
+
             {usersToShow.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyStateText}>
@@ -458,7 +492,7 @@ export default function ComplaintDetailsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>سبب رفض الشكوى</Text>
-            
+
             <TextInput
               style={styles.textInput}
               placeholder=" اكتب سبب الرفض... (10-500 حرف)"
@@ -470,7 +504,7 @@ export default function ComplaintDetailsScreen() {
               maxLength={500}
               editable={!isLoading}
             />
-            
+
             <Text style={styles.characterCount}>
               {rejectionReason.length}/500 حرف
             </Text>
@@ -478,7 +512,7 @@ export default function ComplaintDetailsScreen() {
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[
-                  styles.modalButton, 
+                  styles.modalButton,
                   styles.rejectButton,
                   (isLoading || rejectionReason.length < 10) && styles.disabledButton
                 ]}
@@ -509,120 +543,120 @@ export default function ComplaintDetailsScreen() {
     );
   }, [showRejectModal, rejectionReason, isLoading, handleRejectComplaint]);
 
-const renderActionButtons = useCallback(() => {
-  const canAssign =
-    (user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.PENDING) ||
-    (user?.role === ROLES.MANAGER &&status === COMPLAINT_STATUS.ASSIGNED &&!complaintData?.worker_assignee_id);
+  const renderActionButtons = useCallback(() => {
+    const canAssign =
+      (user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.PENDING) ||
+      (user?.role === ROLES.MANAGER && status === COMPLAINT_STATUS.ASSIGNED && !complaintData?.worker_assignee_id);
 
-  const canResolve =
-    (user?.role === ROLES.WORKER && status === COMPLAINT_STATUS.ASSIGNED) ||
-    (user?.role === ROLES.MANAGER && status === COMPLAINT_STATUS.ASSIGNED);
+    const canResolve =
+      (user?.role === ROLES.WORKER && status === COMPLAINT_STATUS.ASSIGNED) ||
+      (user?.role === ROLES.MANAGER && status === COMPLAINT_STATUS.ASSIGNED);
 
-  const canComplete =
-    user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.RESOLVED;
+    const canComplete =
+      user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.RESOLVED;
 
-  const canReject =
-    user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.PENDING;
+    const canReject =
+      user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.PENDING;
 
-  const isAlreadyAssigned =
-    user?.role === ROLES.MANAGER && status === COMPLAINT_STATUS.ASSIGNED && complaintData?.worker_assignee_id;
+    const isAlreadyAssigned =
+      user?.role === ROLES.MANAGER && status === COMPLAINT_STATUS.ASSIGNED && complaintData?.worker_assignee_id;
 
-  if (!canAssign && !canResolve && !canComplete && !canReject && !isAlreadyAssigned) {
-    return null;
-  }
+    if (!canAssign && !canResolve && !canComplete && !canReject && !isAlreadyAssigned) {
+      return null;
+    }
 
-  return (
-    <View style={styles.actionsContainer}>
-      {canAssign && (
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            styles.assignButton,
-            isLoading && styles.disabledButton,
-          ]}
-          onPress={() => setShowAssignModal(true)}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
-          ) : (
-            <Text style={styles.actionButtonText}>
-              {user?.role === ROLES.ADMIN ? "تعيين لمدير" : "تعيين لعامل"}
-            </Text>
-          )}
-        </TouchableOpacity>
-      )}
+    return (
+      <View style={styles.actionsContainer}>
+        {canAssign && (
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.assignButton,
+              isLoading && styles.disabledButton,
+            ]}
+            onPress={() => setShowAssignModal(true)}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Text style={styles.actionButtonText}>
+                {user?.role === ROLES.ADMIN ? "تعيين لمدير" : "تعيين لعامل"}
+              </Text>
+            )}
+          </TouchableOpacity>
+        )}
 
-      {isAlreadyAssigned && (
-        <View style={[styles.actionButton, styles.alreadyAssignedButton]}>
-          <Text style={styles.actionButtonText}>تم التعيين بالفعل</Text>
-        </View>
-      )}
+        {isAlreadyAssigned && (
+          <View style={[styles.actionButton, styles.alreadyAssignedButton]}>
+            <Text style={styles.actionButtonText}>تم التعيين بالفعل</Text>
+          </View>
+        )}
 
-      {canResolve && (
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            styles.resolveButton,
-            isLoading && styles.disabledButton,
-          ]}
-          onPress={handleResolveComplaint}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
-          ) : (
-            <Text style={styles.actionButtonText}>تم الحل</Text>
-          )}
-        </TouchableOpacity>
-      )}
+        {canResolve && (
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.resolveButton,
+              isLoading && styles.disabledButton,
+            ]}
+            onPress={handleResolveComplaint}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Text style={styles.actionButtonText}>حل المشكلة عن طريق صورة</Text>
+            )}
+          </TouchableOpacity>
+        )}
 
-      {canComplete && (
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            styles.completeButton,
-            isLoading && styles.disabledButton,
-          ]}
-          onPress={handleCompleteComplaint}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
-          ) : (
-            <Text style={styles.actionButtonText}>تأكيد الإنجاز</Text>
-          )}
-        </TouchableOpacity>
-      )}
+        {canComplete && (
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.completeButton,
+              isLoading && styles.disabledButton,
+            ]}
+            onPress={handleCompleteComplaint}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Text style={styles.actionButtonText}>تأكيد الإنجاز</Text>
+            )}
+          </TouchableOpacity>
+        )}
 
-      {canReject && (
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            styles.rejectActionButton,
-            isLoading && styles.disabledButton,
-          ]}
-          onPress={() => setShowRejectModal(true)}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
-          ) : (
-            <Text style={styles.actionButtonText}>رفض الشكوى</Text>
-          )}
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}, [
-  user?.role, status,complaintData?.worker_assignee_id, isLoading, handleResolveComplaint, handleCompleteComplaint,
-]);
+        {canReject && (
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.rejectActionButton,
+              isLoading && styles.disabledButton,
+            ]}
+            onPress={() => setShowRejectModal(true)}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Text style={styles.actionButtonText}>رفض الشكوى</Text>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }, [
+    user?.role, status, complaintData?.worker_assignee_id, isLoading, handleResolveComplaint, handleCompleteComplaint,
+  ]);
   const currentComplaint = complaint;
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor={COLORS.primary} barStyle="light-content" />
-        <View style={styles.header}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>→</Text>
         </TouchableOpacity>
@@ -650,8 +684,8 @@ const renderActionButtons = useCallback(() => {
         </View>
       )}
 
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -684,7 +718,7 @@ const renderActionButtons = useCallback(() => {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>معلومات الشكوى</Text>
-            
+
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>📅 تاريخ التقديم</Text>
               <Text style={styles.infoValue}>
@@ -704,7 +738,7 @@ const renderActionButtons = useCallback(() => {
                 {currentComplaint.indicator_name || 'غير محدد'}
               </Text>
             </View>
-             <View style={styles.infoRow}>
+            <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>📍 المنطقة</Text>
               <Text style={styles.infoValue}>
                 {currentComplaint.area_name || 'غير محدد'}
@@ -717,14 +751,14 @@ const renderActionButtons = useCallback(() => {
                 <Text style={styles.infoValue}>{currentComplaint.user_name}</Text>
               </View>
             )}
-            
+
             {currentComplaint.manager_name && (
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>👨‍💼 المدير المسؤول</Text>
                 <Text style={styles.infoValue}>{currentComplaint.manager_name}</Text>
               </View>
             )}
-            
+
             {currentComplaint.worker_name && (
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>👷‍♂️ العامل المسؤول</Text>
@@ -736,8 +770,8 @@ const renderActionButtons = useCallback(() => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📍 الموقع على الخريطة</Text>
             <View style={styles.locationContainer}>
-              <DisplayMap 
-                lat={currentComplaint.latitude} 
+              <DisplayMap
+                lat={currentComplaint.latitude}
                 long={currentComplaint.longitude}
               />
               <View style={styles.coordinatesContainer}>
@@ -772,6 +806,15 @@ const renderActionButtons = useCallback(() => {
       {renderActionButtons()}
       {renderAssignModal()}
       {renderRejectModal()}
+      <ImageResolutionComponent
+        capturedImageUri={capturedImageUri}
+        onConfirm={async () => {
+          setShowResolutionComponent(false);
+          await submitResolveComplaint();
+        }}
+        onCancel={() => setShowResolutionComponent(false)}
+        isVisible={showResolutionComponent}
+      />
     </SafeAreaView>
   );
 }
@@ -813,7 +856,7 @@ const styles = StyleSheet.create({
   },
 
   errorBanner: {
-    backgroundColor: COLORS.danger, 
+    backgroundColor: COLORS.danger,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     flexDirection: 'row',

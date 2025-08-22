@@ -1,4 +1,4 @@
-import React, {useCallback} from "react";
+import React, { useCallback } from "react";
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Linking } from "react-native";
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { useNavigation } from "@react-navigation/native";
@@ -49,18 +49,20 @@ export default function SettingsScreen() {
 
     const signOut = async () => {
         try {
-          await auth().signOut();
-          dispatch(clearUser());
+            await auth().signOut();
+            dispatch(clearUser());
         } catch (error) {
-          console.error('Error signing out:', error);
+            console.error('Error signing out:', error);
         }
-      };
+    };
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>الإعدادات</Text>
-                <Text style={styles.headerSubtitle}>إدارة النظام والمستخدمين</Text>
+                {role === ROLES.ADMIN &&
+                    <Text style={styles.headerSubtitle}>إدارة النظام والمستخدمين</Text>
+                }
             </View>
 
             <ScrollView contentContainerStyle={styles.scroll}>
@@ -102,12 +104,6 @@ export default function SettingsScreen() {
                         subLabel="عرض تقارير الأداء"
                         onPress={() => console.log("Go to stats")}
                     />}
-                <MenuItem
-                    icon="settings"
-                    label="إعدادات التطبيق"
-                    subLabel="تفضيلات النظام"
-                    onPress={() => console.log("Go to app settings")}
-                />
                 <MenuItem
                     icon="call"
                     label="اتصل بالدعم"
