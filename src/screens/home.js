@@ -8,6 +8,7 @@ import {
   Linking,
   Image,
 } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { useDispatch, useSelector } from 'react-redux';
 import { setAreas, setIndicators } from '../../src/slices/dataSlice';
 import { setUser } from '../slices/userSlice';
@@ -170,126 +171,128 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <CustomAlert
-        visible={alertVisible}
-        title={alertData.title}
-        message={alertData.message}
-        buttons={alertData.buttons}
-        onClose={hideCustomAlert}
-      />
+    <ScrollView>
+      <View style={styles.container}>
+        <CustomAlert
+          visible={alertVisible}
+          title={alertData.title}
+          message={alertData.message}
+          buttons={alertData.buttons}
+          onClose={hideCustomAlert}
+        />
 
-      {/* Header Section */}
-      <View style={styles.headerSection}>
-        <View style={styles.logoContainer}>
-          <Image
-            source={require('../assets/logo.png')} // Adjust path as needed
-            style={styles.logo}
-            resizeMode="contain"
-          />
+        {/* Header Section */}
+        <View style={styles.headerSection}>
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('../assets/logo.png')} // Adjust path as needed
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
+
+          <Text style={styles.welcomeText}>أهلاً وسهلاً</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={styles.userName}>{user?.full_name}</Text>
+            <Ionicons
+              name="remove"
+              size={42}
+              color={COLORS.white}
+              style={{
+                transform: [{ rotate: '90deg' }],
+                marginHorizontal: -10,
+                marginBottom: SPACING.lg,
+              }}
+            />
+            <View style={styles.roleContainer}>
+              <Text style={styles.roleText}> {role_text}</Text>
+            </View>
+          </View>
+
+          <Text style={styles.subtitle}>اتحاد بلديات الفيحاء</Text>
         </View>
 
-        <Text style={styles.welcomeText}>أهلاً وسهلاً</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={styles.userName}>{user?.full_name}</Text>
-          <Ionicons
-            name="remove"
-            size={42}
-            color={COLORS.white}
-            style={{
-              transform: [{ rotate: '90deg' }],
-              marginHorizontal: -10,
-              marginBottom: SPACING.lg,
-            }}
-          />
-          <View style={styles.roleContainer}>
-            <Text style={styles.roleText}> {role_text}</Text>
+        {/* Menu Grid */}
+        <View style={styles.menuContainer}>
+          <View style={styles.menuRow}>
+            <TouchableOpacity
+              style={styles.menuCard}
+              onPress={() =>
+                navigation.navigate(ROUTE_NAMES.COMPLAINTS, {
+                  screen: ROUTE_NAMES.COMPLAINTS,
+                })
+              }
+            >
+              <View style={styles.iconContainer}>
+                <MaterialDesignIcons
+                  name="file-document-outline"
+                  style={[styles.icon, { color: COLORS.status.pending.text }]}
+                />
+              </View>
+              <Text style={styles.menuTitle}>شكاوي</Text>
+              <Text style={styles.menuSubtitle}>تتبع الحالة</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuCard}
+              onPress={() =>
+                navigation.navigate(ROUTE_NAMES.COMPLAINTS, {
+                  screen: ROUTE_NAMES.ADD_COMPLAINT,
+                })
+              }
+            >
+              <View style={styles.iconContainer}>
+                <MaterialDesignIcons
+                  name="plus-circle-outline"
+                  style={[styles.icon, { color: COLORS.status.completed.text }]}
+                />
+              </View>
+              <Text style={styles.menuTitle}>تقديم شكوى</Text>
+              <Text style={styles.menuSubtitle}>الإبلاغ عن مشكلة</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.menuRow}>
+            <TouchableOpacity
+              style={styles.menuCard}
+              onPress={() => navigation.navigate(ROUTE_NAMES.WASTE)}
+            >
+              <View style={styles.iconContainer}>
+                <MaterialDesignIcons
+                  name="recycle"
+                  style={[styles.icon, { color: COLORS.roles.admin.text }]}
+                />
+              </View>
+              <Text style={styles.menuTitle}>التخلص من النفايات</Text>
+              <Text style={styles.menuSubtitle}>معلومات النفايات الخاصة</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuCard}
+              onPress={() => Linking.openURL('tel:175')}
+            >
+              <View style={styles.iconContainer}>
+                <MaterialDesignIcons
+                  name="phone"
+                  style={[styles.icon, { color: COLORS.primary }]}
+                />
+              </View>
+              <Text style={styles.menuTitle}>طوارئ</Text>
+              <Text style={styles.menuSubtitle}>الدفاع المدني </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.menuRow}>
+            <View style={styles.menuCard}>
+              <Text style={styles.statNumber}>12</Text>
+              <Text style={styles.menuTitle}>شكوى مكتملة</Text>
+            </View>
+            <View style={styles.menuCard}>
+              <Text style={styles.statNumber}>3</Text>
+              <Text style={styles.menuTitle}>شكوى نشطة </Text>
+            </View>
           </View>
         </View>
-
-        <Text style={styles.subtitle}>اتحاد بلديات الفيحاء</Text>
       </View>
-
-      {/* Menu Grid */}
-      <View style={styles.menuContainer}>
-        <View style={styles.menuRow}>
-          <TouchableOpacity
-            style={styles.menuCard}
-            onPress={() =>
-              navigation.navigate(ROUTE_NAMES.COMPLAINTS, {
-                screen: ROUTE_NAMES.COMPLAINTS,
-              })
-            }
-          >
-            <View style={styles.iconContainer}>
-              <MaterialDesignIcons
-                name="file-document-outline"
-                style={[styles.icon, { color: COLORS.status.pending.text }]}
-              />
-            </View>
-            <Text style={styles.menuTitle}>شكاوي</Text>
-            <Text style={styles.menuSubtitle}>تتبع الحالة</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuCard}
-            onPress={() =>
-              navigation.navigate(ROUTE_NAMES.COMPLAINTS, {
-                screen: ROUTE_NAMES.ADD_COMPLAINT,
-              })
-            }
-          >
-            <View style={styles.iconContainer}>
-              <MaterialDesignIcons
-                name="plus-circle-outline"
-                style={[styles.icon, { color: COLORS.status.completed.text }]}
-              />
-            </View>
-            <Text style={styles.menuTitle}>تقديم شكوى</Text>
-            <Text style={styles.menuSubtitle}>الإبلاغ عن مشكلة</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.menuRow}>
-          <TouchableOpacity
-            style={styles.menuCard}
-            onPress={() => navigation.navigate(ROUTE_NAMES.WASTE)}
-          >
-            <View style={styles.iconContainer}>
-              <MaterialDesignIcons
-                name="recycle"
-                style={[styles.icon, { color: COLORS.roles.admin.text }]}
-              />
-            </View>
-            <Text style={styles.menuTitle}>التخلص من النفايات</Text>
-            <Text style={styles.menuSubtitle}>معلومات النفايات الخاصة</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuCard}
-            onPress={() => Linking.openURL('tel:175')}
-          >
-            <View style={styles.iconContainer}>
-              <MaterialDesignIcons
-                name="phone"
-                style={[styles.icon, { color: COLORS.primary }]}
-              />
-            </View>
-            <Text style={styles.menuTitle}>طوارئ</Text>
-            <Text style={styles.menuSubtitle}>الدفاع المدني </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.menuRow}>
-          <View style={styles.menuCard}>
-            <Text style={styles.statNumber}>12</Text>
-            <Text style={styles.menuTitle}>شكوى مكتملة</Text>
-          </View>
-          <View style={styles.menuCard}>
-            <Text style={styles.statNumber}>3</Text>
-            <Text style={styles.menuTitle}>شكوى نشطة </Text>
-          </View>
-        </View>
-      </View>
-    </View>
+    </ScrollView>
   );
 }
 
