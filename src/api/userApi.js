@@ -137,3 +137,26 @@ export const updateUser = async (user) => {
         throw error;
     }
 }
+
+export const listenUsersByRole = (role, callback) => {
+    const reference = database()
+        .ref('/users')
+        .orderByChild('role')
+        .equalTo(role);
+
+    const onValueChange = reference.on('value', snapshot => {
+        if (snapshot.exists()) {
+        const data = snapshot.val();
+        const userList = Object.keys(data).map(key => ({
+            id: key,
+            ...data[key],
+        }));
+        callback(userList);
+        } else {
+        callback([]);
+        }
+    });
+
+    // Return unsubscribe function
+    return () => reference.off('value', onValueChange);
+};

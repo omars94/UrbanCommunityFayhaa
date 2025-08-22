@@ -22,7 +22,7 @@ export default function ComplaintsStack() {
       <Stack.Screen
         name={ROUTE_NAMES.COMPLAINT_DETAILS}
         component={ComplaintDetails}
-        options={{ title: 'تفاصيل الشكوى' }}
+        options={{ title: 'تفاصيل الشكوى', headerShown: false }}
       />
     </Stack.Navigator>
   );
