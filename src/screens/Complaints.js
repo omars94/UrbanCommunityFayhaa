@@ -123,13 +123,14 @@ export default function ComplaintsScreen() {
             (user?.role === ROLES.WORKER && item.worker_assignee_id === user.id);
 
         case 'assigned_by_me':
-          return user?.role === ROLES.MANAGER && item.manager_assignee_id &&
+          return (user?.role === ROLES.MANAGER && item.manager_assignee_id === user.id) ||
+            (user?.role === ROLES.ADMIN) &&
             item.worker_assignee_id; // Manager assigned to worker
 
         case 'resolved_by_me':
           return ((user?.role === ROLES.MANAGER && item.manager_assignee_id === user.id) ||
             (user?.role === ROLES.WORKER && item.worker_assignee_id === user.id)) &&
-            item.status === COMPLAINT_STATUS.RESOLVED;
+            (item.status === COMPLAINT_STATUS.RESOLVED || item.status === COMPLAINT_STATUS.COMPLETED);
 
         case 'all':
         default:

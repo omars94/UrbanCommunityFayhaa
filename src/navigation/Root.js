@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { useEffect, useState } from 'react';
-import { I18nManager } from 'react-native';
+import { I18nManager, StyleSheet, View, Image, Dimensions } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider, useDispatch, useSelector } from 'react-redux';
@@ -10,12 +10,14 @@ import store from '../../store';
 import { ActivityIndicator } from 'react-native-paper';
 import auth from '@react-native-firebase/auth';
 import { clearUser, setUser } from '../slices/userSlice';
-import { ROUTE_NAMES } from '../constants';
+import { COLORS, ROUTE_NAMES } from '../constants';
 import AuthScreen from '../screens/Auth';
 import OTPScreen from '../screens/otp';
 import TabLayout from './AppTabs';
 import { getUserByFbUID } from '../api/userApi';
 const Stack = createNativeStackNavigator();
+
+const { width, height } = Dimensions.get('window');
 
 if (typeof global.structuredClone === 'undefined') {
   global.structuredClone = value => JSON.parse(JSON.stringify(value));
@@ -72,10 +74,18 @@ function Layout() {
 
     // Cleanup subscription
     return () => unsubscribe();
-  }, []);
+  }, [dispatch]);
 
   if (!ready) {
-    return <ActivityIndicator />;
+    return (
+      <View style={styles.loadingContainer}>
+        <Image 
+          source={require('../assets/loadingImage.png')}
+          style={styles.loadingImage}
+          resizeMode="contain"
+        />
+      </View>
+    );
   }
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -102,3 +112,16 @@ export default function Root() {
     </Provider>
   );
 }
+
+const styles = StyleSheet.create({
+  // Loading Styles
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+  },
+  loadingImage: {
+    width: width,
+  },
+});

@@ -20,7 +20,7 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import { Picker } from '@react-native-picker/picker';
 import { launchCamera } from 'react-native-image-picker';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { listenUsersByRole } from '../api/userApi';
 import { assignComplaint, resolveComplaint, completeComplaint, rejectComplaint } from '../api/complaints';
@@ -145,6 +145,18 @@ export default function ComplaintDetailsScreen() {
   const [error, setError] = useState(null);
   const [showResolutionComponent, setShowResolutionComponent] = useState(false);
   const [capturedImageUri, setCapturedImageUri] = useState('');
+  const [shouldRenderMap, setShouldRenderMap] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setShouldRenderMap(true);
+      
+      return () => {
+        // Screen is unfocused, cleanup map
+        setShouldRenderMap(false);
+      };
+    }, [])
+  );
 
   const user = useSelector((state) => state.user.user);
   useEffect(() => {
@@ -842,10 +854,12 @@ const renderImageSlider = () => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📍 الموقع على الخريطة</Text>
             <View style={styles.locationContainer}>
+            {shouldRenderMap && (
               <DisplayMap
                 lat={currentComplaint.latitude}
                 long={currentComplaint.longitude}
               />
+            )}
               <View style={styles.coordinatesContainer}>
                 <Text style={styles.coordinatesText}>
                   الإحداثيات: {currentComplaint.latitude}, {currentComplaint.longitude}
