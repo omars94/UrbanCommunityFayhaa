@@ -1,7 +1,6 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
-  I18nManager,
   Platform,
   StyleSheet,
   Text,
@@ -10,31 +9,24 @@ import {
 } from 'react-native';
 import { Button, TextInput } from 'react-native-paper';
 import PhoneInput from 'react-native-phone-number-input';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import SimplePicker from '../components/SimplePicker';
-import { setAreas } from '../slices/dataSlice';
 import { useNavigation } from '@react-navigation/native';
 import { ROLES, ROUTE_NAMES } from '../constants';
-import { fetchAreas } from '../api/areasApi';
 import { requestOTP } from '../services/otpService';
 import { checkIfUserExist } from '../api/authApi';
+import { SIZES, COLORS, SPACING, BORDER_RADIUS, SHADOWS, FONT_SIZES, FONT_WEIGHTS, FONT_FAMILIES } from '../constants';
 
 export default function SignUp() {
-  // const [mode, setMode] = useState('signin'); // 'signin' or 'signup'
   const [error, setError] = useState('');
   const phoneInput = useRef(null);
-  // const dispatch = useDispatch();
   const navigation = useNavigation();
-  // const recaptchaVerifier = useRef(null);
   const [phone, setPhone] = useState('');
   const [area, setArea] = useState(null);
   const [fullName, setFullName] = useState(null);
   const [formattedValue, setFormattedValue] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  // const [confirm, setConfirm] = useState(null);
-  // const [user, setUser] = useState(null);
-  // const [verificationCode, setVerificationCode] = useState('');
   const { areas } = useSelector(state => state.data);
 
   const signUp = async () => {
@@ -44,14 +36,10 @@ export default function SignUp() {
       return;
     }
     try {
-      const exist = await checkIfUserExist(phone); // isSignIn = false
+      const exist = await checkIfUserExist(phone);
       if (!exist.inRTDB) {
         const confirmation = await requestOTP(formattedValue); //+961...
-        //await auth().signInWithPhoneNumber(formattedValue);
         console.log(confirmation);
-        // setConfirm(confirmation);
-        // setUser(exist.profile);
-        // const signIn = false;
         navigation.navigate(ROUTE_NAMES.OTP,
           {
             phone: formattedValue,
@@ -80,38 +68,43 @@ export default function SignUp() {
       <Text style={styles.title}>
         إنشاء حساب
       </Text>
+  
       <TextInput
         label="الاسم الكامل"
         value={fullName}
         style={styles.input}
+        contentStyle={styles.inputContentStyle}
+        outlineStyle={styles.inputOutlineStyle}
         onChangeText={setFullName}
         mode="outlined"
-      />
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'center',
-          alignItems: 'center',
-          marginBottom: 15,
+        activeOutlineColor={COLORS.primary}
+        outlineColor={COLORS.gray[300]}
+        theme={{
+          colors: {
+            primary: COLORS.primary,
+            outline: COLORS.gray[300],
+            onSurfaceVariant: COLORS.text.secondary,
+          },
+          width: '100%'
         }}
-      >
-        <SimplePicker
-          label="المنطقة"
-          columns={3}
-          showLabel={false}
-          options={areas}
-          labelKey={'name_ar'}
-          selectedValue={area?.name_ar}
-          onValueChange={setArea}
-        />
+      />
+  
+      {/* Area Picker and Date Picker Row */}
+      <View style={styles.pickerDateRow}>
+        <View style={{ flex: 1 }}>
+          <SimplePicker
+            label="المنطقة"
+            columns={1}
+            showLabel={false}
+            options={areas}
+            labelKey={'name_ar'}
+            selectedValue={area?.name_ar}
+            onValueChange={setArea}
+          />
+        </View>
+        
         {showDatePicker || Platform.OS == 'ios' ? (
-          <View
-            style={{
-              borderRadius: 10,
-              alignSelf: 'center',
-              flex: 1,
-            }}
-          >
+          <View style={styles.datePickerContainer}>
             <DateTimePicker
               value={
                 dateOfBirth ? new Date(dateOfBirth) : new Date(2015, 0, 1)
@@ -120,11 +113,10 @@ export default function SignUp() {
               locale="ar"
               display="compact"
               style={{
-                flex: 1,
-                alignSelf: 'center',
-                borderRadius: 10,
+                width: '100%',
+                height: '100%',
               }}
-              textColor="#ecf0f1"
+              textColor={COLORS.text.primary}
               onChange={(event, selectedDate) => {
                 const { type } = event;
                 console.log(type);
@@ -147,8 +139,8 @@ export default function SignUp() {
             <Text style={styles.datePickerButtonText}>
               {dateOfBirth
                 ? `تاريخ الميلاد: ${new Date(
-                  dateOfBirth,
-                ).toLocaleDateString('ar')}`
+                    dateOfBirth,
+                  ).toLocaleDateString('ar')}`
                 : 'اختر تاريخ الميلاد'}
             </Text>
           </TouchableOpacity>
@@ -168,19 +160,9 @@ export default function SignUp() {
         textContainerStyle={styles.textInput}
         textInputStyle={styles.textInput}
         countryPickerProps={{ renderFlagButton: false }}
-        countryPickerButtonStyle={styles.countryPickerButton} // <-- Add this line
+        countryPickerButtonStyle={styles.countryPickerButton}
       />
-      {/* {confirm ? (
-        <TextInput
-          label="رمز التحقق"
-          value={verificationCode}
-          style={styles.input}
-          onChangeText={setVerificationCode}
-          mode="outlined"
-          keyboardType="number-pad"
-        />
-      ) : null} */}
-
+  
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button
         style={styles.button}
@@ -198,95 +180,99 @@ export default function SignUp() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafd',
+    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: SPACING.xl,
   },
   title: {
-    fontSize: 28,
-    color: '#051d5f',
-    marginBottom: 20,
+    fontSize: FONT_SIZES.huge,
+    color: COLORS.primary,
+    marginBottom: SPACING.xl,
     textAlign: 'center',
+    fontWeight: FONT_WEIGHTS.bold,
+    fontFamily: FONT_FAMILIES.primary,
+  },
+  input: {
+    height: SIZES.input.height,
+    width: '100%',
+    marginBottom: SPACING.lg,
+    backgroundColor: COLORS.white,
   },
   phoneContainer: {
     width: '100%',
-    height: 60,
-    marginBottom: 20,
+    height: SIZES.input.height + 10,
+    marginBottom: SPACING.xl,
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.md,
+    ...SHADOWS.sm,
   },
   textInput: {
     paddingVertical: 0,
-    fontWeight: 'bold',
+    fontWeight: FONT_WEIGHTS.medium,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.text.primary,
+    fontFamily: FONT_FAMILIES.primary,
   },
-  input: {
-    height: 50,
-    width: '100%',
-    marginBottom: 16,
-    textAlign: 'left',
-  },
-  button: {
-    width: '50%',
-    height: 50,
-    backgroundColor: '#2e64e5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-    marginTop: 20,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-
-  countryPickerButton: {
-    width: 60, // or adjust as needed
-    justifyContent: 'center',
-  },
-  error: {
-    color: '#e74c3c',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  toggleContainer: {
+  pickerDateRow: {
     flexDirection: 'row',
-    marginBottom: 24,
-    backgroundColor: '#e9ecef',
-    borderRadius: 20,
-    overflow: 'hidden',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: SPACING.lg,
+    width: '100%',
   },
-  toggleButton: {
+  datePickerContainer: {
+    borderRadius: BORDER_RADIUS.md,
     flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
+    marginLeft: SPACING.sm,
+    backgroundColor: COLORS.white,
+    height: SIZES.input.height,
     justifyContent: 'center',
-  },
-  toggleActive: {
-    backgroundColor: '#fff',
-  },
-  toggleText: {
-    fontSize: 16,
-    color: '#888',
-    fontWeight: 'bold',
-  },
-  toggleTextActive: {
-    color: '#2e64e5',
+    ...SHADOWS.sm,
   },
   datePickerButton: {
-    height: 40,
+    height: SIZES.input.height,
     flex: 1,
-    alignSelf: 'center',
-
-    backgroundColor: '#f1f3f6',
-    borderRadius: 10,
+    marginLeft: SPACING.sm,
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.md,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: COLORS.gray[300],
+    ...SHADOWS.sm,
   },
   datePickerButtonText: {
-    color: '#333',
-    fontSize: 16,
+    color: COLORS.text.primary,
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONT_FAMILIES.primary,
+    textAlign: 'center',
+  },
+  countryPickerButton: {
+    width: 60,
+    justifyContent: 'center',
+  },
+  button: {
+    width: '70%',
+    height: SIZES.button.height,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: BORDER_RADIUS.lg,
+    marginTop: SPACING.xl,
+    ...SHADOWS.primary,
+  },
+  buttonText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZES.xl,
+    fontWeight: FONT_WEIGHTS.bold,
+    fontFamily: FONT_FAMILIES.primary,
+  },
+  error: {
+    color: COLORS.danger,
+    marginBottom: SPACING.md,
+    textAlign: 'center',
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONT_FAMILIES.primary,
   },
 });

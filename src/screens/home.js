@@ -93,7 +93,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const checkInvitation = async () => {
-      console.log(user, 'IR: ', user?.user?.invite_role);
+      console.log("USERR", user, 'IR: ', user?.invite_role);
 
       const roleMessages = {
         [ROLES.MANAGER]: {
@@ -108,7 +108,7 @@ export default function HomeScreen() {
         },
       };
 
-      const inviteRole = user?.user?.invite_role;
+      const inviteRole = user?.invite_role;
       if (![ROLES.MANAGER, ROLES.WORKER].includes(inviteRole)) return;
 
       const { title, message, success } = roleMessages[inviteRole];
@@ -118,14 +118,14 @@ export default function HomeScreen() {
           if (accept) setLoading(true);
 
           await handlePromotion(
-            user.user.id,
+            user.id,
             accept,
-            accept ? inviteRole : user.user.role,
+            accept ? inviteRole : user.role,
           );
 
           if (accept) {
             const updatedUser = await getUserByFbUID(auth().currentUser.uid);
-            dispatch(setUser({ user: updatedUser }));
+            dispatch(setUser(updatedUser));
             setLoading(false);
           }
 
