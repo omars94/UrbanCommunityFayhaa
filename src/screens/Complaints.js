@@ -149,8 +149,8 @@ export default function ComplaintsScreen() {
   const getComplaints = async () => {
     setLoading(true);
     try {
-      const complaintsArray = await fetchComplaints();
-      dispatch(setComplaints(complaintsArray));
+      // const complaintsArray = await fetchComplaints();
+      fetchComplaints(dispatch,setComplaints);
     } catch (error) {
       console.error('خطأ في جلب الشكاوى:', error);
       Alert.alert('خطأ', 'حدث خطأ أثناء جلب الشكاوى');

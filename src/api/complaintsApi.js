@@ -1,6 +1,6 @@
 import database from '@react-native-firebase/database';
 
-export const fetchComplaints = async dispatch => {
+export const fetchComplaints = async (dispatch, setComplaints) => {
   try {
     const snapshot = await database().ref('/complaints').once('value');
     const complaintsData = snapshot.val();
@@ -10,6 +10,7 @@ export const fetchComplaints = async dispatch => {
           ...complaintsData[key],
         }))
       : [];
+    dispatch(setComplaints(complaintsArray));
     return complaintsArray;
   } catch (error) {
     console.error('خطأ في جلب الشكاوى:', error);
