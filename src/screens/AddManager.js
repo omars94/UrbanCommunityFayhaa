@@ -42,6 +42,7 @@ export default function AddManagerScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    await fetchManagers();
     setRefreshing(false);
   };
 
@@ -252,7 +253,12 @@ export default function AddManagerScreen() {
             keyExtractor={item => item.id.toString()}
             renderItem={renderManager}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh} 
+              colors={[COLORS.primary]}
+              tintColor={COLORS.primary}
+              />
             }
           />
         </>

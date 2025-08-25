@@ -42,6 +42,7 @@ export default function AddWorkerScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    await fetchWorkers();
     setRefreshing(false);
   };
 
@@ -256,7 +257,12 @@ export default function AddWorkerScreen() {
             keyExtractor={item => item.id.toString()}
             renderItem={renderWorker}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh} 
+              colors={[COLORS.primary]}
+              tintColor={COLORS.primary} 
+              />
             }
           />
         </>
