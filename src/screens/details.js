@@ -17,8 +17,6 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
-import { Picker } from '@react-native-picker/picker';
 import { launchCamera } from 'react-native-image-picker';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
@@ -37,9 +35,14 @@ import {
   FONT_FAMILIES,
   COMPLAINT_STATUS_AR,
 } from '../constants';
+import Ionicons from '@react-native-vector-icons/ionicons';
+import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
+import { DisplayMap } from '../components/detailsComponents/map.js';
+import  ImageSlider  from '../components/detailsComponents/imageSlider.js';
 import { requestCameraPermissions } from '../utils/Permissions.js';
 import { ImageResolutionComponent } from '../components/resolveComponent.js'
 import storage from '@react-native-firebase/storage';
+import StatusTimeline from '../components/detailsComponents/timeline.js';
 
 const { width } = Dimensions.get('window');
 
@@ -86,50 +89,11 @@ const getTimeAgo = (timestamp) => {
   }
 };
 
-const DisplayMap = ({ lat, long }) => {
-  return (
-    <View style={styles.mapContainer}>
-      <MapView
-        provider="google"
-        scrollEnabled={false}
-        pitchEnabled={false}
-        rotateEnabled={false}
-        style={styles.map}
-        initialRegion={{
-          latitude: Number(lat),
-          longitude: Number(long),
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
-      >
-        <Marker
-          coordinate={{
-            latitude: Number(lat),
-            longitude: Number(long),
-          }}
-          onPress={() => {
-            Alert.alert('تأكيد', 'هل تريد فتح الموقع في خرائط جوجل؟', [
-              { text: 'إلغاء', style: 'cancel' },
-              {
-                text: 'فتح',
-                onPress: () => {
-                  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${long}`;
-                  Linking.openURL(url);
-                },
-              },
-            ]);
-          }}
-        />
-      </MapView>
-    </View>
-  );
-};
-
 export default function ComplaintDetailsScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const { complaint } = route.params || {};
-
+  console.log('Navigated to ComplaintDetailsScreen with complaint:', complaint);
   const [complaintData, setComplaintData] = useState(complaint);
   const [status, setStatus] = useState(complaint?.status);
   const [workers, setWorkers] = useState([]);
@@ -140,7 +104,6 @@ export default function ComplaintDetailsScreen() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [showResolutionComponent, setShowResolutionComponent] = useState(false);
@@ -241,73 +204,6 @@ export default function ComplaintDetailsScreen() {
     return statusMap[status] || status || 'غير محدد';
   };
 
-const renderImageSlider = () => {
-  const images = [complaint.photo_url];
-  if (complaint.resolved_photo_url) {
-    images.push(complaint.resolved_photo_url);
-  }
-
-  // Filter out null/undefined images
-  const validImages = images.filter(img => img);
-
-  if (validImages.length === 0) {
-    return null;
-  }
-
-  return (
-    <View style={styles.imageSliderContainer}>
-      <FlatList
-        data={validImages}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(item, index) => index.toString()}
-        onMomentumScrollEnd={(event) => {
-          const index = Math.round(event.nativeEvent.contentOffset.x / width);
-          setCurrentImageIndex(index);
-        }}
-        renderItem={({ item }) => (
-          <TouchableOpacity activeOpacity={0.9}>
-            <Image 
-              source={{ uri: item }} 
-              style={styles.complaintImage}
-              resizeMode="cover"
-            />
-          </TouchableOpacity>
-        )}
-        snapToInterval={width}
-        decelerationRate="fast"
-        bounces={false}
-      />
-      
-      {validImages.length > 1 && (
-        <>
-          {/* Dot indicators */}
-          <View style={styles.imageIndicators}>
-            {validImages.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.indicator,
-                  index === currentImageIndex && styles.activeIndicator
-                ]}
-              />
-            ))}
-          </View>
-          
-          {/* Image counter */}
-          <View style={styles.imageCounter}>
-            <Text style={styles.counterText}>
-              {currentImageIndex + 1}/{validImages.length}
-            </Text>
-          </View>
-        </>
-      )}
-    </View>
-  );
-};
-
-
   const handleAssignComplaint = useCallback(async (assignedUserId, assignedUserName) => {
     setIsLoading(true);
     try {
@@ -325,13 +221,11 @@ const renderImageSlider = () => {
   const handleResolveComplaint = useCallback(async () => {
     const granted = await requestCameraPermissions();
     if (!granted) return;
-
     const result = await launchCamera({
       mediaType: 'photo',
       quality: 0.8,
       saveToPhotos: false,
     });
-
     console.log('Camera result:', result);
     if (!result.didCancel && result.assets?.[0]?.uri) {
       const uri = result.assets[0].uri;
@@ -339,7 +233,7 @@ const renderImageSlider = () => {
       console.log("New captured image:", uri);
       setShowResolutionComponent(true);
     }
-  }, [complaint?.id, user?.id]);
+  }, []);
 
   useEffect(() => {
     if (capturedImageUri) {
@@ -348,7 +242,6 @@ const renderImageSlider = () => {
   }, [capturedImageUri]);  
 
   const submitResolveComplaint = async () => {
-
     setIsLoading(true);
     try {
       const photo_url = await uploadPhoto(capturedImageUri);
@@ -365,7 +258,6 @@ const renderImageSlider = () => {
     } finally {
       setIsLoading(false);
     }
-
   };
 
   const handleCompleteComplaint = useCallback(async () => {
@@ -398,13 +290,13 @@ const renderImageSlider = () => {
       Alert.alert('خطأ', 'يجب كتابة سبب الرفض');
       return;
     }
-
     setIsLoading(true);
     try {
       await rejectComplaint(complaint.id, user.id, rejectionReason.trim());
       setShowRejectModal(false);
       setRejectionReason('');
       Alert.alert('تم', 'تم رفض الشكوى');
+      
     } catch (error) {
       console.error('Error rejecting complaint:', error);
       Alert.alert('خطأ', 'حدث خطأ أثناء رفض الشكوى');
@@ -412,100 +304,6 @@ const renderImageSlider = () => {
       setIsLoading(false);
     }
   }, [complaint?.id, rejectionReason, user.id]);
-
-  const renderStatusTimeline = useCallback(() => {
-    const currentComplaint = complaintData || complaint;
-
-    if (status === COMPLAINT_STATUS.REJECTED) {
-      const rejectedSteps = [
-        {
-          key: 'submitted',
-          label: 'تم استلام الشكوى',
-          completed: true,
-          date: currentComplaint.created_at
-        },
-        {
-          key: 'rejected',
-          label: 'تم رفض الشكوى',
-          completed: true,
-          date: currentComplaint.rejected_at,
-          isRejected: true
-        },
-      ];
-
-      return (
-        <View style={styles.timelineContainer}>
-          {rejectedSteps.map((step, index) => (
-            <View key={step.key} style={styles.timelineItem}>
-              <View style={[
-                styles.timelineDot,
-                step.completed && (step.isRejected ? styles.timelineDotRejected : styles.timelineDotCompleted),
-                status === step.key && styles.timelineDotActive
-              ]} />
-              <View style={styles.timelineContent}>
-                <Text style={[
-                  styles.timelineLabel,
-                  step.isRejected && styles.rejectedTimelineLabel
-                ]}>{step.label}</Text>
-                <Text style={styles.timelineDate}>
-                  {getTimeAgo(step.date)}
-                </Text>
-              </View>
-              {index < rejectedSteps.length - 1 && <View style={styles.timelineLine} />}
-            </View>
-          ))}
-        </View>
-      );
-    }
-
-    const timelineSteps = [
-      {
-        key: 'submitted',
-        label: 'تم استلام الشكوى',
-        completed: true,
-        date: currentComplaint.created_at
-      },
-      {
-        key: 'assigned',
-        label: 'تم تعيين الشكوى',
-        completed: status !== COMPLAINT_STATUS.PENDING,
-        date: currentComplaint.assigned_at || currentComplaint.assigned_to_worker_at
-      },
-      {
-        key: 'resolved',
-        label: 'قيد الحل',
-        completed: [COMPLAINT_STATUS.RESOLVED, COMPLAINT_STATUS.COMPLETED].includes(status),
-        date: currentComplaint.resolved_at
-      },
-      {
-        key: 'completed',
-        label: 'تم الحل',
-        completed: status === COMPLAINT_STATUS.COMPLETED,
-        date: currentComplaint.completed_at
-      },
-    ];
-
-    return (
-      <View style={styles.timelineContainer}>
-        {timelineSteps.map((step, index) => (
-          <View key={step.key} style={styles.timelineItem}>
-            <View style={[
-              styles.timelineDot,
-              step.completed && styles.timelineDotCompleted,
-              status === step.key && styles.timelineDotActive
-            ]} />
-            <View style={styles.timelineContent}>
-              <Text style={styles.timelineLabel}>{step.label}</Text>
-              <Text style={styles.timelineDate}>
-                {getTimeAgo(step.date)}
-              </Text>
-            </View>
-            {index < timelineSteps.length - 1 && <View style={styles.timelineLine} />}
-          </View>
-        ))}
-      </View>
-    );
-  }, [complaintData, complaint, status]);
 
   const renderAssignModal = useCallback(() => {
     const isAdmin = user?.role === ROLES.ADMIN;
@@ -733,7 +531,6 @@ const renderImageSlider = () => {
   }, [
     user?.role, status, complaintData?.worker_assignee_id, isLoading, handleResolveComplaint, handleCompleteComplaint,
   ]);
-  const currentComplaint = complaint;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -744,12 +541,7 @@ const renderImageSlider = () => {
         </TouchableOpacity>
 
         <View style={styles.headerContent}>
-          <Text style={styles.complaintId}>
-            #{currentComplaint.area_name || 'غير محدد'}
-          </Text>
-          <Text style={styles.complaintType}>
-            {currentComplaint.indicator_name || 'نوع غير محدد'}
-          </Text>
+          <Text style={styles.complaintId}>تفاصيل الشكوى</Text>
         </View>
 
         {isLoading && (
@@ -780,7 +572,7 @@ const renderImageSlider = () => {
       >
         <View style={styles.contentContainer}>
           <View style={styles.section}>
-            {renderImageSlider()}
+            <ImageSlider complaint={complaintData || complaint} />
           </View>
           <View style={styles.section}>
             <View style={styles.statusHeader}>
@@ -798,91 +590,125 @@ const renderImageSlider = () => {
               </View>
             </View>
 
-            {renderStatusTimeline()}
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>معلومات الشكوى</Text>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>📅 تاريخ التقديم</Text>
-              <Text style={styles.infoValue}>
-                {currentComplaint.created_at ? new Date(currentComplaint.created_at).toLocaleDateString('ar-EG', {
-                  year: 'numeric',
-                  month: 'numeric',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                }) : 'غير محدد'}
-              </Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>🏷️ نوع المشكلة</Text>
-              <Text style={styles.infoValue}>
-                {currentComplaint.indicator_name || 'غير محدد'}
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>📍 المنطقة</Text>
-              <Text style={styles.infoValue}>
-                {currentComplaint.area_name || 'غير محدد'}
-              </Text>
-            </View>
-
-            {currentComplaint.user_name && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>👤 مقدم الشكوى</Text>
-                <Text style={styles.infoValue}>{currentComplaint.user_name}</Text>
-              </View>
-            )}
-
-            {user.role === ROLES.ADMIN && currentComplaint.manager_name && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>👨‍💼 المدير المسؤول</Text>
-                <Text style={styles.infoValue}>{currentComplaint.manager_name}</Text>
-              </View>
-            )}
-
-            {(user.role === ROLES.ADMIN || user.role === ROLES.MANAGER) && currentComplaint.worker_name && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>👷‍♂️ العامل المسؤول</Text>
-                <Text style={styles.infoValue}>{currentComplaint.worker_name}</Text>
-              </View>
-            )}
+            <StatusTimeline 
+              complaint={complaintData || complaint}
+              status={status}
+              getTimeAgo={getTimeAgo}
+            />
           </View>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📍 الموقع على الخريطة</Text>
-            <View style={styles.locationContainer}>
-            {shouldRenderMap && (
-              <DisplayMap
-                lat={currentComplaint.latitude}
-                long={currentComplaint.longitude}
-              />
-            )}
-              <View style={styles.coordinatesContainer}>
-                <Text style={styles.coordinatesText}>
-                  الإحداثيات: {currentComplaint.latitude}, {currentComplaint.longitude}
-                </Text>
-              </View>
-            </View>
+            <Text style={styles.sectionTitle}>نوع المشكلة</Text>
+              <Text style={styles.descriptionText}>
+                {complaintData.indicator_name || 'غير محدد'}
+              </Text>
           </View>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>وصف المشكلة</Text>
-            <Text style={styles.descriptionText}>
-              {currentComplaint.description || 'لا يوجد وصف متاح'}
-            </Text>
-          </View>
+      
+<View style={styles.section}>
+  <Text style={styles.sectionTitle}>معلومات الشكوى</Text>
+  <View style={styles.infoRow}>
+          <Ionicons name="calendar" size={20} color="#2E86AB" style={{ marginRight: 5 }} />
 
-          {status === COMPLAINT_STATUS.REJECTED && currentComplaint.rejection_reason && (
+    <Text style={styles.infoLabel}>
+      تاريخ التقديم
+    </Text>
+    <Text style={styles.infoValue}>
+      {complaintData.created_at ? new Date(complaintData.created_at).toLocaleDateString('ar-EG', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }) : 'غير محدد'}
+    </Text>
+  </View>
+  <View style={styles.infoRow}>
+          <Ionicons name="location" size={20} color="#E74C3C" style={{ marginRight: 5 }} />
+
+    <Text style={styles.infoLabel}>
+      المنطقة
+    </Text>
+    <Text style={styles.infoValue}>
+      {complaintData.area_name || 'غير محدد'}
+    </Text>
+  </View>
+  {complaintData.user_name && (
+    <View style={styles.infoRow}>
+              <Ionicons name="person" size={20} color="#2E86AB" style={{ marginRight: 5 }} />
+
+      <Text style={styles.infoLabel}>
+        مقدم الشكوى
+      </Text>
+      <Text style={styles.infoValue}>{complaintData.user_name}</Text>
+    </View>
+  )}
+  {user.role === ROLES.ADMIN && complaintData.manager_name && (
+    <View style={styles.infoRow}>
+              <MaterialDesignIcons name="account-tie" size={20} color="#2E86AB" style={{ marginRight: 5 }} />
+
+      <Text style={styles.infoLabel}>
+        المدير المسؤول
+      </Text>
+      <Text style={styles.infoValue}>{complaintData.manager_name}</Text>
+    </View>
+  )}
+  {(user.role === ROLES.ADMIN || user.role === ROLES.MANAGER) && complaintData.worker_name && (
+    <View style={styles.infoRow}>
+              <Ionicons name="construct" size={20} color="#2E86AB" style={{ marginRight: 5 }} />
+
+      <Text style={styles.infoLabel}>
+        العامل المسؤول
+      </Text>
+      <Text style={styles.infoValue}>{complaintData.worker_name}</Text>
+    </View>
+  )}
+</View>
+
+<View style={styles.section}>
+    <View style={styles.sectionHeader}>
+      <Ionicons name="map" size={20} color="#2E86AB" style={{ marginRight: 5 }} />
+
+  <Text style={styles.sectionTitle}>
+    الموقع على الخريطة
+  </Text>
+    </View>
+  <View style={styles.locationContainer}>
+    {shouldRenderMap &&(
+    <DisplayMap lat={complaintData.latitude} long={complaintData.longitude} />
+    )} 
+    <View style={styles.coordinatesContainer}>
+      <Ionicons name="pin" size={20} color="#E74C3C" style={{ marginRight: 5 }} />
+
+      <Text style={styles.coordinatesText}>
+        الإحداثيات: {complaintData.latitude}, {complaintData.longitude}
+      </Text>
+    </View>
+  </View>
+</View>
+
+<View style={styles.section}>
+    <View style={styles.sectionHeader}>
+          <MaterialDesignIcons name="text-box" size={20} color="#2E86AB" style={{ marginRight: 5 }} />
+
+  <Text style={styles.sectionTitle}>
+
+    وصف المشكلة
+  </Text>
+    </View>
+  <Text style={styles.descriptionText}>
+    {complaintData.description || 'لا يوجد وصف متاح'}
+  </Text>
+</View>
+          
+
+          {status === COMPLAINT_STATUS.REJECTED && complaintData.rejection_reason && (
             <View style={[styles.section, styles.rejectionSection]}>
               <Text style={[styles.sectionTitle, styles.rejectionTitle]}>سبب الرفض</Text>
               <Text style={styles.rejectionReasonText}>
-                {currentComplaint.rejection_reason}
+                {complaintData.rejection_reason}
               </Text>
-              {currentComplaint.rejected_at && (
+              {complaintData.rejected_at && (
                 <Text style={styles.rejectionDate}>
-                  تاريخ الرفض: {getTimeAgo(currentComplaint.rejected_at)}
+                  تاريخ الرفض: {getTimeAgo(complaintData.rejected_at)}
                 </Text>
               )}
             </View>
@@ -930,17 +756,11 @@ const styles = StyleSheet.create({
   },
   complaintId: {
     color: COLORS.white,
-    fontSize: FONT_SIZES.xxl,
+    fontSize: FONT_SIZES.xxxl,
     fontWeight: FONT_WEIGHTS.bold,
     marginBottom: SPACING.xs,
     fontFamily: FONT_FAMILIES.primary,
   },
-  complaintType: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: FONT_SIZES.lg,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-
   errorBanner: {
     backgroundColor: COLORS.danger,
     paddingHorizontal: SPACING.md,
@@ -961,60 +781,12 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.bold,
     paddingLeft: SPACING.md,
   },
-
   scrollView: {
     flex: 1,
   },
   contentContainer: {
     padding: SPACING.xl,
   },
-
-  imageSliderContainer: {
-    position: 'relative',
-  },
-  complaintImage: {
-    width: width,
-    height: 250, // Made more flexible height
-    borderRadius: 8, // Added border radius for better look
-  },
-  imageIndicators: {
-    position: 'absolute',
-    bottom: 16,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-  },
-  indicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    marginHorizontal: 3,
-  },
-  activeIndicator: {
-    backgroundColor: 'white',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  imageCounter: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  counterText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-
   section: {
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.lg,
@@ -1060,55 +832,6 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILIES.primary,
   },
 
-  timelineContainer: {
-    paddingRight: SPACING.md,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-    marginBottom: SPACING.md,
-    position: 'relative',
-  },
-  timelineDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: COLORS.gray[300],
-    marginRight: SPACING.md,
-    marginTop: 2,
-  },
-  timelineDotActive: {
-    backgroundColor: COLORS.primary,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-  },
-  timelineContent: {
-    flex: 1,
-  },
-  timelineLabel: {
-    fontSize: FONT_SIZES.xl,
-    fontWeight: FONT_WEIGHTS.medium,
-    color: COLORS.text.primary,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  rejectedTimelineLabel: {
-    color: COLORS.danger,
-    fontWeight: FONT_WEIGHTS.bold,
-  },
-  timelineDate: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.text.secondary,
-    marginTop: SPACING.xs,
-  },
-  timelineLine: {
-    position: 'absolute',
-    left: 6,
-    top: 20,
-    bottom: -SPACING.md,
-    width: 2,
-    backgroundColor: COLORS.gray[300],
-  },
-
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1131,23 +854,11 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontFamily: FONT_FAMILIES.primary,
   },
-
   locationContainer: {
     alignItems: 'center',
   },
-  mapContainer: {
-    width: width - SPACING.xxxl * 2,
-    height: 250,
-    borderRadius: BORDER_RADIUS.lg,
-    overflow: 'hidden',
-    marginBottom: SPACING.md,
-    position: 'relative',
-    backgroundColor: COLORS.location,
-  },
-  map: {
-    flex: 1,
-  },
   coordinatesContainer: {
+    flexDirection: 'row',
     backgroundColor: COLORS.gray[100],
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
@@ -1159,14 +870,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: FONT_FAMILIES.primary,
   },
-
   descriptionText: {
     fontSize: FONT_SIZES.xl,
     color: COLORS.text.primary,
     lineHeight: 24,
     fontFamily: FONT_FAMILIES.primary,
   },
-
   rejectionReasonText: {
     fontSize: FONT_SIZES.lg,
     color: COLORS.danger,
@@ -1181,7 +890,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     fontFamily: FONT_FAMILIES.primary,
   },
-
   actionsContainer: {
     padding: SPACING.lg,
     backgroundColor: COLORS.surface,
@@ -1189,7 +897,6 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.gray[200],
     ...SHADOWS.lg,
   },
-
   actionButton: {
     paddingVertical: SPACING.lg,
     borderRadius: BORDER_RADIUS.lg,
@@ -1224,7 +931,6 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.sm,
     fontFamily: FONT_FAMILIES.primary,
   },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: COLORS.overlay || 'rgba(0,0,0,0.5)',
@@ -1247,7 +953,9 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xl,
     fontFamily: FONT_FAMILIES.primary,
   },
-
+  sectionHeader: {
+    flexDirection: 'row',
+  },
   usersList: {
     maxHeight: 300,
     marginBottom: SPACING.lg,
@@ -1262,7 +970,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: FONT_FAMILIES.primary,
   },
-
   userItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1289,7 +996,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
     fontFamily: FONT_FAMILIES.primary,
   },
-
   cancelButton: {
     backgroundColor: COLORS.gray[400],
     paddingVertical: SPACING.lg,
@@ -1302,7 +1008,6 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.semibold,
     fontFamily: FONT_FAMILIES.primary,
   },
-
   textInput: {
     borderWidth: 2,
     borderColor: COLORS.gray[300],
@@ -1321,7 +1026,6 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
     fontFamily: FONT_FAMILIES.primary,
   },
-
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
