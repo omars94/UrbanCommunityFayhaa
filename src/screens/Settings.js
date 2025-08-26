@@ -12,12 +12,12 @@ import HeaderSection from "../components/headerSection";
 export default function SettingsScreen() {
     const dispatch = useDispatch();
     const navigation = useNavigation();
-    const user = useSelector(state => state.user);
+    const { user } = useSelector(state => state.user);
     console.log(user);
 
-    const phone = user?.user.phone_number;
-    const fullname = user?.user.full_name;
-    const role = user?.user.role;
+    const phone = user?.phone_number;
+    const fullname = user?.full_name;
+    const role = user?.role;
     let role_text = '';
     switch (role) {
         case 1:
