@@ -6,6 +6,7 @@ import { ROUTE_NAMES, COLORS, ROLES, BORDER_RADIUS, SPACING, FONT_SIZES, FONT_WE
 import { useSelector, useDispatch } from "react-redux";
 import { clearUser } from '../slices/userSlice';
 import auth from '@react-native-firebase/auth';
+import HeaderSection from "../components/headerSection";
 
 
 export default function SettingsScreen() {
@@ -58,12 +59,16 @@ export default function SettingsScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
+            {/* <View style={styles.header}>
                 <Text style={styles.headerTitle}>الإعدادات</Text>
                 {role === ROLES.ADMIN &&
                     <Text style={styles.headerSubtitle}>إدارة النظام والمستخدمين</Text>
                 }
-            </View>
+            </View> */}
+            <HeaderSection
+                title='الإعدادات'
+                subtitle={role === ROLES.ADMIN ? 'إدارة النظام والمستخدمين' : ''}
+            />
 
             <ScrollView contentContainerStyle={styles.scroll}>
 

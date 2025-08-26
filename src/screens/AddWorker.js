@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   useFocusEffect,
+  useNavigation,
 } from '@react-navigation/native';
 import {
   ActivityIndicator,
@@ -16,12 +17,14 @@ import { COLORS, ROLES, FONT_FAMILIES, BORDER_RADIUS, SHADOWS } from "../constan
 import { getAllByRole, promoteToRole, revokeRole } from "../api/userApi";
 import { checkIfUserExist } from "../api/authApi";
 import CustomAlert from "../components/customAlert";
+import HeaderSection from "../components/headerSection";
 
 export default function AddWorkerScreen() {
   const [workersArray, setWorkersArray] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [phone, setPhone] = useState("");
+  const navigation = useNavigation();
 
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertData, setAlertData] = useState({
@@ -215,10 +218,16 @@ export default function AddWorkerScreen() {
       />
 
 
-      <View style={styles.header}>
+      {/* <View style={styles.header}>
         <Text style={styles.headerTitle}>إدارة الموظفين</Text>
         <Text style={styles.headerSub}>إضافة وإدارة موظفي الميدان</Text>
-      </View>
+      </View> */}
+      <HeaderSection
+        title='إدارة الموظفين'
+        subtitle='إضافة وإدارة موظفي الميدان'
+        showBackButton
+        onBackPress= {() => navigation.goBack()}
+      />
 
       <View style={styles.infoBox}>
         <Text style={styles.infoText} numberOfLines={2}>

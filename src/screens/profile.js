@@ -18,6 +18,8 @@ import CustomAlert from "../components/customAlert";
 import { setUser } from "../slices/userSlice";
 import { COLORS, FONT_FAMILIES, BORDER_RADIUS, SHADOWS } from "../constants";
 import { updateUser } from "../api/userApi";
+import { useNavigation } from "@react-navigation/native";
+import HeaderSection from "../components/headerSection";
 
 const ProfileSchema = Yup.object().shape({
   full_name: Yup.string().trim().required("الرجاء إدخال الاسم الكامل"),
@@ -33,6 +35,7 @@ export default function ProfileScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertData, setAlertData] = useState({ title: "", message: "", buttons: [] });
+  const navigation = useNavigation();
 
   const showCustomAlert = (title, message, buttons = []) => {
     setAlertData({ title, message, buttons });
@@ -69,10 +72,16 @@ export default function ProfileScreen() {
 
   return (
     <View>
-      <View style={styles.header}>
+      {/* <View style={styles.header}>
         <Text style={styles.headerTitle}>تعديل الملف الشخصي</Text>
         <Text style={styles.headerSub}>تحديث معلوماتك الشخصية</Text>
-      </View>
+      </View> */}
+      <HeaderSection
+        title='تعديل الملف الشخصي'
+        subtitle='تحديث معلوماتك الشخصية'
+        showBackButton
+        onBackPress= {() => navigation.goBack()}
+      />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <View style={{ paddingHorizontal: 16 }}>
           <Formik
