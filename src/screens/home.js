@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useDispatch, useSelector } from 'react-redux';
-import { setAreas, setIndicators } from '../../src/slices/dataSlice';
+import { setAreas, setIndicators, setWasteItems } from '../../src/slices/dataSlice';
 import { setUser } from '../slices/userSlice';
 import auth from '@react-native-firebase/auth';
 import database from '@react-native-firebase/database';
@@ -30,6 +30,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
+import { fetchWasteItems } from '../api/wasteApi';
 
 // Fetch all complaints
 export async function getData(dispatch) {
@@ -47,6 +48,7 @@ export async function getData(dispatch) {
       console.log('User data: ', snapshot.val());
       dispatch(setIndicators(snapshot.val()));
     });
+  fetchWasteItems(dispatch, setWasteItems);
 }
 
 export default function HomeScreen() {

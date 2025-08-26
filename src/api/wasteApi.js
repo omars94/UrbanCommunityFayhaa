@@ -75,7 +75,7 @@ import database from '@react-native-firebase/database';
 // };
 
 // Fetch waste items from Firebase
-export const fetchWasteItems = async () => {
+export const fetchWasteItems = async (dispatch, setWasteItems) => {
   try {
     const snapshot = await database().ref('/waste_items').once('value');
     const wasteData = snapshot.val();
@@ -92,7 +92,7 @@ export const fetchWasteItems = async () => {
       }))
       .filter(item => item.active) // Only show active items
       .sort((a, b) => a.order - b.order);
-
+    dispatch(setWasteItems(wasteArray));
     return wasteArray;
   } catch (error) {
     console.error('خطأ في جلب عناصر النفايات:', error);

@@ -6,7 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  RefreshControl,
+  // RefreshControl,
   Linking,
   Alert
 } from 'react-native';
@@ -22,21 +22,28 @@ import {
   BORDER_RADIUS,
   SHADOWS
 } from '../constants';
+import { useDispatch, useSelector } from 'react-redux';
+import { setWasteItems } from '../slices/dataSlice';
 
 const WasteScreen = ({ navigation }) => {
-  const [wasteItems, setWasteItems] = useState([]);
+  // const [wasteItems, setWasteItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  // const [refreshing, setRefreshing] = useState(false);
+  const { wasteItems } = useSelector(state => state.data);
+
+  const dispatch = useDispatch();
 
   useEffect(() => {
     loadWasteItems();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadWasteItems = async () => {
     try {
       setLoading(true);
-      const items = await fetchWasteItems();
-      setWasteItems(items);
+      if (wasteItems === null)
+        await fetchWasteItems(dispatch, setWasteItems);
+      // setWasteItems(items);
     } catch (error) {
       Alert.alert('خطأ', 'حدث خطأ في تحميل البيانات');
     } finally {
@@ -44,11 +51,11 @@ const WasteScreen = ({ navigation }) => {
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadWasteItems();
-    setRefreshing(false);
-  };
+  // const onRefresh = async () => {
+  //   setRefreshing(true);
+  //   await loadWasteItems();
+  //   setRefreshing(false);
+  // };
 
   const handlePhonePress = (phone) => {
     const phoneNumber = phone.replace(/\s/g, '');
@@ -59,16 +66,16 @@ const WasteScreen = ({ navigation }) => {
 
   const getIconComponent = (icon) => {
     // Map emoji icons to Ionicons
-    const iconMap = {
-      '🔋': { name: 'battery-half', color: COLORS.warning },
-      '🏥': { name: 'medkit', color: COLORS.danger },
-      '🏗️': { name: 'construct', color: COLORS.gray[600] },
-      '🧪': { name: 'flask', color: COLORS.secondary },
-      '🌱': { name: 'leaf', color: COLORS.success },
-      '☢️': { name: 'nuclear', color: COLORS.warning }
-    };
+    // const iconMap = {
+    //   '🔋': { name: 'battery-half', color: COLORS.warning },
+    //   '🏥': { name: 'medkit', color: COLORS.danger },
+    //   '🏗️': { name: 'construct', color: COLORS.gray[600] },
+    //   '🧪': { name: 'flask', color: COLORS.secondary },
+    //   '🌱': { name: 'leaf', color: COLORS.success },
+    //   '☢️': { name: 'nuclear', color: COLORS.warning }
+    // };
 
-    const iconConfig = iconMap[icon] || { name: 'trash', color: COLORS.primary };
+    // const iconConfig = iconMap[icon] || { name: 'trash', color: COLORS.primary };
 
     return (
       // <View style={[styles.iconContainer, { backgroundColor: `${iconConfig.color}15` }]}>
@@ -86,13 +93,13 @@ const WasteScreen = ({ navigation }) => {
       activeOpacity={0.7}
       onPress={() => handlePhonePress(item.phone)}
     >
-      {getIconComponent(item.icon)}
+      {getIconComponent(item.icon || '🗑️')}
       <View style={styles.itemContent}>
         <Text style={styles.itemTitle}>{item.title_ar}</Text>
         <Text style={styles.itemDescription}>{item.description_ar}</Text>
         <View style={styles.phoneContainer}>
           <Text style={styles.phoneText}>{`\u200E${item.phone}`}</Text>
-          <Ionicons name="call"  size={14} color={COLORS.success} />
+          <Ionicons name="call" size={14} color={COLORS.success} />
         </View>
       </View>
       {/* <Ionicons name="call" paddingRight={SPACING.md} size={20} color={COLORS.gray[400]} /> */}
@@ -101,11 +108,11 @@ const WasteScreen = ({ navigation }) => {
 
   const renderHeaderSection = () => (
     <HeaderSection
-          title="التخلص من النفايات"
-          subtitle="معلومات التخلص من النفايات الخاصة"
-          showBackButton={false}
-        // onBackPress={() => navigation.goBack()}
-        />
+      title="التخلص من النفايات"
+      subtitle="معلومات التخلص من النفايات الخاصة"
+      showBackButton={false}
+    // onBackPress={() => navigation.goBack()}
+    />
   );
 
   if (loading) {
@@ -126,14 +133,14 @@ const WasteScreen = ({ navigation }) => {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
-          />
-        }
+        // refreshControl={
+        //   <RefreshControl
+        //     refreshing={refreshing}
+        //     onRefresh={onRefresh}
+        //     colors={[COLORS.primary]}
+        //     tintColor={COLORS.primary}
+        //   />
+        // }
       >
         <View style={styles.menuItems}>
           {wasteItems.length > 0 ? (
@@ -188,7 +195,7 @@ const styles = StyleSheet.create({
     // marginRight: SPACING.md,
   },
   itemIcon: {
-     fontSize: 32,
+    fontSize: 32,
   },
   itemContent: {
     flex: 1,
