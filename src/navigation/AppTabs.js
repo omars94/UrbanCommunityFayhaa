@@ -1,4 +1,5 @@
 import { Ionicons } from '@react-native-vector-icons/ionicons';
+import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/home';
@@ -20,7 +21,10 @@ export default function TabLayout(props) {
           if (route.name === ROUTE_NAMES.HOME) icon = 'home-outline';
           if (route.name === ROUTE_NAMES.COMPLAINTS)
             icon = 'chatbubble-outline';
-          if (route.name === ROUTE_NAMES.WASTE) icon = 'trash-outline';
+          if (route.name === ROUTE_NAMES.WASTE) {
+            icon = 'recycle';
+            return <MaterialDesignIcons name={icon} size={size} color={color} />
+          }
           if (route.name === ROUTE_NAMES.SETTINGS) icon = 'settings-outline';
           return <Ionicons name={icon} size={size} color={color} />;
         },

@@ -244,8 +244,8 @@ export default function HomeScreen() {
             >
               <View style={styles.iconContainer}>
                 <MaterialDesignIcons
-                  name="plus-circle-outline"
-                  style={[styles.icon, { color: COLORS.status.completed.text }]}
+                  name="camera-plus-outline"
+                  style={[styles.icon, { color: COLORS.status.assigned.text }]}
                 />
               </View>
               <Text style={styles.menuTitle}>تقديم شكوى</Text>

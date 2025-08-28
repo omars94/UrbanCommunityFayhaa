@@ -18,7 +18,7 @@ import {
   ScrollView,
 } from 'react-native';
 import Icon from '@react-native-vector-icons/ionicons';
-// import MaterialIcon from '@react-native-vector-icons/material-design-icons';
+import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
 import { useSelector, useDispatch } from 'react-redux';
 import SimplePicker from '../components/SimplePicker';
 import { ROUTE_NAMES, COLORS, ROLES, COMPLAINT_STATUS, COMPLAINT_STATUS_AR, SPACING, FONT_SIZES, BORDER_RADIUS, FONT_WEIGHTS } from '../constants';
@@ -507,7 +507,8 @@ export default function ComplaintsScreen() {
         style={styles.fab}
         onPress={() => navigation.navigate(ROUTE_NAMES.ADD_COMPLAINT)}
       >
-        <Icon name="add" size={28} color={COLORS.white} />
+        {/* <Icon name="add" size={28} color={COLORS.white} /> */}
+        <MaterialDesignIcons name="camera-plus-outline" size={28} color={COLORS.white} />
       </TouchableOpacity>
     </View>
   );
