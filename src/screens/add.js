@@ -29,8 +29,8 @@ import { ScrollView } from 'react-native-gesture-handler';
 import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
 import { addComplaint } from '../slices/complaintsSlice.js';
 import { requestPermissions } from '../utils/Permissions.js';
-import storage from '@react-native-firebase/storage';
 import { addNewComplaint } from '../api/complaintsApi.js';
+import ImageService from '../services/ImageService.js'; // Import the new service
 
 //Yup validation schema
 const ComplaintSchema = Yup.object().shape({
@@ -45,6 +45,7 @@ export default function AddComplaintScreen() {
   const dispatch = useDispatch();
   const [submitting, setSubmitting] = useState(false);
   const [metadata, setMetadata] = useState(null);
+  const [imageProcessing, setImageProcessing] = useState(false);
 
   const { areas, indicators } = useSelector(state => state.data);
   const { user } = useSelector(state => state.user);
@@ -54,29 +55,32 @@ export default function AddComplaintScreen() {
   console.log('Current User:', user);
   console.log('Current User id:', user?.id);
 
-  const uploadPhoto = async uri => {
-    const filename = `issues/${Date.now()}.jpg`;
-    const reference = storage().ref(filename);
-    await reference.putFile(uri);
-    return await reference.getDownloadURL();
-  };
-
   const takePhoto = async setFieldValue => {
     const granted = await requestPermissions();
-    if (!granted) return; // stop if permissions not granted
+    if (!granted) return;
 
     const result = await launchCamera({
       mediaType: 'photo',
-      quality: 0.8,
       saveToPhotos: false,
     });
 
     console.log('Camera result:', result);
 
     if (!result.didCancel && result.assets?.[0]?.uri) {
+      const originalUri = result.assets[0].uri;
+      
+      // Validate image first
+      // const validation = await ImageService.validateImage(originalUri);
+      // if (!validation.valid) {
+      //   Alert.alert('خطأ في الصورة', validation.error);
+      //   return;
+      // }
+
+      // Set the original URI immediately for preview
+      setFieldValue('photo', originalUri);
+      
       Geolocation.getCurrentPosition(
         position => {
-          setFieldValue('photo', result.assets[0].uri); //  set Formik value
           setMetadata({
             location: {
               latitude: position.coords.latitude.toString(),
@@ -97,19 +101,36 @@ export default function AddComplaintScreen() {
   const handleSubmitComplaint = async values => {
     console.log('Starting submission...');
     setSubmitting(true);
+    setImageProcessing(true);
+    
     try {
-      console.log('Uploading photo...');
-      let photoUrl = '';
+      console.log('Processing and uploading images...');
+      let thumbnailUrl = '';
+      let fullImageUrl = '';
+      
       if (values.photo) {
-        photoUrl = await uploadPhoto(values.photo);
-        console.log('Photo uploaded:', photoUrl);
+        const imageResult = await ImageService.processAndUploadImages(
+          values.photo,
+          'issues'
+        );
+        
+        if (imageResult.success) {
+          thumbnailUrl = imageResult.thumbnailUrl;
+          fullImageUrl = imageResult.fullImageUrl;
+          console.log('Images uploaded successfully:', { thumbnailUrl, fullImageUrl });
+        } else {
+          throw new Error(imageResult.error || 'Failed to upload images');
+        }
       }
+
+      setImageProcessing(false);
 
       const complaintData = {
         indicator_id: values.indicator.id,
         area_id: values.area.id,
         description: values.description.trim(),
-        photo_url: photoUrl,
+        photo_url: fullImageUrl, // Full size image URL for detail view
+        thumbnail_url: thumbnailUrl, // Thumbnail URL for list view
         longitude: metadata?.location?.longitude || '',
         latitude: metadata?.location?.latitude || '',
         status: 'pending',
@@ -120,9 +141,9 @@ export default function AddComplaintScreen() {
       };
 
       console.log('Submitting to database...');
-
       console.log('Complete complaint data:', complaintData);
       console.log('User ID being sent:', complaintData.user_id);
+      
       const result = await addNewComplaint(
         complaintData,
         dispatch,
@@ -147,10 +168,11 @@ export default function AddComplaintScreen() {
       }
     } catch (error) {
       console.error('Error submitting complaint:', error);
-      Alert.alert('خطأ', 'حدث خطأ أثناء الحفظ');
+      Alert.alert('خطأ', error.message || 'حدث خطأ أثناء الحفظ');
     } finally {
       console.log('Setting submitting to false');
       setSubmitting(false);
+      setImageProcessing(false);
     }
   };
 
@@ -204,6 +226,7 @@ export default function AddComplaintScreen() {
                       styles.photoButton,
                       values.photo && styles.photoButtonWithImage,
                     ]}
+                    disabled={imageProcessing}
                   >
                     {values.photo ? (
                       <Image
@@ -280,15 +303,20 @@ export default function AddComplaintScreen() {
 
                 {/* Submit Button */}
                 <TouchableOpacity
-                  disabled={submitting}
+                  disabled={submitting || imageProcessing}
                   onPress={handleSubmit}
                   style={[
                     styles.submitButton,
-                    submitting && styles.submitButtonDisabled,
+                    (submitting || imageProcessing) && styles.submitButtonDisabled,
                   ]}
                 >
                   <Text style={styles.submitButtonText}>
-                    {submitting ? 'جاري الإرسال...' : 'إرسال الشكوى'}
+                    {imageProcessing 
+                      ? 'جاري معالجة الصورة...' 
+                      : submitting 
+                      ? 'جاري الإرسال...' 
+                      : 'إرسال الشكوى'
+                    }
                   </Text>
                   <Ionicons
                     name="send"

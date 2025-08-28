@@ -239,7 +239,8 @@ export default function ComplaintsScreen() {
       area_id,
       description,
       status,
-      photo_url,
+      thumbnail_url,
+      // photo_url,
       created_at,
       // updated_at,
       // latitude,
@@ -266,11 +267,11 @@ export default function ComplaintsScreen() {
 
         <View style={styles.cardContainer}>
           {/* Right Image */}
-          {(photo_url) && (
+          {(thumbnail_url) && (
             <View style={styles.imageSection}>
               <View style={styles.imageContainer}>
                 <Image
-                  source={{ uri: photo_url }}
+                  source={{ uri: thumbnail_url }}
                   // source={{ uri: resolved_photo_url || photo_url }}
                   style={styles.complaintImage}
                   resizeMode="cover"
@@ -487,7 +488,7 @@ export default function ComplaintsScreen() {
       <FlatList
         data={filteredComplaints}
         style={styles.flatList}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={item => item.id}
         renderItem={renderComplaint}
         refreshControl={
           <RefreshControl
