@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,34 +7,41 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  TextInput
-} from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import SimplePicker from "../components/SimplePicker";
-import { useDispatch, useSelector } from "react-redux";
-import { Formik } from "formik";
-import * as Yup from "yup";
-import CustomAlert from "../components/customAlert";
-import { setUser } from "../slices/userSlice";
-import { COLORS, FONT_FAMILIES, BORDER_RADIUS, SHADOWS } from "../constants";
-import { updateUser } from "../api/userApi";
-import { useNavigation } from "@react-navigation/native";
-import HeaderSection from "../components/headerSection";
+  TextInput,
+} from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import SimplePicker from '../components/SimplePicker';
+import { useDispatch, useSelector } from 'react-redux';
+import { Formik } from 'formik';
+import * as Yup from 'yup';
+import CustomAlert from '../components/customAlert';
+import { setUser } from '../slices/userSlice';
+import { COLORS, FONT_FAMILIES, BORDER_RADIUS, SHADOWS } from '../constants';
+import { updateUser } from '../api/userApi';
+import { useNavigation } from '@react-navigation/native';
+import HeaderSection from '../components/headerSection';
+import { formatLebanesePhone } from '../utils';
 
 const ProfileSchema = Yup.object().shape({
-  full_name: Yup.string().trim().required("الرجاء إدخال الاسم الكامل"),
-  area: Yup.mixed().required("الرجاء اختيار المنطقة"),
-  date_of_birth: Yup.date().max(new Date(), "لا يمكن أن يكون تاريخ الميلاد في المستقبل").required("الرجاء اختيار تاريخ الميلاد")
+  full_name: Yup.string().trim().required('الرجاء إدخال الاسم الكامل'),
+  area: Yup.mixed().required('الرجاء اختيار المنطقة'),
+  date_of_birth: Yup.date()
+    .max(new Date(), 'لا يمكن أن يكون تاريخ الميلاد في المستقبل')
+    .required('الرجاء اختيار تاريخ الميلاد'),
 });
 
 export default function ProfileScreen() {
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.user);
-  const areas = useSelector(state => state.data.areas) || []; 
+  const areas = useSelector(state => state.data.areas) || [];
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
-  const [alertData, setAlertData] = useState({ title: "", message: "", buttons: [] });
+  const [alertData, setAlertData] = useState({
+    title: '',
+    message: '',
+    buttons: [],
+  });
   const navigation = useNavigation();
 
   const showCustomAlert = (title, message, buttons = []) => {
@@ -50,24 +57,30 @@ export default function ProfileScreen() {
         ...user,
         full_name: values.full_name,
         area_id: values.area?.id ?? values.area?.area_id ?? null,
-        date_of_birth: values.date_of_birth ? new Date(values.date_of_birth).toISOString() : null,
+        date_of_birth: values.date_of_birth
+          ? new Date(values.date_of_birth).toISOString()
+          : null,
       };
       console.log(updated);
       await updateUser(updated);
       dispatch(setUser(updated));
       setSubmitting(false);
-      showCustomAlert("نجاح", "تم حفظ التغييرات بنجاح", [{ text: "حسناً", onPress: hideCustomAlert }]);
+      showCustomAlert('نجاح', 'تم حفظ التغييرات بنجاح', [
+        { text: 'حسناً', onPress: hideCustomAlert },
+      ]);
     } catch (err) {
-      console.error("Failed updating profile:", err);
+      console.error('Failed updating profile:', err);
       setSubmitting(false);
-      showCustomAlert("خطأ", err.message || "فشل حفظ التغييرات", [{ text: "حسناً", onPress: hideCustomAlert }]);
+      showCustomAlert('خطأ', err.message || 'فشل حفظ التغييرات', [
+        { text: 'حسناً', onPress: hideCustomAlert },
+      ]);
     }
   };
 
   const initialValues = {
-    full_name: user?.full_name ?? "",
+    full_name: user?.full_name ?? '',
     area: areas.find(a => String(a.id) === String(user?.area_id)) ?? null,
-    date_of_birth: user?.date_of_birth ? new Date(user.date_of_birth) : null
+    date_of_birth: user?.date_of_birth ? new Date(user.date_of_birth) : null,
   };
 
   return (
@@ -77,10 +90,10 @@ export default function ProfileScreen() {
         <Text style={styles.headerSub}>تحديث معلوماتك الشخصية</Text>
       </View> */}
       <HeaderSection
-        title='تعديل الملف الشخصي'
-        subtitle='تحديث معلوماتك الشخصية'
+        title="تعديل الملف الشخصي"
+        subtitle="تحديث معلوماتك الشخصية"
         showBackButton
-        onBackPress= {() => navigation.goBack()}
+        onBackPress={() => navigation.goBack()}
       />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <View style={{ paddingHorizontal: 16 }}>
@@ -90,7 +103,16 @@ export default function ProfileScreen() {
             validationSchema={ProfileSchema}
             onSubmit={handleSubmitProfile}
           >
-            {({ handleChange, handleBlur, handleSubmit, values, setFieldValue, errors, touched, isSubmitting }) => (
+            {({
+              handleChange,
+              handleBlur,
+              handleSubmit,
+              values,
+              setFieldValue,
+              errors,
+              touched,
+              isSubmitting,
+            }) => (
               <View style={styles.addCard}>
                 <Text style={styles.addTitle}>معلومات الحساب</Text>
 
@@ -99,18 +121,20 @@ export default function ProfileScreen() {
                   label="الاسم الكامل"
                   value={values.full_name}
                   style={styles.input}
-                  onChangeText={text => setFieldValue("full_name", text)}
-                  onBlur={() => handleBlur("full_name")}
+                  onChangeText={text => setFieldValue('full_name', text)}
+                  onBlur={() => handleBlur('full_name')}
                   mode="outlined"
                 />
                 {errors.full_name && touched.full_name && (
                   <Text style={styles.errorText}>{errors.full_name}</Text>
                 )}
 
-                <Text style={[styles.label, { marginTop: 12 }]}>رقم الهاتف</Text>
+                <Text style={[styles.label, { marginTop: 12 }]}>
+                  رقم الهاتف
+                </Text>
                 <TextInput
                   label="الهاتف"
-                  value={user?.phone_number}
+                  value={formatLebanesePhone(user?.phone_number)}
                   style={styles.input}
                   editable={false}
                   mode="outlined"
@@ -122,33 +146,46 @@ export default function ProfileScreen() {
                   columns={1}
                   showLabel={false}
                   options={areas}
-                  labelKey={"name_ar"}
+                  labelKey={'name_ar'}
                   selectedValue={values.area?.name_ar}
-                  onValueChange={(labelOrValue) => {
+                  onValueChange={labelOrValue => {
                     // SimplePicker may return the label; map to full object
-                    const selected = areas.find(a => a.name_ar === labelOrValue) || null;
+                    const selected =
+                      areas.find(a => a.name_ar === labelOrValue) || null;
                     // fallback: if SimplePicker returns full object already
-                    const result = typeof labelOrValue === "object" ? labelOrValue : selected;
-                    setFieldValue("area", result);
+                    const result =
+                      typeof labelOrValue === 'object'
+                        ? labelOrValue
+                        : selected;
+                    setFieldValue('area', result);
                   }}
                 />
                 {errors.area && touched.area && (
                   <Text style={styles.errorText}>{errors.area}</Text>
                 )}
 
-                <View style={{ marginTop: 12 }}>
-                  {(showDatePicker || Platform.OS === "ios") ? (
+                <Text style={[styles.label, { marginTop: 12 }]}>تاريخ الميلاد</Text>
+                <View>
+                  {showDatePicker || Platform.OS === 'ios' ? (
                     <DateTimePicker
-                      value={values.date_of_birth ? new Date(values.date_of_birth) : new Date(2015, 0, 1)}
+                      value={
+                        values.date_of_birth
+                          ? new Date(values.date_of_birth)
+                          : new Date(2015, 0, 1)
+                      }
                       mode="date"
                       locale="ar"
                       display="compact"
                       onChange={(event, selectedDate) => {
                         const { type } = event || {};
-                        if (type === "dismissed" || (Platform.OS === "android" && type === "set")) {
+                        if (
+                          type === 'dismissed' ||
+                          (Platform.OS === 'android' && type === 'set')
+                        ) {
                           setShowDatePicker(false);
                         }
-                        if (selectedDate) setFieldValue("date_of_birth", selectedDate);
+                        if (selectedDate)
+                          setFieldValue('date_of_birth', selectedDate);
                       }}
                       maximumDate={new Date()}
                     />
@@ -159,8 +196,10 @@ export default function ProfileScreen() {
                     >
                       <Text style={styles.datePickerButtonText}>
                         {values.date_of_birth
-                          ? `تاريخ الميلاد: ${new Date(values.date_of_birth).toLocaleDateString("ar")}`
-                          : "اختر تاريخ الميلاد"}
+                          ? `تاريخ الميلاد: ${new Date(
+                              values.date_of_birth,
+                            ).toLocaleDateString('ar')}`
+                          : 'اختر تاريخ الميلاد'}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -210,15 +249,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: COLORS.white,
     fontSize: 22,
-    fontWeight: "700",
-    textAlign: "center",
+    fontWeight: '700',
+    textAlign: 'center',
     fontFamily: FONT_FAMILIES.arabic,
   },
   headerSub: {
     color: COLORS.white,
     fontSize: 14,
     marginTop: 6,
-    textAlign: "center",
+    textAlign: 'center',
     opacity: 0.9,
     fontFamily: FONT_FAMILIES.primary,
   },
@@ -238,7 +277,7 @@ const styles = StyleSheet.create({
   },
   addTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: '700',
     marginBottom: 16,
     color: COLORS.text.primary,
     fontFamily: FONT_FAMILIES.primary,
@@ -253,7 +292,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     borderWidth: 1.5,
-    borderColor: COLORS.gray?.[300] ?? "#e6e6e6",
+    borderColor: COLORS.gray?.[300] ?? '#e6e6e6',
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: 16,
     backgroundColor: COLORS.white,
@@ -264,10 +303,10 @@ const styles = StyleSheet.create({
   datePickerButton: {
     flex: 1,
     borderWidth: 1.5,
-    borderColor: COLORS.gray?.[300] ?? "#e6e6e6",
+    borderColor: COLORS.gray?.[300] ?? '#e6e6e6',
     borderRadius: BORDER_RADIUS.md,
     padding: 12,
-    justifyContent: "center",
+    justifyContent: 'center',
   },
   datePickerButtonText: {
     fontFamily: FONT_FAMILIES.primary,
@@ -278,13 +317,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     height: 50,
     borderRadius: BORDER_RADIUS.md,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     minWidth: 80,
   },
   addBtnText: {
     color: COLORS.white,
-    fontWeight: "700",
+    fontWeight: '700',
     fontSize: 14,
     fontFamily: FONT_FAMILIES.primary,
   },

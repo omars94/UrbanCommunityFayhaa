@@ -1,8 +1,5 @@
-import React, { useEffect, useState } from "react";
-import {
-  useFocusEffect,
-  useNavigation,
-} from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -12,18 +9,25 @@ import {
   RefreshControl,
   TouchableOpacity,
   TextInput,
-} from "react-native";
-import { COLORS, ROLES, FONT_FAMILIES, BORDER_RADIUS, SHADOWS } from "../constants";
-import { getAllByRole, promoteToRole, revokeRole } from "../api/userApi";
-import { checkIfUserExist } from "../api/authApi";
-import CustomAlert from "../components/customAlert";
-import HeaderSection from "../components/headerSection";
+} from 'react-native';
+import {
+  COLORS,
+  ROLES,
+  FONT_FAMILIES,
+  BORDER_RADIUS,
+  SHADOWS,
+} from '../constants';
+import { getAllByRole, promoteToRole, revokeRole } from '../api/userApi';
+import { checkIfUserExist } from '../api/authApi';
+import CustomAlert from '../components/customAlert';
+import HeaderSection from '../components/headerSection';
+import { formatLebanesePhone } from '../utils';
 
 export default function AddWorkerScreen() {
   const [workersArray, setWorkersArray] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState('');
   const navigation = useNavigation();
 
   const [alertVisible, setAlertVisible] = useState(false);
@@ -55,9 +59,10 @@ export default function AddWorkerScreen() {
       const workers = await getAllByRole(ROLES.WORKER);
       const array = workers
         ? Object.keys(workers).map(key => ({
-          id: key,
-          ...workers[key]
-        })) : [];
+            id: key,
+            ...workers[key],
+          }))
+        : [];
       setWorkersArray(array || []);
     } catch (error) {
       showCustomAlert('خطأ', 'فشل تحميل بيانات الموظفين');
@@ -75,7 +80,6 @@ export default function AddWorkerScreen() {
 
   const handleAddWorker = async () => {
     try {
-
       if (!phone.trim()) {
         showCustomAlert('تنبيه', 'الرجاء إدخال رقم هاتف الموظف');
         return;
@@ -91,12 +95,10 @@ export default function AddWorkerScreen() {
       if (role === ROLES.WORKER) {
         showCustomAlert('خطأ', 'المستخدم موظف بالفعل');
         return;
-      }
-      else if (role === ROLES.MANAGER) {
+      } else if (role === ROLES.MANAGER) {
         showCustomAlert('خطأ', 'المستخدم مسؤول بالفعل');
         return;
-      }
-      else if (role === ROLES.ADMIN) {
+      } else if (role === ROLES.ADMIN) {
         showCustomAlert('خطأ', 'المستخدم مدير ولا يمكن ترقيته');
         return;
       }
@@ -104,78 +106,74 @@ export default function AddWorkerScreen() {
       if (role === ROLES.CITIZEN) {
         showCustomAlert(
           'إضافة موظف جديد',
-          `هل تريد إرسال دعوة إلى ${full_name} (${formattedPhone})ليصبح موظفاً؟ `,
+          [
+            '',
+            `هل تريد إرسال دعوة إلى ${full_name}`,
+            `(${formatLebanesePhone(formattedPhone)})`,
+            'ليصبح موظفاً',
+          ].join('\n'),
           [
             {
               text: 'تأكيد',
               onPress: async () => {
                 try {
                   await promoteToRole(id, ROLES.WORKER);
-                  setPhone("");
+                  setPhone('');
                   fetchWorkers();
                   showCustomAlert('نجاح', 'تم  ارسال دعوة الترقية بنجاح');
                 } catch (error) {
                   showCustomAlert('خطأ', error?.message || 'حدث خطأ غير متوقع');
                   console.log(error);
                 }
-              }
+              },
             },
             {
               text: 'إلغاء',
               style: 'cancel',
-              onPress: hideCustomAlert
-            }
-          ]
+              onPress: hideCustomAlert,
+            },
+          ],
         );
       }
-
     } catch (error) {
       showCustomAlert('خطأ', 'حدث خطأ غير متوقع');
       console.log(error);
     }
   };
 
-  const handleRevokeRole = async (id) => {
+  const handleRevokeRole = async id => {
     try {
-      showCustomAlert(
-        'ازالة موظف',
-        `هل تريد ازالة هذا الموظف`,
-        [
-          {
-            text: 'تأكيد',
-            onPress: async () => {
-              try {
-                await revokeRole(id);
-                fetchWorkers();
-                showCustomAlert('نجاح', 'تم  ازالة الموظف بنجاح');
-              } catch (error) {
-                showCustomAlert('خطأ', 'حدث خطأ غير متوقع');
-                console.log(error);
-              }
+      showCustomAlert('ازالة موظف', `هل تريد ازالة هذا الموظف`, [
+        {
+          text: 'تأكيد',
+          onPress: async () => {
+            try {
+              await revokeRole(id);
+              fetchWorkers();
+              showCustomAlert('نجاح', 'تم  ازالة الموظف بنجاح');
+            } catch (error) {
+              showCustomAlert('خطأ', 'حدث خطأ غير متوقع');
+              console.log(error);
             }
           },
-          {
-            text: 'إلغاء',
-            style: 'cancel',
-            onPress: hideCustomAlert
-          }
-        ]
-      );
+        },
+        {
+          text: 'إلغاء',
+          style: 'cancel',
+          onPress: hideCustomAlert,
+        },
+      ]);
     } catch (error) {
       showCustomAlert('خطأ', 'حدث خطأ غير متوقع');
       console.log(error);
     }
-  }
+  };
 
   const renderWorker = ({ item }) => {
-    const {
-      phone_number,
-      full_name,
-    } = item;
+    const { phone_number, full_name } = item;
 
     return (
       <View style={styles.workerCard}>
-
         <Text style={styles.workerName} numberOfLines={1}>
           {full_name}
         </Text>
@@ -185,13 +183,19 @@ export default function AddWorkerScreen() {
             <Text style={styles.badgeText}>موظف</Text>
           </View>
 
-
-          <TouchableOpacity style={styles.deleteBtn} onPress={() => { handleRevokeRole(item.id) }}>
+          <TouchableOpacity
+            style={styles.deleteBtn}
+            onPress={() => {
+              handleRevokeRole(item.id);
+            }}
+          >
             <Text style={styles.deleteText}>إزالة</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.phoneText}>{phone_number}</Text>
+        <Text style={styles.phoneText}>
+          {formatLebanesePhone(phone_number)}
+        </Text>
       </View>
     );
   };
@@ -200,15 +204,13 @@ export default function AddWorkerScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#d32f2f" />
-        <Text style={styles.loadingText}>جاري تحميل ...</Text>
+        <Text style={styles.loadingText}>جاري التحميل ...</Text>
       </View>
     );
   }
 
-
   return (
     <View style={styles.screen}>
-
       <CustomAlert
         visible={alertVisible}
         title={alertData.title}
@@ -217,21 +219,21 @@ export default function AddWorkerScreen() {
         onClose={hideCustomAlert}
       />
 
-
       {/* <View style={styles.header}>
         <Text style={styles.headerTitle}>إدارة الموظفين</Text>
         <Text style={styles.headerSub}>إضافة وإدارة موظفي الميدان</Text>
       </View> */}
       <HeaderSection
-        title='إدارة الموظفين'
-        subtitle='إضافة وإدارة موظفي الميدان'
+        title="إدارة الموظفين"
+        subtitle="إضافة وإدارة موظفي الميدان"
         showBackButton
-        onBackPress= {() => navigation.goBack()}
+        onBackPress={() => navigation.goBack()}
       />
 
       <View style={styles.infoBox}>
         <Text style={styles.infoText} numberOfLines={2}>
-          صلاحيات الموظف: يمكن للموظفين استلام الشكاوى المعيّنة وحلها مع تقديم الأدلة المطلوبة
+          صلاحيات الموظف: يمكن للموظفين استلام الشكاوى المعيّنة وحلها مع تقديم
+          الأدلة المطلوبة
         </Text>
       </View>
 
@@ -266,16 +268,15 @@ export default function AddWorkerScreen() {
             keyExtractor={item => item.id.toString()}
             renderItem={renderWorker}
             refreshControl={
-              <RefreshControl 
-              refreshing={refreshing} 
-              onRefresh={onRefresh} 
-              colors={[COLORS.primary]}
-              tintColor={COLORS.primary} 
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[COLORS.primary]}
+                tintColor={COLORS.primary}
               />
             }
           />
         </>
-
       )}
       {workersArray?.length === 0 && (
         <View style={styles.emptyBox}>
@@ -285,7 +286,6 @@ export default function AddWorkerScreen() {
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   screen: {
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: COLORS.white,
     fontSize: 22,
-    fontWeight: "700",
+    fontWeight: '700',
     textAlign: 'center',
     fontFamily: FONT_FAMILIES.primary,
   },
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
   },
   addTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: '700',
     marginBottom: 16,
     color: COLORS.text.primary,
     fontFamily: FONT_FAMILIES.primary,
@@ -365,14 +365,14 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILIES.primary,
   },
   rowBetween: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 8,
   },
   inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
   input: {
@@ -392,14 +392,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     height: 50,
     borderRadius: BORDER_RADIUS.md,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     minWidth: 80,
     ...SHADOWS.sm,
   },
   addBtnText: {
     color: COLORS.white,
-    fontWeight: "700",
+    fontWeight: '700',
     fontSize: 14,
     fontFamily: FONT_FAMILIES.primary,
   },
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginHorizontal: 16,
     marginBottom: 12,
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
   },
   workerName: {
     fontSize: 17,
-    fontWeight: "700",
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 8,
     fontFamily: FONT_FAMILIES.primary,
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     backgroundColor: COLORS.roles.worker.background,
-    alignSelf: "flex-end",
+    alignSelf: 'flex-end',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: BORDER_RADIUS.xl,
@@ -453,12 +453,12 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     color: COLORS.roles.worker.text,
-    fontWeight: "600",
+    fontWeight: '600',
     fontFamily: FONT_FAMILIES.primary,
   },
   deleteBtn: {
     backgroundColor: COLORS.primary,
-    alignSelf: "flex-start",
+    alignSelf: 'flex-start',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: BORDER_RADIUS.sm,
@@ -467,12 +467,12 @@ const styles = StyleSheet.create({
   deleteText: {
     color: COLORS.white,
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '600',
     fontFamily: FONT_FAMILIES.primary,
   },
   emptyBox: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 40,
     paddingHorizontal: 20,
   },
@@ -484,8 +484,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: COLORS.background,
   },
   loadingText: {

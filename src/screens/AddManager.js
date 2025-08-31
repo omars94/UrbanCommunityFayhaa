@@ -18,6 +18,7 @@ import { getAllByRole, promoteToRole, revokeRole } from "../api/userApi";
 import { checkIfUserExist } from "../api/authApi";
 import CustomAlert from "../components/customAlert";
 import HeaderSection from "../components/headerSection";
+import { formatLebanesePhone } from "../utils";
 
 export default function AddManagerScreen() {
   const [managersArray, setManagersArray] = useState([]);
@@ -60,7 +61,7 @@ export default function AddManagerScreen() {
         })) : [];
       setManagersArray(array || []);
     } catch (error) {
-      showCustomAlert('خطأ', 'فشل تحميل بيانات المديرين');
+      showCustomAlert('خطأ', 'فشل تحميل بيانات المسؤولين');
       console.log(error);
     } finally {
       setLoading(false);
@@ -77,7 +78,7 @@ export default function AddManagerScreen() {
     try {
 
       if (!phone.trim()) {
-        showCustomAlert('تنبيه', 'الرجاء إدخال رقم هاتف المدير');
+        showCustomAlert('تنبيه', 'الرجاء إدخال رقم هاتف المسؤول');
         return;
       }
       const formattedPhone = '+961' + phone;
@@ -99,21 +100,26 @@ export default function AddManagerScreen() {
 
       if (role === ROLES.CITIZEN || role === ROLES.WORKER) {
         showCustomAlert(
-          'إضافة مدير جديد',
-          `هل تريد إرسال دعوة إلى ${full_name} (${formattedPhone})ليصبح مديراً؟ `,
+          'إضافة مسؤول جديد',
+          [
+            '',
+            `هل تريد إرسال دعوة إلى ${full_name}`,
+            `(${formatLebanesePhone(formattedPhone)})`,
+            'ليصبح مسؤولاً؟'
+          ].join('\n'),
           [
             {
               text: 'تأكيد',
               onPress: async () => {
-                try {
-                  await promoteToRole(id, ROLES.MANAGER);
-                  setPhone("");
-                  fetchManagers();
-                  showCustomAlert('نجاح', 'تم  ارسال دعوة الترقية بنجاح');
-                } catch (error) {
-                  showCustomAlert('خطأ', error?.message || 'حدث خطأ غير متوقع');
-                  console.log(error);
-                }
+          try {
+            await promoteToRole(id, ROLES.MANAGER);
+            setPhone("");
+            fetchManagers();
+            showCustomAlert('نجاح', 'تم  ارسال دعوة الترقية بنجاح');
+          } catch (error) {
+            showCustomAlert('خطأ', error?.message || 'حدث خطأ غير متوقع');
+            console.log(error);
+          }
               }
             },
             {
@@ -134,8 +140,8 @@ export default function AddManagerScreen() {
   const handleRevokeRole = async (id) => {
     try {
       showCustomAlert(
-        'ازالة مدير',
-        `هل تريد ازالة هذا المدير`,
+        'ازالة مسؤول',
+        `هل تريد ازالة هذا المسؤول`,
         [
           {
             text: 'تأكيد',
@@ -143,7 +149,7 @@ export default function AddManagerScreen() {
               try {
                 await revokeRole(id);
                 fetchManagers();
-                showCustomAlert('نجاح', 'تم  ازالة المدير بنجاح');
+                showCustomAlert('نجاح', 'تم  ازالة المسؤول بنجاح');
               } catch (error) {
                 showCustomAlert('خطأ', 'حدث خطأ غير متوقع');
                 console.log(error);
@@ -178,7 +184,7 @@ export default function AddManagerScreen() {
 
         <View style={styles.rowBetween}>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>مدير</Text>
+            <Text style={styles.badgeText}>مسؤول</Text>
           </View>
 
 
@@ -187,7 +193,7 @@ export default function AddManagerScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.phoneText}>{phone_number}</Text>
+        <Text style={styles.phoneText}>{formatLebanesePhone(phone_number)}</Text>
       </View>
     );
   };
@@ -196,7 +202,7 @@ export default function AddManagerScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#d32f2f" />
-        <Text style={styles.loadingText}>جاري تحميل ...</Text>
+        <Text style={styles.loadingText}>جاري التحميل ...</Text>
       </View>
     );
   }
@@ -219,21 +225,21 @@ export default function AddManagerScreen() {
         <Text style={styles.headerSub}>إضافة وإدارة المديرين</Text>
       </View> */}
       <HeaderSection
-        title='إدارة المديرين'
-        subtitle='إضافة وإدارة المديرين'
+        title='إدارة المسؤولين'
+        subtitle='إضافة وإدارة المسؤولين'
         showBackButton
         onBackPress= {() => navigation.goBack()}
       />
 
       <View style={styles.infoBox}>
         <Text style={styles.infoText} numberOfLines={2}>
-          صلاحيات المدير: يمكن للمديرين مراجعة التبليغات وحذفها مؤقتًا، وإضافة موظفين جدد.
+          صلاحيات المسؤول: يمكن للمسؤولين مراجعة التبليغات وحذفها مؤقتًا، وإضافة موظفين جدد.
         </Text>
       </View>
 
       <View style={styles.addCard}>
-        <Text style={styles.addTitle}>إضافة مدير جديد</Text>
-        <Text style={styles.label}>رقم هاتف المدير</Text>
+        <Text style={styles.addTitle}>إضافة مسؤول جديد</Text>
+        <Text style={styles.label}>رقم هاتف المسؤول</Text>
 
         <View style={styles.inputRow}>
           <TextInput
@@ -254,7 +260,7 @@ export default function AddManagerScreen() {
 
       {managersArray?.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>المدراء الحاليون</Text>
+          <Text style={styles.sectionTitle}>المسؤولين الحاليين</Text>
           <FlatList
             data={managersArray}
             style={styles.list}
@@ -275,7 +281,7 @@ export default function AddManagerScreen() {
       )}
       {managersArray?.length === 0 && (
         <View style={styles.emptyBox}>
-          <Text style={styles.emptyText}>لا يوجد مديرين</Text>
+          <Text style={styles.emptyText}>لا يوجد مسؤولين</Text>
         </View>
       )}
     </View>

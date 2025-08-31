@@ -167,7 +167,7 @@ export default function HomeScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>جاري تحميل ...</Text>
+        <Text style={styles.loadingText}>جاري التحميل ...</Text>
       </View>
     );
   }
@@ -187,7 +187,7 @@ export default function HomeScreen() {
         <View style={styles.headerSection}>
           <View style={styles.logoContainer}>
             <Image
-              source={require('../assets/logo.png')} // Adjust path as needed
+              source={require('../assets/logo1.png')} // Adjust path as needed
               style={styles.logo}
               resizeMode="contain"
             />

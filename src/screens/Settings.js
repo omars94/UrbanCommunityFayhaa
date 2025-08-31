@@ -7,6 +7,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { clearUser } from '../slices/userSlice';
 import auth from '@react-native-firebase/auth';
 import HeaderSection from "../components/headerSection";
+import { formatLebanesePhone } from "../utils";
 
 
 export default function SettingsScreen() {
@@ -78,7 +79,7 @@ export default function SettingsScreen() {
                     </View>
                     <View>
                         <Text style={styles.profileName}>{fullname}</Text>
-                        <Text style={styles.profileInfo}>{role_text} • {phone}</Text>
+                        <Text style={styles.profileInfo}>{role_text} | {formatLebanesePhone(phone)}</Text>
                     </View>
                 </View>
 
@@ -91,8 +92,8 @@ export default function SettingsScreen() {
                 {role === ROLES.ADMIN &&
                     <MenuItem
                         icon="book"
-                        label="إدارة المديرين"
-                        subLabel="إضافة وإدارة المدراء"
+                        label="إدارة المسؤولين"
+                        subLabel="إضافة وإدارة المسؤولين"
                         onPress={() => navigation.navigate(ROUTE_NAMES.ADD_MANAGER)}
                     />}
                 {(role === ROLES.ADMIN || role === ROLES.MANAGER) &&
