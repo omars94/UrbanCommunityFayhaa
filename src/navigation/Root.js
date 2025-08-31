@@ -55,8 +55,9 @@ function Layout() {
 
   useEffect(() => {
     const unsubscribe = auth().onAuthStateChanged(async firebaseUser => {
-      if (firebaseUser) {
+      if (firebaseUser && firebaseUser.emailVerified) {
         // User is signed in
+        console.log('user email verified');
         const token = await firebaseUser.getIdToken();
         console.log("UID from user object:", firebaseUser.uid);
         const user = await getUserByFbUID(firebaseUser.uid);
@@ -67,6 +68,7 @@ function Layout() {
         setReady(true);
       } else {
         setReady(true);
+        console.log('user email not verified');
         // User is signed out
         dispatch(clearUser());
       }
