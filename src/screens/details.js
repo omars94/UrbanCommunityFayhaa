@@ -17,6 +17,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import {getCurrentLocation } from '../utils/CurrentLocation.js';
 import { launchCamera } from 'react-native-image-picker';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
@@ -39,7 +40,7 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
 import { DisplayMap } from '../components/detailsComponents/map.js';
 import  ImageSlider  from '../components/detailsComponents/imageSlider.js';
-import { requestCameraPermissions } from '../utils/Permissions.js';
+import { requestCameraPermissions, requestPermissions } from '../utils/Permissions.js';
 import { ImageResolutionComponent } from '../components/resolveComponent.js'
 import storage from '@react-native-firebase/storage';
 import StatusTimeline from '../components/detailsComponents/timeline.js';
@@ -97,7 +98,7 @@ export default function ComplaintDetailsScreen() {
   const [complaintData, setComplaintData] = useState(complaint);
   const [status, setStatus] = useState(complaint?.status);
   const [workers, setWorkers] = useState([]);
-  const [selectedWorker, setSelectedWorker] = useState(complaint?.worker_assignee_id || null);
+  const [selectedWorker, setSelectedWorker] = useState(complaint?.worker_assignee_id || []);
   const [managers, setManagers] = useState([]);
   const [selectedManager, setSelectedManager] = useState(complaint?.manager_assignee_id || null);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -109,6 +110,7 @@ export default function ComplaintDetailsScreen() {
   const [showResolutionComponent, setShowResolutionComponent] = useState(false);
   const [capturedImageUri, setCapturedImageUri] = useState('');
   const [shouldRenderMap, setShouldRenderMap] = useState(false);
+  const [capturedLocation, setCapturedLocation] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -151,7 +153,7 @@ export default function ComplaintDetailsScreen() {
         setComplaintData({ ...data, id: complaint.id });
         setStatus(data.status);
         setSelectedManager(data.manager_assignee_id || null);
-        setSelectedWorker(data.worker_assignee_id || null);
+        setSelectedWorker(data.worker_assignee_id || []);
       }
     }, (error) => {
       console.error('Real-time update error:', error);
@@ -172,7 +174,7 @@ export default function ComplaintDetailsScreen() {
         setComplaintData({ ...data, id: complaint.id });
         setStatus(data.status);
         setSelectedManager(data.manager_assignee_id || null);
-        setSelectedWorker(data.worker_assignee_id || null);
+        setSelectedWorker(data.worker_assignee_id || []);
       }
     } catch (error) {
       console.error('Refresh error:', error);
@@ -218,22 +220,57 @@ export default function ComplaintDetailsScreen() {
     }
   }, [complaint?.id, user]);
 
-  const handleResolveComplaint = useCallback(async () => {
-    const granted = await requestCameraPermissions();
-    if (!granted) return;
+const handleResolveComplaint = useCallback(async () => {
+  try {
+    // Request camera permissions
+    const getCameraAndLocationPermissions = await requestPermissions();
+    if (!getCameraAndLocationPermissions) {
+      Alert.alert('خطأ', 'لا يمكن الوصول إلى الكاميرا أو الموقع بدون الأذونات اللازمة');
+      return;
+    }
+
     const result = await launchCamera({
       mediaType: 'photo',
       quality: 0.8,
       saveToPhotos: false,
     });
+
     console.log('Camera result:', result);
+    
     if (!result.didCancel && result.assets?.[0]?.uri) {
       const uri = result.assets[0].uri;
-      setCapturedImageUri(uri);
-      console.log("New captured image:", uri);
-      setShowResolutionComponent(true);
+      
+      try {
+        const location = await getCurrentLocation();
+        console.log('Current location:', location);
+        
+        setCapturedImageUri(uri);
+        setCapturedLocation(location); 
+        setShowResolutionComponent(true);
+      } catch (locationError) {
+        console.error('Location error:', locationError);
+        Alert.alert(
+          'تحذير',
+          'لم يتم الحصول على الموقع الحالي. هل تريد المتابعة بدون موقع؟',
+          [
+            { text: 'إلغاء', style: 'cancel' },
+            {
+              text: 'متابعة',
+              onPress: () => {
+                setCapturedImageUri(uri);
+                setCapturedLocation(null);
+                setShowResolutionComponent(true);
+              },
+            },
+          ]
+        );
+      }
     }
-  }, []);
+  } catch (error) {
+    console.error('Error in handleResolveComplaint:', error);
+    Alert.alert('خطأ', 'حدث خطأ أثناء تحضير حل المشكلة');
+  }
+}, []);
 
   useEffect(() => {
     if (capturedImageUri) {
@@ -241,24 +278,36 @@ export default function ComplaintDetailsScreen() {
     }
   }, [capturedImageUri]);  
 
-  const submitResolveComplaint = async () => {
-    setIsLoading(true);
-    try {
-      const photo_url = await uploadPhoto(capturedImageUri);
-      console.log('Photo uploaded:', photo_url);
-      if(photo_url){
-        await resolveComplaint(complaint.id, user.id, photo_url);
-        Alert.alert('نجح', 'تم تحديث حالة الشكوى إلى "تم الحل"');
-      }else{
-        Alert.alert('خطأ', 'حدث خطأ أثناء تحديث الشكوى');
-      }
-    } catch (error) {
-      console.error('Error resolving complaint:', error);
+const submitResolveComplaint = async () => {
+  setIsLoading(true);
+  try {
+    const photo_url = await uploadPhoto(capturedImageUri);
+    console.log('Photo uploaded:', photo_url);
+    
+    if (photo_url) {
+      // Pass location coordinates to resolveComplaint
+      await resolveComplaint(
+        complaint.id, 
+        photo_url,
+        capturedLocation?.latitude || null,
+        capturedLocation?.longitude || null
+      );
+      
+      Alert.alert('نجح', 'تم تحديث حالة الشكوى إلى "تم الحل"');
+      
+      // Clear captured data
+      setCapturedImageUri('');
+      setCapturedLocation(null);
+    } else {
       Alert.alert('خطأ', 'حدث خطأ أثناء تحديث الشكوى');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  } catch (error) {
+    console.error('Error resolving complaint:', error);
+    Alert.alert('خطأ', 'حدث خطأ أثناء تحديث الشكوى');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleCompleteComplaint = useCallback(async () => {
     Alert.alert(
@@ -423,114 +472,115 @@ export default function ComplaintDetailsScreen() {
     );
   }, [showRejectModal, rejectionReason, isLoading, handleRejectComplaint]);
 
-  const renderActionButtons = useCallback(() => {
-    const canAssign =
-      (user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.PENDING) ||
-      (user?.role === ROLES.MANAGER && status === COMPLAINT_STATUS.ASSIGNED && !complaintData?.worker_assignee_id);
+const renderActionButtons = useCallback(() => {
+  const canAssign =
+    (user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.PENDING) ||
+    (user?.role === ROLES.MANAGER && status === COMPLAINT_STATUS.ASSIGNED);
 
-    const canResolve =
-      (user?.role === ROLES.WORKER && status === COMPLAINT_STATUS.ASSIGNED) ||
-      (user?.role === ROLES.MANAGER && status === COMPLAINT_STATUS.ASSIGNED);
+  const canResolve =
+    (user?.role === ROLES.WORKER && status === COMPLAINT_STATUS.ASSIGNED) ||
+    (user?.role === ROLES.MANAGER && status === COMPLAINT_STATUS.ASSIGNED);
 
-    const canComplete =
-      user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.RESOLVED;
+  const canComplete =
+    user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.RESOLVED;
 
-    const canReject =
-      user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.PENDING;
+  const canReject =
+    user?.role === ROLES.ADMIN && 
+    [COMPLAINT_STATUS.PENDING, COMPLAINT_STATUS.RESOLVED].includes(status);
 
-    const isAlreadyAssigned =
-      user?.role === ROLES.MANAGER && status === COMPLAINT_STATUS.ASSIGNED && complaintData?.worker_assignee_id;
+  const isAlreadyAssigned =
+    user?.role === ROLES.MANAGER && status === COMPLAINT_STATUS.ASSIGNED && complaintData?.worker_assignee_id;
 
-    if (!canAssign && !canResolve && !canComplete && !canReject && !isAlreadyAssigned) {
-      return null;
-    }
+  if (!canAssign && !canResolve && !canComplete && !canReject && !isAlreadyAssigned) {
+    return null;
+  }
 
-    return (
-      <View style={styles.actionsContainer}>
-        {canAssign && (
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.assignButton,
-              isLoading && styles.disabledButton,
-            ]}
-            onPress={() => setShowAssignModal(true)}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
-            ) : (
-              <Text style={styles.actionButtonText}>
-                {user?.role === ROLES.ADMIN ? "تعيين لمدير" : "تعيين لعامل"}
-              </Text>
-            )}
-          </TouchableOpacity>
-        )}
+  return (
+    <View style={styles.actionsContainer}>
+      {canAssign && (
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.assignButton,
+            isLoading && styles.disabledButton,
+          ]}
+          onPress={() => setShowAssignModal(true)}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <Text style={styles.actionButtonText}>
+              {user?.role === ROLES.ADMIN ? "تعيين لمدير" : !complaintData?.worker_assignee_id ? "تعيين لعامل": "إعادة تعيين العامل"}
+            </Text>
+          )}
+        </TouchableOpacity>
+      )}
 
-        {isAlreadyAssigned && (
-          <View style={[styles.actionButton, styles.alreadyAssignedButton]}>
-            <Text style={styles.actionButtonText}>تم التعيين بالفعل</Text>
-          </View>
-        )}
+      {/* {isAlreadyAssigned && (
+        <View style={[styles.actionButton, styles.alreadyAssignedButton]}>
+          <Text style={styles.actionButtonText}>تم التعيين بالفعل</Text>
+        </View>
+      )} */}
 
-        {canResolve && (
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.resolveButton,
-              isLoading && styles.disabledButton,
-            ]}
-            onPress={handleResolveComplaint}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
-            ) : (
-              <Text style={styles.actionButtonText}>حل المشكلة عن طريق صورة</Text>
-            )}
-          </TouchableOpacity>
-        )}
+      {canResolve && (
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.resolveButton,
+            isLoading && styles.disabledButton,
+          ]}
+          onPress={handleResolveComplaint}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <Text style={styles.actionButtonText}>حل المشكلة عن طريق صورة</Text>
+          )}
+        </TouchableOpacity>
+      )}
 
-        {canComplete && (
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.completeButton,
-              isLoading && styles.disabledButton,
-            ]}
-            onPress={handleCompleteComplaint}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
-            ) : (
-              <Text style={styles.actionButtonText}>تأكيد الإنجاز</Text>
-            )}
-          </TouchableOpacity>
-        )}
+      {canComplete && (
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.completeButton,
+            isLoading && styles.disabledButton,
+          ]}
+          onPress={handleCompleteComplaint}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <Text style={styles.actionButtonText}>تأكيد الإنجاز</Text>
+          )}
+        </TouchableOpacity>
+      )}
 
-        {canReject && (
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.rejectActionButton,
-              isLoading && styles.disabledButton,
-            ]}
-            onPress={() => setShowRejectModal(true)}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
-            ) : (
-              <Text style={styles.actionButtonText}>رفض الشكوى</Text>
-            )}
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  }, [
-    user?.role, status, complaintData?.worker_assignee_id, isLoading, handleResolveComplaint, handleCompleteComplaint,
-  ]);
+      {canReject && (
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.rejectActionButton,
+            isLoading && styles.disabledButton,
+          ]}
+          onPress={() => setShowRejectModal(true)}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <Text style={styles.actionButtonText}>رفض الشكوى</Text>
+          )}
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}, [
+  user?.role, status, complaintData?.worker_assignee_id, isLoading, handleResolveComplaint, handleCompleteComplaint,
+]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -594,6 +644,7 @@ export default function ComplaintDetailsScreen() {
               complaint={complaintData || complaint}
               status={status}
               getTimeAgo={getTimeAgo}
+              userRole={user?.role}  // Add this line
             />
           </View>
           <View style={styles.section}>
@@ -658,28 +709,32 @@ export default function ComplaintDetailsScreen() {
       <Text style={styles.infoLabel}>
         العامل المسؤول
       </Text>
-      <Text style={styles.infoValue}>{complaintData.worker_name}</Text>
+      <Text style={styles.infoValue}>{complaintData.worker_name[complaintData.worker_name.length -1]}</Text>
     </View>
   )}
 </View>
 
 <View style={styles.section}>
-    <View style={styles.sectionHeader}>
-      <Ionicons name="map" size={20} color="#2E86AB" style={{ marginRight: 5 }} />
-
-  <Text style={styles.sectionTitle}>
-    الموقع على الخريطة
-  </Text>
-    </View>
+  <View style={styles.sectionHeader}>
+    <Ionicons name="map" size={20} color="#2E86AB" style={{ marginRight: 5 }} />
+    <Text style={styles.sectionTitle}>
+      الموقع على الخريطة
+    </Text>
+  </View>
   <View style={styles.locationContainer}>
-    {shouldRenderMap &&(
-    <DisplayMap lat={complaintData.latitude} long={complaintData.longitude} />
+    {shouldRenderMap && (
+      <DisplayMap 
+        lat={complaintData.latitude} 
+        long={complaintData.longitude}
+        resolvedLat={complaintData.resolved_lat}
+        resolvedLong={complaintData.resolved_long}
+        status={status}
+      />
     )} 
     <View style={styles.coordinatesContainer}>
       <Ionicons name="pin" size={20} color="#E74C3C" style={{ marginRight: 5 }} />
-
       <Text style={styles.coordinatesText}>
-        الإحداثيات: {complaintData.latitude}, {complaintData.longitude}
+        إحداثيات الشكوى: {complaintData.latitude}, {complaintData.longitude}
       </Text>
     </View>
   </View>
@@ -739,7 +794,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: COLORS.primary,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.lg,
+    paddingVertical: SPACING.xl,
     flexDirection: 'row',
     alignItems: 'center',
     ...SHADOWS.lg,

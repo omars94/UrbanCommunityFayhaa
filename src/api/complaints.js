@@ -1,6 +1,6 @@
 import database from '@react-native-firebase/database';
 import { COMPLAINT_STATUS, ROLES } from '../constants';
-
+import { Alert } from 'react-native';
 
 export const updateComplaintInDB = async (complaintId, updates) => {
   try {        
@@ -23,35 +23,49 @@ export const updateComplaintInDB = async (complaintId, updates) => {
   }
 };
 
-export const assignComplaint = async (complaintId, assignedUserId, assignedUserName, userRole, userId) => {
+export const assignComplaint = async (complaintId, assignedUserId, assignedUserName, userRole) => {
   const updates = {
     status: COMPLAINT_STATUS.ASSIGNED,
   };
 
-  if (userRole === ROLES.ADMIN ) {
+  if (userRole === ROLES.ADMIN) {
     updates.manager_assignee_id = assignedUserId;
     updates.manager_name = assignedUserName;
     updates.assigned_at = new Date().toISOString();
   } else if (userRole === ROLES.MANAGER) {
-    updates.worker_assignee_id = assignedUserId;
-    updates.worker_name = assignedUserName;
-    updates.assigned_to_worker_at = new Date().toISOString();
+    const complaintRef = database().ref(`complaints/${complaintId}`);
+    const snapshot = await complaintRef.once('value');
+    const currentData = snapshot.val();
+    
+    const currentWorkerIds = currentData?.worker_assignee_id || [];
+    const currentWorkerNames = currentData?.worker_name || [];
+    const currentWorkerAssignedAt = currentData?.assigned_to_worker_at || [];
+    
+    if (currentWorkerIds.includes(assignedUserId)) {
+      Alert.alert('هذا العامل مُعين بالفعل لهذه الشكوى');
+    }
+    
+    updates.worker_assignee_id = [...currentWorkerIds, assignedUserId];
+    updates.worker_name = [...currentWorkerNames, assignedUserName];
+    updates.assigned_to_worker_at = [...currentWorkerAssignedAt, new Date().toISOString()];
   }
 
   return await updateComplaintInDB(complaintId, updates);
 };
 
-export const resolveComplaint = async (complaintId, userId, photo_url) => {
+export const resolveComplaint = async (complaintId, photo_url, resolvedLat, resolvedLong) => {
   const updates = {
     status: COMPLAINT_STATUS.RESOLVED,
     resolved_at: new Date().toISOString(),
-    resolved_photo_url: photo_url
+    resolved_photo_url: photo_url,
+    resolved_lat: resolvedLat,
+    resolved_long: resolvedLong,
   };
 
   return await updateComplaintInDB(complaintId, updates);
 };
 
-export const completeComplaint = async (complaintId, userId) => {
+export const completeComplaint = async (complaintId) => {
   const updates = {
     status: COMPLAINT_STATUS.COMPLETED,
     completed_at: new Date().toISOString(),
@@ -60,7 +74,7 @@ export const completeComplaint = async (complaintId, userId) => {
   return await updateComplaintInDB(complaintId, updates);
 };
 
-export const rejectComplaint = async (complaintId, userId, rejectionReason) => {
+export const rejectComplaint = async (complaintId, rejectionReason) => {
   const updates = {
     status: COMPLAINT_STATUS.REJECTED,
     rejected_at: new Date().toISOString(),

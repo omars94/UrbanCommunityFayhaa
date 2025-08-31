@@ -1,26 +1,120 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COMPLAINT_STATUS, COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING, FONT_FAMILIES } from '../../constants/index';
+import { COMPLAINT_STATUS, COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING, FONT_FAMILIES, ROLES } from '../../constants/index';
 
-const StatusTimeline = ({ complaint, status, getTimeAgo }) => {
+const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
   const currentComplaint = complaint;
+
+  // Function to get assignment label based on user role
+  const getAssignmentLabel = () => {
+    if (userRole === ROLES.CITIZEN) {
+      return 'تم تعيين الشكوى';
+    }
+
+    // For ADMIN and MANAGER, show detailed assignment info
+    const labels = [];
+    
+    // Admin assignment
+    if (currentComplaint.manager_assignee_id) {
+      labels.push(`تم تعيين للإدارة `);
+    }
+    
+    // Worker assignments
+    if (currentComplaint.worker_assignee_id && currentComplaint.worker_assignee_id.length > 0) {
+      currentComplaint.worker_assignee_id.forEach((workerId, index) => {
+        const workerName = currentComplaint.worker_name?.[index] || 'غير محدد';
+        labels.push(`تم تعيين للعامل: ${workerName}`);
+      });
+    }
+    
+    return labels.length > 0 ? labels : ['تم تعيين الشكوى'];
+  };
+
+  // Function to get assignment dates based on user role
+  const getAssignmentDates = () => {
+    if (userRole === ROLES.CITIZEN) {
+      return [currentComplaint.assigned_at || currentComplaint.assigned_to_worker_at?.[0]];
+    }
+
+    const dates = [];
+    
+    // Admin assignment date
+    if (currentComplaint.assigned_at) {
+      dates.push(currentComplaint.assigned_at);
+    }
+    
+    // Worker assignment dates
+    if (currentComplaint.assigned_to_worker_at && currentComplaint.assigned_to_worker_at.length > 0) {
+      dates.push(...currentComplaint.assigned_to_worker_at);
+    }
+    
+    return dates.length > 0 ? dates : [currentComplaint.assigned_at || currentComplaint.assigned_to_worker_at?.[0]];
+  };
   
   if (status === COMPLAINT_STATUS.REJECTED) {
+    const hasAssigned = currentComplaint.assigned_at || currentComplaint.assigned_to_worker_at;
+    const hasResolved = currentComplaint.resolved_at;
+    const hasCompleted = currentComplaint.completed_at;
+    
     const rejectedSteps = [
       {
         key: 'submitted',
         label: 'تم استلام الشكوى',
         completed: true,
         date: currentComplaint.created_at
-      },
-      {
-        key: 'rejected',
-        label: 'تم رفض الشكوى',
-        completed: true,
-        date: currentComplaint.rejected_at,
-        isRejected: true
-      },
+      }
     ];
+
+    if (hasAssigned) {
+      const assignmentLabels = getAssignmentLabel();
+      const assignmentDates = getAssignmentDates();
+      
+      if (Array.isArray(assignmentLabels)) {
+        // Multiple assignments (for admin/manager view)
+        assignmentLabels.forEach((label, index) => {
+          rejectedSteps.push({
+            key: `assigned_${index}`,
+            label: label,
+            completed: true,
+            date: assignmentDates[index] || assignmentDates[0]
+          });
+        });
+      } else {
+        // Single assignment label (for citizen view)
+        rejectedSteps.push({
+          key: 'assigned',
+          label: assignmentLabels,
+          completed: true,
+          date: assignmentDates[0]
+        });
+      }
+    }
+
+    if (hasResolved) {
+      rejectedSteps.push({
+        key: 'resolved',
+        label: 'تم الحل',
+        completed: true,
+        date: currentComplaint.resolved_at
+      });
+    }
+
+    if (hasCompleted) {
+      rejectedSteps.push({
+        key: 'completed',
+        label: 'مكتملة',
+        completed: true,
+        date: currentComplaint.completed_at
+      });
+    }
+
+    rejectedSteps.push({
+      key: 'rejected',
+      label: 'تم رفض الشكوى',
+      completed: true,
+      date: currentComplaint.rejected_at,
+      isRejected: true
+    });
 
     return (
       <View style={styles.timelineContainer}>
@@ -47,19 +141,53 @@ const StatusTimeline = ({ complaint, status, getTimeAgo }) => {
     );
   }
 
+  // Regular timeline steps
   const timelineSteps = [
     {
       key: 'submitted',
       label: 'تم استلام الشكوى',
       completed: true,
       date: currentComplaint.created_at
-    },
-    {
+    }
+  ];
+
+  // Handle assignment steps based on user role
+  const hasAssigned = currentComplaint.assigned_at || currentComplaint.assigned_to_worker_at;
+  if (hasAssigned) {
+    const assignmentLabels = getAssignmentLabel();
+    const assignmentDates = getAssignmentDates();
+    
+    if (Array.isArray(assignmentLabels) && userRole !== ROLES.CITIZEN) {
+      // Multiple assignments (for admin/manager view)
+      assignmentLabels.forEach((label, index) => {
+        timelineSteps.push({
+          key: `assigned_${index}`,
+          label: label,
+          completed: status !== COMPLAINT_STATUS.PENDING,
+          date: assignmentDates[index] || assignmentDates[0]
+        });
+      });
+    } else {
+      // Single assignment step (for citizen view or fallback)
+      timelineSteps.push({
+        key: 'assigned',
+        label: Array.isArray(assignmentLabels) ? assignmentLabels[0] : assignmentLabels,
+        completed: status !== COMPLAINT_STATUS.PENDING,
+        date: assignmentDates[0]
+      });
+    }
+  } else {
+    // Show pending assignment step
+    timelineSteps.push({
       key: 'assigned',
       label: 'تم تعيين الشكوى',
       completed: status !== COMPLAINT_STATUS.PENDING,
-      date: currentComplaint.assigned_at || currentComplaint.assigned_to_worker_at
-    },
+      date: null
+    });
+  }
+
+  // Add remaining steps
+  timelineSteps.push(
     {
       key: 'resolved',
       label: 'تم الحل',
@@ -68,11 +196,11 @@ const StatusTimeline = ({ complaint, status, getTimeAgo }) => {
     },
     {
       key: 'completed',
-      label: 'مكتملة ',
+      label: 'مكتملة',
       completed: status === COMPLAINT_STATUS.COMPLETED,
       date: currentComplaint.completed_at
-    },
-  ];
+    }
+  );
 
   return (
     <View style={styles.timelineContainer}>
