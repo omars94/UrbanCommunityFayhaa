@@ -99,8 +99,8 @@ export default function HomeScreen() {
 
       const roleMessages = {
         [ROLES.MANAGER]: {
-          title: 'لقد تمت دعوتك لتصبح مديرا في النظام',
-          message: 'هل تقبل الدعوة لتصبح مديراً في النظام؟',
+          title: 'لقد تمت دعوتك لتصبح مسؤولاً في النظام',
+          message: 'هل تقبل الدعوة لتصبح مسؤولاً في النظام؟',
           success: 'تمت الترقية بنجاح',
         },
         [ROLES.WORKER]: {
