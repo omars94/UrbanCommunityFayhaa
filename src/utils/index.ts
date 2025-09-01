@@ -74,3 +74,72 @@ export const removeDuplicates = <T>(array: T[], key?: keyof T): T[] => {
 export const delay = (ms: number): Promise<void> => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
+
+/**
+ * Formats a Lebanese phone number to the format: +961 70 000 999
+ * @param {string} phoneNumber - Raw phone number (e.g., "96170499810", "+96170499810")
+ * @returns {string} - Formatted phone number
+ */
+export const formatLebanesePhone = (phoneNumber: string) => {
+  if (!phoneNumber) return '';
+  
+  // Remove all non-digit characters
+  let cleanNumber = phoneNumber.replace(/\D/g, '');
+  
+  // Handle different input formats
+  if (cleanNumber.startsWith('961')) {
+    // Already has country code
+    cleanNumber = cleanNumber;
+  } else if (cleanNumber.startsWith('0')) {
+    // Remove leading 0 and add country code
+    cleanNumber = '961' + cleanNumber.substring(1);
+  } else if (cleanNumber.length === 8) {
+    // Just the local number, add country code
+    cleanNumber = '961' + cleanNumber;
+  }
+  
+  // Ensure we have the right length (961 + 8 digits = 11 total)
+  if (cleanNumber.length !== 11 || !cleanNumber.startsWith('961')) {
+    return phoneNumber; // Return original if can't format
+  }
+  
+  // Format as +961 XX XXX XXX
+  const countryCode = cleanNumber.substring(0, 3); // 961
+  const firstPart = cleanNumber.substring(3, 5);   // 70
+  const secondPart = cleanNumber.substring(5, 8);  // 499
+  const thirdPart = cleanNumber.substring(8, 11);  // 810
+  
+  return `${thirdPart} ${secondPart} ${firstPart} ${countryCode}+ `;
+};
+
+export const validateLebaneseNumber = (number: string) => {
+    const cleanedNumber = number.replace(/\D/g, '');
+
+    if (cleanedNumber.length === 0) {
+      return { isValid: false, message: 'يرجى إدخال رقم الهاتف' };
+    }
+
+    if (cleanedNumber.length !== 8) {
+      return { isValid: false, message: 'رقم الهاتف يجب أن يتكون من 8 أرقام' };
+    }
+
+    const validPrefixes = ['03', '70', '71', '76', '78', '79', '81'];
+    const prefix = cleanedNumber.substring(0, 2);
+
+    if (!validPrefixes.includes(prefix)) {
+      return {
+        isValid: false,
+        message: 'يرجى ادخال رقم لبناني صالح ',
+      };
+    }
+
+    if (!/^\d+$/.test(cleanedNumber)) {
+      return {
+        isValid: false,
+        message: 'يجب أن يحتوي رقم الهاتف على أرقام فقط',
+      };
+    }
+
+    return { isValid: true, message: '' };
+  };
+

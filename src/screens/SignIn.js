@@ -9,9 +9,12 @@ import {
 } from 'react-native';
 import PhoneInput from 'react-native-phone-number-input';
 import { useNavigation } from '@react-navigation/native';
-import { ROUTE_NAMES } from '../constants';
 import { sendOtp } from '../services/otpService';
-import { checkIfUserExistByEmail, loginUser } from '../api/authApi';
+import {
+  checkIfUserExistByEmail,
+  loginUser,
+  updateResendCount,
+} from '../api/authApi';
 import {
   SIZES,
   COLORS,
@@ -27,6 +30,12 @@ import { useRoute } from '@react-navigation/native';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
+import { checkResendEligibility } from '../api/authApi';
+import {
+  sendEmailVerification,
+  signInWithEmailAndPassword,
+} from 'firebase/auth';
+import { auth } from '../utils/firebase';
 
 const validationSchema = Yup.object().shape({
   email: Yup.string()
@@ -44,17 +53,94 @@ export default function SignIn() {
   const navigation = useNavigation();
   // const [phone, setPhone] = useState('');
   // const [formattedValue, setFormattedValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const route = useRoute();
   const [showPassword, setShowPassword] = useState(false);
 
-  // Get pre-filled credentials from route params
-  const prefillEmail = route?.params?.prefillEmail || '';
-  const prefillPassword = route?.params?.prefillPassword || '';
+  const [showResendLink, setShowResendLink] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendCount, setResendCount] = useState(0);
+  const [maxResends, setMaxResends] = useState(3);
+  const [resendEmail, setResendEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [countdownTimer, setCountdownTimer] = useState(null);
+  const [remainingTime, setRemainingTime] = useState(0);
 
   const initialValues = {
-    email: prefillEmail,
-    password: prefillPassword,
+    email: '',
+    password: '',
+  };
+
+  useEffect(() => {
+    return () => {
+      if (countdownTimer) {
+        clearInterval(countdownTimer);
+      }
+    };
+  }, [countdownTimer]);
+
+  // Start countdown timer
+  const startCountdown = seconds => {
+    setRemainingTime(seconds);
+
+    const timer = setInterval(() => {
+      setRemainingTime(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    setCountdownTimer(timer);
+  };
+
+  const onResendEmail = async (email, password) => {
+    if (
+      !email ||
+      isResending ||
+      resendCount >= maxResends ||
+      remainingTime > 0
+    ) {
+      return;
+    }
+
+    setIsResending(true);
+
+    try {
+      const eligibility = await checkResendEligibility(email);
+
+      if (!eligibility.canResend) {
+        return {
+          success: false,
+          error: eligibility.error,
+          remainingTime: eligibility.remainingTime,
+          remainingAttempts: eligibility.remainingAttempts,
+        };
+      }
+
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+      console.log('User signed in for resend:', userCredential.user);
+      console.log('email', email);
+      console.log('pass', password);
+      const user = userCredential.user;
+      await sendEmailVerification(user);
+      await auth.signOut();
+      const res = await updateResendCount(email);
+      setResendCount(res?.newResendCount);
+      startCountdown(60);
+      // if (result.remainingTime > 0) {
+      //   startCountdown(result.remainingTime);
+      // }
+      // }
+    } catch (error) {
+      console.log('Resend email error:', error);
+    } finally {
+      setIsResending(false);
+    }
   };
 
   const handleSubmit = async (
@@ -62,6 +148,7 @@ export default function SignIn() {
     { setSubmitting, setFieldError, setStatus },
   ) => {
     setStatus(null);
+    setShowResendLink(false);
 
     try {
       // Check if user exists
@@ -77,9 +164,39 @@ export default function SignIn() {
       }
     } catch (error) {
       console.log(error);
-      setStatus(
-        error?.message || 'خطأ في تسجيل الدخول، يرجى المحاولة مرة أخرى',
-      );
+      if (
+        error?.message?.includes(
+          'يجب عليك تفعيل الحساب عن طريق الرابط المرسل على بريدك الإلكتروني قبل تسجيل الدخول',
+        )
+      ) {
+        setResendEmail(values.email);
+        setPassword(values.password);
+
+        try {
+          const eligibility = await checkResendEligibility(values.email);
+          const currentCount = 3 - eligibility?.remainingAttempts || 0;
+          setResendCount(currentCount);
+
+          const attemptsMessage = eligibility.canResend
+            ? `\n\nلديك ${eligibility?.remainingAttempts} محاولة متبقية لإرسال البريد.`
+            : '\n\nلقد وصلت إلى الحد الأقصى من محاولات الإرسال.';
+
+          setStatus(
+            `يرجى التحقق من بريدك الإلكتروني والنقر على رابط التأكيد قبل تسجيل الدخول.`,
+          );
+        } catch (eligibilityError) {
+          console.log('Error checking eligibility:', eligibilityError);
+          setStatus(
+            'يرجى التحقق من بريدك الإلكتروني والنقر على رابط التأكيد قبل تسجيل الدخول.',
+          );
+        } finally {
+          setShowResendLink(true);
+        }
+      } else {
+        setStatus(
+          error?.message || 'خطأ في تسجيل الدخول، يرجى المحاولة مرة أخرى',
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -98,13 +215,6 @@ export default function SignIn() {
         <Text style={styles.logoTitle}>اتحاد بلديات الفيحاء</Text>
         <Text style={styles.logoSubtitle}>Urban Community Fayhaa</Text>
       </View>
-
-      {prefillEmail && prefillPassword && (
-        <Text style={styles.infoText}>
-          تم ملء بياناتك مسبقاً. يرجى التحقق من بريدك الإلكتروني قبل تسجيل
-          الدخول.
-        </Text>
-      )}
 
       <Formik
         initialValues={initialValues}
@@ -189,20 +299,49 @@ export default function SignIn() {
             {/* General Error */}
             {status && <Text style={styles.error}>{status}</Text>}
 
+            {/* Resend Email Section */}
+            {showResendLink && (
+              <TouchableOpacity
+                style={[
+                  styles.resendButton,
+                  (isResending ||
+                    resendCount >= maxResends ||
+                    remainingTime > 0) &&
+                    styles.resendButtonDisabled,
+                ]}
+                onPress={() => onResendEmail(resendEmail, password)}
+                disabled={
+                  isResending || resendCount >= maxResends || remainingTime > 0
+                }
+              >
+                <Text
+                  style={[
+                    styles.resendButtonText,
+                    (isResending ||
+                      resendCount >= maxResends ||
+                      remainingTime > 0) &&
+                      styles.resendButtonTextDisabled,
+                  ]}
+                >
+                  {isResending
+                    ? 'جاري الإرسال...'
+                    : remainingTime > 0
+                    ? `إعادة الإرسال (${remainingTime}s)`
+                    : resendCount >= maxResends
+                    ? 'تم الوصول للحد الأقصى من المحاولات'
+                    : `إعادة إرسال رابط التأكيد (${
+                        maxResends - resendCount
+                      } متبقية)`}
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={[styles.button, isSubmitting && styles.buttonDisabled]}
               onPress={handleSubmit}
               disabled={isSubmitting}
             >
               <View style={styles.buttonContent}>
-                {/* {isSubmitting && (
-                  <MaterialDesignIcons
-                    name="refresh"
-                    size={20}
-                    color={COLORS.white}
-                    style={styles.loadingIcon}
-                  />
-                )} */}
                 <Text style={styles.buttonText}>
                   {isSubmitting ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
                 </Text>
@@ -223,13 +362,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    // justifyContent: 'center',
-    // paddingHorizontal: SPACING.lg,
     paddingTop: '20%',
   },
   logoContainer: {
     alignItems: 'center',
-    // marginBottom: SPACING.xl,
   },
   logoPlaceholder: {
     width: SIZES.logo?.lg || 80,
@@ -260,7 +396,7 @@ const styles = StyleSheet.create({
     color: COLORS.text?.secondary || COLORS.gray?.[600] || '#6b7280',
     textAlign: 'center',
     fontFamily: FONT_FAMILIES.primary,
-    marginBottom: SPACING.lg,
+    // marginBottom: SPACING.lg,
   },
   infoText: {
     backgroundColor: COLORS.primary + '10',
@@ -287,18 +423,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.white,
     borderRadius: 12,
-    // marginBottom: 16,
     paddingHorizontal: 16,
     height: 56,
     borderWidth: 1,
     borderColor: COLORS.gray[400],
   },
   inputIcon: {
-    marginLeft: 12, 
+    marginLeft: 12,
   },
   input: {
     flex: 1,
-    // color: colors.textColor,
     fontSize: 14,
     textAlign: 'right',
   },
@@ -312,6 +446,27 @@ const styles = StyleSheet.create({
     marginRight: 4,
     fontFamily: FONT_FAMILIES.primary,
     textAlign: 'left',
+  },
+  resendButton: {
+    backgroundColor: COLORS.secondary || COLORS.primary,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    // marginBottom: SPACING.lg,
+    alignItems: 'center',
+    ...SHADOWS.sm,
+  },
+  resendButtonDisabled: {
+    backgroundColor: COLORS.gray?.[400] || '#bdc3c7',
+  },
+  resendButtonText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZES.md,
+    fontWeight: FONT_WEIGHTS.medium,
+    fontFamily: FONT_FAMILIES.primary,
+  },
+  resendButtonTextDisabled: {
+    color: COLORS.white,
   },
   button: {
     height: SIZES.button?.height || 50,

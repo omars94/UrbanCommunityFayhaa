@@ -20,7 +20,7 @@ import SimplePicker from '../components/SimplePicker';
 import { useNavigation } from '@react-navigation/native';
 import { ROLES, ROUTE_NAMES } from '../constants';
 import { requestOTP, sendOtp } from '../services/otpService';
-import { checkIfUserExistByEmail } from '../api/authApi';
+import { checkIfUserExist, checkIfUserExistByEmail } from '../api/authApi';
 import {
   SIZES,
   COLORS,
@@ -119,7 +119,7 @@ export default function SignUp() {
 
   const handleSubmit = async (
     values,
-    { setSubmitting, setFieldError, setStatus },
+    { setSubmitting, setFieldError, setStatus, resetForm },
   ) => {
     setStatus(null);
 
@@ -127,7 +127,17 @@ export default function SignUp() {
       // Check if user exists
       const exist = await checkIfUserExistByEmail(values.email);
       if (exist.inRTDB) {
-        setFieldError('email', 'الرقم مسجل مسبقاً، الرجاء تسجيل الدخول');
+        setFieldError(
+          'email',
+          'البريد الالكتروني مسجل مسبقاً، الرجاء تسجيل الدخول',
+        );
+        setSubmitting(false);
+        return;
+      }
+
+      const phoneExist = await checkIfUserExist(formattedValue);
+      if (phoneExist.inRTDB) {
+        setFieldError('phone', 'رقم الهاتف مسجل مسبقاً، الرجاء تسجيل الدخول');
         setSubmitting(false);
         return;
       }
@@ -159,6 +169,17 @@ export default function SignUp() {
         await database().ref(`users/${userKey}`).update({ firebase_uid });
         await sendEmailVerification(userr);
         await auth.signOut();
+        resetForm({
+          values: {
+            fullName: '',
+            email: '',
+            password: '',
+            confirmPassword: '',
+            phone: '', 
+            area: null,
+            dateOfBirth: null,
+          },
+        });
         showCustomAlert(
           'نجاح',
           'تم التسجيل بنجاح الرجاء التحقق من البريد الالكتروني ثم تسجيل الدخول',
@@ -174,7 +195,7 @@ export default function SignUp() {
       setSubmitting(false);
     }
   };
-  // Updated JSX structure - move error messages outside input containers
+
   return (
     <ScrollView
       contentContainerStyle={styles.scrollViewContent}
@@ -338,7 +359,8 @@ export default function SignUp() {
                     defaultValue={values.phone}
                     defaultCode="LB"
                     placeholder="رقم الهاتف"
-                    layout="second"
+                    layout="first"
+                    //  flagButton="second"
                     onChangeText={text => {
                       setFieldValue('phone', text);
                     }}
@@ -351,7 +373,12 @@ export default function SignUp() {
                     ]}
                     textContainerStyle={[
                       styles.phoneTextContainer,
-                      { textAlign: 'left' },
+                      {
+                        textAlign: 'left',
+                        // paddingLeft: 5,
+                        paddingRight: 0,
+                      },
+                      { flexDirection: 'row-reverse' },
                     ]}
                     textInputStyle={[
                       styles.phoneTextInput,
@@ -360,7 +387,7 @@ export default function SignUp() {
                     countryPickerProps={{ renderFlagButton: false }}
                     countryPickerButtonStyle={[
                       styles.countryPickerButton,
-                      { flexDirection: 'row-reverse' },
+                      // { flexDirection: 'row-reverse' },
                     ]}
                     textInputProps={{
                       keyboardType: 'number-pad',
@@ -374,9 +401,9 @@ export default function SignUp() {
                 )}
               </View>
 
-              {touched.phone && errors.phone && (
+              {/* {touched.phone && errors.phone && (
                 <Text style={styles.errorText}>{errors.phone}</Text>
-              )}
+              )} */}
               {/* </View> */}
 
               {/* Date of Birth */}
