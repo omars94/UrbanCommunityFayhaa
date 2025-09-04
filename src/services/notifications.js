@@ -3,10 +3,10 @@ import { ONESIGNAL_APP_ID, ONESIGNAL_REST_API_KEY } from '@env';
 
 export const setUserForNotifications = async userEmail => {
   try {
-    OneSignal.User.addEmail(userEmail);
+    OneSignal.login(userEmail);
     console.log('User email set for notifications:', userEmail);
   } catch (error) {
-    console.error('Failed to set user email:', error);
+    console.error('Failed to link device for push notifications:', error);
   }
 };
 
@@ -16,7 +16,8 @@ export const sendRoleInviteNotification = async (userEmail, role) => {
 
     const notificationPayload = {
       app_id: ONESIGNAL_APP_ID,
-      include_email_tokens: [userEmail],
+      include_external_user_ids: [userEmail],
+      channel_for_external_user_ids: 'push',
       headings: {
         ar: 'دعوة دور جديد',
       },
