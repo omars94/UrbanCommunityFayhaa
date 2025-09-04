@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   View,
   TextInput,
+  Platform,
+  Linking,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -28,9 +30,12 @@ import {
 import { ScrollView } from 'react-native-gesture-handler';
 import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
 import { addComplaint } from '../slices/complaintsSlice.js';
-import { requestPermissions } from '../utils/Permissions.js';
+import {
+  requestLocationPermission,
+  requestCameraPermissions,
+} from '../utils/Permissions.js';
 import { addNewComplaint } from '../api/complaintsApi.js';
-import ImageService from '../services/ImageService.js'; // Import the new service
+import ImageService from '../services/ImageService.js';
 
 //Yup validation schema
 const ComplaintSchema = Yup.object().shape({
@@ -55,9 +60,71 @@ export default function AddComplaintScreen() {
   console.log('Current User:', user);
   console.log('Current User id:', user?.id);
 
+  const checkLocationServicesEnabled = () => {
+    return new Promise(resolve => {
+      Geolocation.getCurrentPosition(
+        position => {
+          resolve(true);
+        },
+        error => {
+          // Check error codes to determine if location services are disabled
+          if (error.code === 1) {
+            // PERMISSION_DENIED - could be permissions or location services off
+            resolve(false);
+          } else if (error.code === 2) {
+            // POSITION_UNAVAILABLE - location services might be off
+            resolve(false);
+          } else if (error.code === 3) {
+            // TIMEOUT - services are on but taking too long
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 5000,
+          maximumAge: 0,
+        },
+      );
+    });
+  };
+
+  const showLocationSettingsAlert = () => {
+    Alert.alert(
+      'خدمات الموقع مطلوبة',
+      'يرجى تمكين خدمات الموقع لاستخدام ميزة الكاميرا.',
+      [
+        {
+          text: 'إلغاء',
+          style: 'cancel',
+        },
+        {
+          text: 'فتح الإعدادات',
+          onPress: () => {
+            if (Platform.OS === 'ios') {
+              Linking.openURL('app-settings:');
+            } else {
+              Linking.openSettings();
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const takePhoto = async setFieldValue => {
-    const granted = await requestPermissions();
-    if (!granted) return;
+    const cameraGranted = await requestCameraPermissions();
+    if (!cameraGranted) return;
+
+    const locationGranted = await requestLocationPermission();
+    if (!locationGranted) return;
+
+    const locationServicesEnabled = await checkLocationServicesEnabled();
+    if (!locationServicesEnabled) {
+      showLocationSettingsAlert();
+      return;
+    }
 
     const result = await launchCamera({
       mediaType: 'photo',
@@ -68,7 +135,7 @@ export default function AddComplaintScreen() {
 
     if (!result.didCancel && result.assets?.[0]?.uri) {
       const originalUri = result.assets[0].uri;
-      
+
       // Validate image first
       // const validation = await ImageService.validateImage(originalUri);
       // if (!validation.valid) {
@@ -78,7 +145,7 @@ export default function AddComplaintScreen() {
 
       // Set the original URI immediately for preview
       setFieldValue('photo', originalUri);
-      
+
       Geolocation.getCurrentPosition(
         position => {
           setMetadata({
@@ -102,22 +169,25 @@ export default function AddComplaintScreen() {
     console.log('Starting submission...');
     setSubmitting(true);
     setImageProcessing(true);
-    
+
     try {
       console.log('Processing and uploading images...');
       let thumbnailUrl = '';
       let fullImageUrl = '';
-      
+
       if (values.photo) {
         const imageResult = await ImageService.processAndUploadImages(
           values.photo,
-          'issues'
+          'issues',
         );
-        
+
         if (imageResult.success) {
           thumbnailUrl = imageResult.thumbnailUrl;
           fullImageUrl = imageResult.fullImageUrl;
-          console.log('Images uploaded successfully:', { thumbnailUrl, fullImageUrl });
+          console.log('Images uploaded successfully:', {
+            thumbnailUrl,
+            fullImageUrl,
+          });
         } else {
           throw new Error(imageResult.error || 'Failed to upload images');
         }
@@ -143,7 +213,7 @@ export default function AddComplaintScreen() {
       console.log('Submitting to database...');
       console.log('Complete complaint data:', complaintData);
       console.log('User ID being sent:', complaintData.user_id);
-      
+
       const result = await addNewComplaint(
         complaintData,
         dispatch,
@@ -307,16 +377,16 @@ export default function AddComplaintScreen() {
                   onPress={handleSubmit}
                   style={[
                     styles.submitButton,
-                    (submitting || imageProcessing) && styles.submitButtonDisabled,
+                    (submitting || imageProcessing) &&
+                      styles.submitButtonDisabled,
                   ]}
                 >
                   <Text style={styles.submitButtonText}>
-                    {imageProcessing 
-                      ? 'جاري معالجة الصورة...' 
-                      : submitting 
-                      ? 'جاري الإرسال...' 
-                      : 'إرسال الشكوى'
-                    }
+                    {imageProcessing
+                      ? 'جاري معالجة الصورة...'
+                      : submitting
+                      ? 'جاري الإرسال...'
+                      : 'إرسال الشكوى'}
                   </Text>
                   <Ionicons
                     name="send"

@@ -1,20 +1,29 @@
 import { Alert, PermissionsAndroid, Platform, Linking } from 'react-native';
+// import messaging from '@react-native-firebase/messaging';
 
-export const requestPermissions = async () => {
+// export async function requestNotificationsPermission() {
+//   if (Platform.OS === 'android') {
+//     if (Platform.Version >= 33) {
+//       const granted = await PermissionsAndroid.request(
+//         PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+//       );
+//       return granted === PermissionsAndroid.RESULTS.GRANTED;
+//     } else {
+//       return true;
+//     }
+//   } else {
+//     // iOS flow
+//     const authStatus = await messaging().requestPermission();
+//     return (
+//       authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+//       authStatus === messaging.AuthorizationStatus.PROVISIONAL
+//     );
+//   }
+// }
+
+export const requestLocationPermission = async () => {
   if (Platform.OS === 'android') {
     try {
-      // Request camera permission
-      const cameraGranted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.CAMERA,
-        {
-          title: 'إذن الكاميرا',
-          message: 'التطبيق يحتاج إلى إذن الكاميرا ليعمل بشكل صحيح',
-          buttonNeutral: 'اسألني لاحقاً',
-          buttonNegative: 'إلغاء',
-          buttonPositive: 'موافق',
-        },
-      );
-
       // Request location permission
       const locationGranted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
@@ -27,73 +36,46 @@ export const requestPermissions = async () => {
         },
       );
 
-      // Handle camera permission results
-      if (cameraGranted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
-        Alert.alert(
-          'تم رفض الإذن نهائياً',
-          'من فضلك قم بتمكين إذن الكاميرا من إعدادات التطبيق.',
-          [
-            { text: 'إلغاء', style: 'cancel' },
-            {
-              text: 'فتح الإعدادات',
-              onPress: () => Linking.openSettings(),
-            },
-          ],
-        );
-        return false;
-      }
-
-      if (cameraGranted !== PermissionsAndroid.RESULTS.GRANTED) {
-        // Show alert with option to try again
-        await new Promise(resolve => {
-          Alert.alert('تم رفض الإذن', 'يلزم منح إذن الكاميرا!', [
-            { text: 'إلغاء', onPress: () => resolve(false), style: 'cancel' },
-            { text: 'حاول مرة أخرى', onPress: () => resolve(true) },
-          ]);
-        });
-        return await requestPermissions(); // Recursively call to request again
-      }
-
-      // Handle location permission results
+      // If user permanently denied
       if (locationGranted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
         Alert.alert(
           'تم رفض الإذن نهائياً',
           'من فضلك قم بتمكين إذن الموقع من إعدادات التطبيق.',
           [
             { text: 'إلغاء', style: 'cancel' },
-            {
-              text: 'فتح الإعدادات',
-              onPress: () => Linking.openSettings(),
-            },
+            { text: 'فتح الإعدادات', onPress: () => Linking.openSettings() },
           ],
         );
         return false;
       }
 
+      // If denied (but not permanent)
       if (locationGranted !== PermissionsAndroid.RESULTS.GRANTED) {
-        // Show alert with option to try again
-        await new Promise(resolve => {
+        const retry = await new Promise(resolve => {
           Alert.alert('تم رفض الإذن', 'يلزم منح إذن الموقع!', [
             { text: 'إلغاء', onPress: () => resolve(false), style: 'cancel' },
             { text: 'حاول مرة أخرى', onPress: () => resolve(true) },
           ]);
         });
-        return await requestPermissions(); // Recursively call to request again
+
+        return retry ? await requestLocationPermission() : false;
       }
 
+      // If granted
       return true;
     } catch (err) {
       console.warn(err);
       return false;
     }
   }
+
+  // iOS always true (you may want react-native-permissions here)
   return true;
 };
 
 export const requestCameraPermissions = async () => {
   if (Platform.OS === 'android') {
     try {
-      // Request camera permission
       const cameraGranted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.CAMERA,
         {
@@ -105,38 +87,39 @@ export const requestCameraPermissions = async () => {
         },
       );
 
-      // Handle camera permission results
+      //Case 1: User chose "Never ask again"
       if (cameraGranted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
         Alert.alert(
           'تم رفض الإذن نهائياً',
-          'من فضلك قم بتمكين إذن الكاميرا من إعدادات التطبيق.',
+          'لقد اخترت "عدم السؤال مرة أخرى". من فضلك قم بتمكين إذن الكاميرا من إعدادات التطبيق.',
           [
             { text: 'إلغاء', style: 'cancel' },
-            {
-              text: 'فتح الإعدادات',
-              onPress: () => Linking.openSettings(),
-            },
+            { text: 'فتح الإعدادات', onPress: () => Linking.openSettings() },
           ],
         );
         return false;
       }
 
+      //Case 2: User denied (normal)
       if (cameraGranted !== PermissionsAndroid.RESULTS.GRANTED) {
-        // Show alert with option to try again
-        await new Promise(resolve => {
+        const retry = await new Promise(resolve => {
           Alert.alert('تم رفض الإذن', 'يلزم منح إذن الكاميرا!', [
             { text: 'إلغاء', onPress: () => resolve(false), style: 'cancel' },
             { text: 'حاول مرة أخرى', onPress: () => resolve(true) },
           ]);
         });
-        return await requestCameraPermissions(); // Recursively call to request again
+
+        return retry ? await requestCameraPermissions() : false;
       }
 
+      //Case 3: Granted
       return true;
     } catch (err) {
       console.warn(err);
       return false;
     }
   }
+
+  // iOS → always true (or handle via react-native-permissions)
   return true;
 };

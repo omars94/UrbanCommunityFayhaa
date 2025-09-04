@@ -15,6 +15,10 @@ import AuthScreen from '../screens/Auth';
 import OTPScreen from '../screens/otp';
 import TabLayout from './AppTabs';
 import { getUserByFbUID } from '../api/userApi';
+import { OneSignal, LogLevel } from 'react-native-onesignal';
+import { ONESIGNAL_APP_ID } from '@env';
+import { setUserForNotifications } from '../services/notifications';
+
 const Stack = createNativeStackNavigator();
 
 const { width, height } = Dimensions.get('window');
@@ -25,9 +29,24 @@ if (typeof global.structuredClone === 'undefined') {
 I18nManager.allowRTL(true);
 I18nManager.forceRTL(true);
 function Layout() {
+  useEffect(() => {
+    // Enable verbose logging (for setup, remove in production)
+    OneSignal.Debug.setLogLevel(LogLevel.Verbose);
+
+    // Initialize OneSignal with your App ID
+    OneSignal.initialize(ONESIGNAL_APP_ID);
+
+    // Request permission (iOS only)
+    OneSignal.Notifications.requestPermission(false);
+
+    return () => {
+      // Remove listeners here
+    };
+  }, []);
   const [ready, setReady] = useState(false);
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.user);
+
   useEffect(() => {
     // getSession();
   }, [user]);
@@ -59,12 +78,14 @@ function Layout() {
         // User is signed in
         console.log('user email verified');
         const token = await firebaseUser.getIdToken();
-        console.log("UID from user object:", firebaseUser.uid);
+        console.log('UID from user object:', firebaseUser.uid);
         const user = await getUserByFbUID(firebaseUser.uid);
         console.log(user);
-        dispatch(
-          setUser(user),
-        );
+        dispatch(setUser(user));
+        console.log('user email:', user.email);
+        if (user && user.email) {
+          await setUserForNotifications(user.email);
+        }
         setReady(true);
       } else {
         setReady(true);
@@ -81,7 +102,7 @@ function Layout() {
   if (!ready) {
     return (
       <View style={styles.loadingContainer}>
-        <Image 
+        <Image
           source={require('../assets/loadingImage.png')}
           style={styles.loadingImage}
           resizeMode="contain"
