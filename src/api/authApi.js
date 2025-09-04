@@ -104,7 +104,7 @@ export const loginUser = async user => {
     console.log('User record:', userRecord);
     // console.log('isPasswordValid:', isPasswordValid);
 
-    auth().settings.appVerificationDisabledForTesting = true;
+    // auth().settings.appVerificationDisabledForTesting = true;
 
     // Sign in with Firebase Auth first
     const userCredential = await auth().signInWithEmailAndPassword(

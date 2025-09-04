@@ -192,6 +192,10 @@ export default function SignIn() {
         } finally {
           setShowResendLink(true);
         }
+      } else if (
+        error?.message?.includes('auth/invalid-credential')
+      ) {
+        setStatus('كلمة المرور التي أدخلتها غير صحيحة. يرجى المحاولة مرة أخرى');
       } else {
         setStatus(
           error?.message || 'خطأ في تسجيل الدخول، يرجى المحاولة مرة أخرى',
