@@ -53,11 +53,12 @@ export const assignComplaint = async (complaintId, assignedUserId, assignedUserN
   return await updateComplaintInDB(complaintId, updates);
 };
 
-export const resolveComplaint = async (complaintId, photo_url, resolvedLat, resolvedLong) => {
+export const resolveComplaint = async (complaintId, photo_url, compressed_url, resolvedLat, resolvedLong) => {
   const updates = {
     status: COMPLAINT_STATUS.RESOLVED,
     resolved_at: new Date().toISOString(),
     resolved_photo_url: photo_url,
+    resolved_thumbnail_url: compressed_url,
     resolved_lat: resolvedLat,
     resolved_long: resolvedLong,
   };
