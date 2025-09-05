@@ -40,10 +40,11 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
 import { DisplayMap } from '../components/detailsComponents/map.js';
 import  ImageSlider  from '../components/detailsComponents/imageSlider.js';
-import { requestCameraPermissions, requestPermissions } from '../utils/Permissions.js';
+import { requestCameraPermissions, requestLocationPermission } from '../utils/Permissions.js';
 import { ImageResolutionComponent } from '../components/resolveComponent.js'
 import storage from '@react-native-firebase/storage';
 import StatusTimeline from '../components/detailsComponents/timeline.js';
+import ImageService from '../services/ImageService.js'
 
 const { width } = Dimensions.get('window');
 
@@ -221,94 +222,111 @@ export default function ComplaintDetailsScreen() {
   }, [complaint?.id, user]);
 
 const handleResolveComplaint = useCallback(async () => {
-  try {
-    // Request camera permissions
-    const getCameraAndLocationPermissions = await requestPermissions();
-    if (!getCameraAndLocationPermissions) {
-      Alert.alert('خطأ', 'لا يمكن الوصول إلى الكاميرا أو الموقع بدون الأذونات اللازمة');
-      return;
-    }
-
-    const result = await launchCamera({
-      mediaType: 'photo',
-      quality: 0.8,
-      saveToPhotos: false,
-    });
-
-    console.log('Camera result:', result);
-    
-    if (!result.didCancel && result.assets?.[0]?.uri) {
-      const uri = result.assets[0].uri;
-      
-      try {
-        const location = await getCurrentLocation();
-        console.log('Current location:', location);
-        
-        setCapturedImageUri(uri);
-        setCapturedLocation(location); 
-        setShowResolutionComponent(true);
-      } catch (locationError) {
-        console.error('Location error:', locationError);
+    try {
+      // Request camera permissions
+      const getLocationPermissions = await requestLocationPermission();
+      if (!getLocationPermissions) {
         Alert.alert(
-          'تحذير',
-          'لم يتم الحصول على الموقع الحالي. هل تريد المتابعة بدون موقع؟',
-          [
-            { text: 'إلغاء', style: 'cancel' },
-            {
-              text: 'متابعة',
-              onPress: () => {
-                setCapturedImageUri(uri);
-                setCapturedLocation(null);
-                setShowResolutionComponent(true);
-              },
-            },
-          ]
+          'خطأ',
+          'لا يمكن الوصول إلى الموقع بدون الأذونات اللازمة',
         );
+        return;
       }
+
+      const getCameraPermissions = await requestCameraPermissions();
+      if (!getCameraPermissions) {
+        Alert.alert(
+          'خطأ',
+          'لا يمكن الوصول إلى الكاميرا بدون الأذونات اللازمة',
+        );
+        return;
+      }
+
+      const result = await launchCamera({
+        mediaType: 'photo',
+        quality: 0.8,
+        saveToPhotos: false,
+      });
+
+      console.log('Camera result:', result);
+
+      if (!result.didCancel && result.assets?.[0]?.uri) {
+        const uri = result.assets[0].uri;
+
+        try {
+          const location = await getCurrentLocation();
+          console.log('Current location:', location);
+
+          setCapturedImageUri(uri);
+          setCapturedLocation(location);
+          setShowResolutionComponent(true);
+        } catch (locationError) {
+          console.error('Location error:', locationError);
+          Alert.alert(
+            'تحذير',
+            'لم يتم الحصول على الموقع الحالي. هل تريد المتابعة بدون موقع؟',
+            [
+              { text: 'إلغاء', style: 'cancel' },
+              {
+                text: 'متابعة',
+                onPress: () => {
+                  setCapturedImageUri(uri);
+                  setCapturedLocation(null);
+                  setShowResolutionComponent(true);
+                },
+              },
+            ],
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error in handleResolveComplaint:', error);
+      Alert.alert('خطأ', 'حدث خطأ أثناء تحضير حل المشكلة');
     }
-  } catch (error) {
-    console.error('Error in handleResolveComplaint:', error);
-    Alert.alert('خطأ', 'حدث خطأ أثناء تحضير حل المشكلة');
-  }
-}, []);
+  }, []);
 
   useEffect(() => {
     if (capturedImageUri) {
-      console.log("capturedImageUri updated:", capturedImageUri);
+      console.log('capturedImageUri updated:', capturedImageUri);
     }
-  }, [capturedImageUri]);  
+  }, [capturedImageUri]);
 
-const submitResolveComplaint = async () => {
-  setIsLoading(true);
-  try {
-    const photo_url = await uploadPhoto(capturedImageUri);
-    console.log('Photo uploaded:', photo_url);
-    
-    if (photo_url) {
-      // Pass location coordinates to resolveComplaint
-      await resolveComplaint(
-        complaint.id, 
-        photo_url,
-        capturedLocation?.latitude || null,
-        capturedLocation?.longitude || null
+  const submitResolveComplaint = async () => {
+    setIsLoading(true);
+    try {
+      // const photo_url = await uploadPhoto(capturedImageUri);
+      const result = await ImageService.processAndUploadImages(
+        capturedImageUri,
+        'resolved',
       );
-      
-      Alert.alert('نجح', 'تم تحديث حالة الشكوى إلى "تم الحل"');
-      
-      // Clear captured data
-      setCapturedImageUri('');
-      setCapturedLocation(null);
-    } else {
-      Alert.alert('خطأ', 'حدث خطأ أثناء تحديث الشكوى');
-    }
-  } catch (error) {
-    console.error('Error resolving complaint:', error);
-    Alert.alert('خطأ', 'حدث خطأ أثناء تحديث الشكوى');
-  } finally {
-    setIsLoading(false);
-  }
-};
 
+      console.log('Photo uploaded:', result);
+
+      if (result.success) {
+        // Pass location coordinates to resolveComplaint
+        await resolveComplaint(
+          complaint.id,
+          result.fullImageUrl,
+          result.thumbnailUrl,
+          capturedLocation?.latitude || null,
+          capturedLocation?.longitude || null,
+        );
+
+        Alert.alert('نجح', 'تم تحديث حالة الشكوى إلى "تم الحل"');
+
+        // Clear captured data
+        setCapturedImageUri('');
+        setCapturedLocation(null);
+      } else {
+        Alert.alert('خطأ', 'حدث خطأ أثناء تحديث الشكوى');
+      }
+    } catch (error) {
+      console.error('Error resolving complaint:', error);
+      Alert.alert('خطأ', 'حدث خطأ أثناء تحديث الشكوى');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const handleCompleteComplaint = useCallback(async () => {
     Alert.alert(
       'تأكيد الإنجاز',

@@ -12,11 +12,13 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { useDispatch, useSelector } from 'react-redux';
 import { setAreas, setIndicators, setWasteItems } from '../../src/slices/dataSlice';
 import { setUser } from '../slices/userSlice';
+import { setComplaints } from '../slices/complaintsSlice';
 import auth from '@react-native-firebase/auth';
 import database from '@react-native-firebase/database';
 import CustomAlert from '../components/customAlert';
 import { getUserByFbUID, handlePromotion } from '../api/userApi';
 import {
+  COMPLAINT_STATUS,
   COLORS,
   ROLES,
   ROUTE_NAMES,
@@ -31,6 +33,7 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
 import { fetchWasteItems } from '../api/wasteApi';
+import { fetchComplaints } from '../api/complaintsApi';
 
 // Fetch all complaints
 export async function getData(dispatch) {
@@ -49,6 +52,7 @@ export async function getData(dispatch) {
       dispatch(setIndicators(snapshot.val()));
     });
   fetchWasteItems(dispatch, setWasteItems);
+  fetchComplaints(dispatch, setComplaints);
 }
 
 export default function HomeScreen() {
@@ -56,8 +60,9 @@ export default function HomeScreen() {
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.user);
   const { complaints } = useSelector(state => state.complaints);
-
   console.log('complaints', complaints);
+  const complaintsCount = complaints ? complaints.length : 0;
+  console.log('complaintsCount', complaintsCount);
   const [loading, setLoading] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertData, setAlertData] = useState({
@@ -66,6 +71,13 @@ export default function HomeScreen() {
     buttons: [],
     loading: false,
   });
+
+const completeComplaints = (complaints || []).filter(c => c.status === COMPLAINT_STATUS.COMPLETED).length;
+console.log('completeComplaints', completeComplaints);
+const rejectedComplaints = (complaints || []).filter(c => c.status === COMPLAINT_STATUS.REJECTED).length;
+console.log('rejectedComplaints', rejectedComplaints);
+const activeComplaints = complaintsCount - (completeComplaints + rejectedComplaints);
+console.log('activeComplaints', activeComplaints);
 
   const role = user.role;
   let role_text = '';
@@ -284,11 +296,11 @@ export default function HomeScreen() {
 
           <View style={styles.menuRow}>
             <View style={styles.menuCard}>
-              <Text style={styles.statNumber}>12</Text>
+              <Text style={styles.statNumber}>{completeComplaints}</Text>
               <Text style={styles.menuTitle}>شكوى مكتملة</Text>
             </View>
             <View style={styles.menuCard}>
-              <Text style={styles.statNumber}>3</Text>
+              <Text style={styles.statNumber}>{activeComplaints}</Text>
               <Text style={styles.menuTitle}>شكوى نشطة </Text>
             </View>
           </View>
