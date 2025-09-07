@@ -234,6 +234,7 @@ export default function AddComplaintScreen() {
           await sendComplaintSttsNotification(
             adminEmails,
             complaintData.status,
+            result.complaint,
           );
         }
         console.log('Success! Showing alert...');

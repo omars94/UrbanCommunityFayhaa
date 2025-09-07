@@ -18,15 +18,50 @@ export const fetchComplaints = async (dispatch, setComplaints) => {
   }
 };
 
+// export const addNewComplaint = async (
+//   complaintData,
+//   dispatch,
+//   addComplaint,
+// ) => {
+//   try {
+//     const newComplaintRef = database().ref('complaints').push();
+
+//     // await database().ref('/complaints').push(complaintData);
+
+//     await newComplaintRef.set({
+//       ...complaintData,
+//       id: newComplaintRef.key,
+//     });
+//     dispatch(addComplaint(complaintData));
+//     return { success: true, complaintId: newComplaintRef.key };
+//   } catch (error) {
+//     console.error('Error submitting complaint to database:', error);
+//     return { success: false, error };
+//   }
+// };
+
 export const addNewComplaint = async (
   complaintData,
   dispatch,
   addComplaint,
 ) => {
   try {
-    await database().ref('/complaints').push(complaintData);
-    dispatch(addComplaint(complaintData));
-    return { success: true };
+    const newComplaintRef = database().ref('complaints').push();
+
+    // Create the complete complaint object with the generated ID
+    const completeComplaintData = {
+      ...complaintData,
+      id: newComplaintRef.key,
+    };
+
+    await newComplaintRef.set(completeComplaintData);
+
+    dispatch(addComplaint(completeComplaintData));
+
+    return {
+      success: true,
+      complaint: completeComplaintData,
+    };
   } catch (error) {
     console.error('Error submitting complaint to database:', error);
     return { success: false, error };

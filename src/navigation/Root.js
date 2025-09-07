@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { NavigationContainer } from '@react-navigation/native';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { I18nManager, StyleSheet, View, Image, Dimensions } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -18,6 +17,7 @@ import { getUserByFbUID } from '../api/userApi';
 import { OneSignal, LogLevel } from 'react-native-onesignal';
 import { ONESIGNAL_APP_ID } from '@env';
 import { setUserForNotifications } from '../services/notifications';
+import { navigationRef } from '../services/notifications';
 
 const Stack = createNativeStackNavigator();
 
@@ -39,10 +39,84 @@ function Layout() {
     // Request permission (iOS only)
     OneSignal.Notifications.requestPermission(false);
 
+    const handleNotificationClick = event => {
+      console.log('=== OneSignal: Notification clicked ===');
+      console.log('Full event object:', JSON.stringify(event, null, 2));
+
+      // Check if we have the expected structure
+      if (!event) {
+        console.error('Event is null/undefined');
+        return;
+      }
+
+      if (!event.notification) {
+        console.error('event.notification is missing');
+        return;
+      }
+
+      console.log(
+        'Notification object:',
+        JSON.stringify(event.notification, null, 2),
+      );
+
+      const data = event.notification.additionalData;
+      console.log('Additional data:', JSON.stringify(data, null, 2));
+
+      // Check navigation ref
+      console.log('Navigation ref current:', navigationRef.current);
+      console.log('Navigation ref ready:', !!navigationRef.current);
+
+      if (data?.type === 'status_update' && data?.complaint) {
+        console.log('Condition met - navigating...');
+        console.log('Target complaint:', data.complaint);
+
+        // Retry navigation with increasing delays
+        const attemptNavigation = (attempt = 1, maxAttempts = 5) => {
+          const delay = attempt * 500;
+
+          setTimeout(() => {
+            if (navigationRef.current && navigationRef.isReady?.()) {
+              console.log(`Navigation attempt ${attempt} - SUCCESS!`);
+              try {
+                // Navigate to the complaint details with full complaint object
+                navigationRef.current.navigate(ROUTE_NAMES.MAIN, {
+                  screen: ROUTE_NAMES.COMPLAINTS,
+                  params: {
+                    screen: ROUTE_NAMES.COMPLAINT_DETAILS,
+                    params: { complaint: data.complaint },
+                  },
+                });
+                console.log('Navigation called successfully');
+              } catch (error) {
+                console.error('Navigation error:', error);
+              }
+            } else if (attempt < maxAttempts) {
+              console.log(`Navigation attempt ${attempt} failed, retrying...`);
+              attemptNavigation(attempt + 1, maxAttempts);
+            } else {
+              console.error(`Navigation failed after ${maxAttempts} attempts`);
+            }
+          }, delay);
+        };
+
+        attemptNavigation();
+      } else {
+        console.log('Condition not met:');
+        console.log('data?.type:', data?.type);
+        console.log('data?.complaint:', data?.complaint);
+        console.log('Expected type: status_update');
+      }
+    };
+    OneSignal.Notifications.addEventListener('click', handleNotificationClick);
+
     return () => {
-      // Remove listeners here
+      OneSignal.Notifications.removeEventListener(
+        'click',
+        handleNotificationClick,
+      );
     };
   }, []);
+
   const [ready, setReady] = useState(false);
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.user);
