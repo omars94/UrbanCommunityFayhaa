@@ -10,7 +10,11 @@ import {
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useDispatch, useSelector } from 'react-redux';
-import { setAreas, setIndicators, setWasteItems } from '../../src/slices/dataSlice';
+import {
+  setAreas,
+  setIndicators,
+  setWasteItems,
+} from '../../src/slices/dataSlice';
 import { setUser } from '../slices/userSlice';
 import { setComplaints } from '../slices/complaintsSlice';
 import auth from '@react-native-firebase/auth';
@@ -72,12 +76,17 @@ export default function HomeScreen() {
     loading: false,
   });
 
-const completeComplaints = (complaints || []).filter(c => c.status === COMPLAINT_STATUS.COMPLETED).length;
-console.log('completeComplaints', completeComplaints);
-const rejectedComplaints = (complaints || []).filter(c => c.status === COMPLAINT_STATUS.REJECTED).length;
-console.log('rejectedComplaints', rejectedComplaints);
-const activeComplaints = complaintsCount - (completeComplaints + rejectedComplaints);
-console.log('activeComplaints', activeComplaints);
+  const completeComplaints = (complaints || []).filter(
+    c => c.status === COMPLAINT_STATUS.COMPLETED,
+  ).length;
+  console.log('completeComplaints', completeComplaints);
+  const rejectedComplaints = (complaints || []).filter(
+    c => c.status === COMPLAINT_STATUS.REJECTED,
+  ).length;
+  console.log('rejectedComplaints', rejectedComplaints);
+  const activeComplaints =
+    complaintsCount - (completeComplaints + rejectedComplaints);
+  console.log('activeComplaints', activeComplaints);
 
   const role = user.role;
   let role_text = '';
@@ -106,8 +115,26 @@ console.log('activeComplaints', activeComplaints);
   };
 
   useEffect(() => {
+    if (!user?.id) return;
+
+    const userRef = database().ref(`/users/${user.id}`);
+
+    const listener = userRef.on('value', snapshot => {
+      const updatedUser = snapshot.val();
+      if (updatedUser) {
+        console.log('User updated in DB:', updatedUser);
+        dispatch(setUser(updatedUser));
+      }
+    });
+
+    return () => {
+      userRef.off('value', listener);
+    };
+  }, [user?.id, dispatch]);
+
+  useEffect(() => {
     const checkInvitation = async () => {
-      console.log("USERR", user, 'IR: ', user?.invite_role);
+      console.log('USERR', user, 'IR: ', user?.invite_role);
 
       const roleMessages = {
         [ROLES.MANAGER]: {
