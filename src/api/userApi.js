@@ -164,3 +164,29 @@ export const listenUsersByRole = (role, callback) => {
   // Return unsubscribe function
   return () => reference.off('value', onValueChange);
 };
+
+export const getAdminEmails = async () => {
+  try {
+    const snapshot = await database()
+      .ref('users')
+      .orderByChild('role')
+      .equalTo(1)
+      .once('value');
+
+    const usersData = snapshot.val();
+
+    if (!usersData) {
+      return [];
+    }
+
+    const emails = Object.values(usersData).map(user => user.email || '');
+    // // Extract id and email
+    // const result = Object.entries(usersData).map(([key, user]) => ({
+    //   id: user.id || key,
+    //   email: user.email || '',
+    return emails;
+  } catch (error) {
+    console.log('Fetching users with role=1 failed:', error);
+    throw error;
+  }
+};

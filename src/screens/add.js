@@ -26,6 +26,7 @@ import {
   FONT_WEIGHTS,
   SHADOWS,
   SIZES,
+  COMPLAINT_STATUS,
 } from '../constants/index.ts';
 import { ScrollView } from 'react-native-gesture-handler';
 import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
@@ -35,6 +36,8 @@ import {
   requestCameraPermissions,
 } from '../utils/Permissions.js';
 import { addNewComplaint } from '../api/complaintsApi.js';
+import { getAdminEmails } from '../api/userApi.js';
+import { sendComplaintSttsNotification } from '../services/notifications.js';
 import ImageService from '../services/ImageService.js';
 
 //Yup validation schema
@@ -203,7 +206,7 @@ export default function AddComplaintScreen() {
         thumbnail_url: thumbnailUrl, // Thumbnail URL for list view
         longitude: metadata?.location?.longitude || '',
         latitude: metadata?.location?.latitude || '',
-        status: 'pending',
+        status: COMPLAINT_STATUS.PENDING,
         user_id: user?.id,
         created_at: new Date().toISOString(),
         area_name: values.area.name_ar,
@@ -222,6 +225,17 @@ export default function AddComplaintScreen() {
       console.log('Database result:', result);
 
       if (result.success) {
+        console.log('Complaint saved, fetching admin emails...');
+        const adminEmails = await getAdminEmails();
+
+        console.log('Admin emails:', adminEmails);
+
+        if (adminEmails.length > 0) {
+          await sendComplaintSttsNotification(
+            adminEmails,
+            complaintData.status,
+          );
+        }
         console.log('Success! Showing alert...');
         Alert.alert('تم الحفظ بنجاح', 'تم حفظ الشكوى بنجاح', [
           {
