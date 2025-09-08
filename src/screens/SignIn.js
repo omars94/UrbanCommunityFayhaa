@@ -352,9 +352,9 @@ export default function SignIn() {
               </View>
             </TouchableOpacity>
 
-            <Text style={styles.footerText}>
+            {/* <Text style={styles.footerText}>
               تحقق من بريدك الإلكتروني للتأكيد
-            </Text>
+            </Text> */}
           </View>
         )}
       </Formik>

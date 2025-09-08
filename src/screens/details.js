@@ -58,6 +58,7 @@ import storage from '@react-native-firebase/storage';
 import StatusTimeline from '../components/detailsComponents/timeline.js';
 import ImageService from '../services/ImageService.js';
 import HeaderSection from '../components/headerSection';
+import { formatLebanesePhone } from '../utils/index';
 
 const { width } = Dimensions.get('window');
 
@@ -451,7 +452,7 @@ export default function ComplaintDetailsScreen() {
                     <View style={styles.userInfo}>
                       <Text style={styles.userName}>{userItem.full_name}</Text>
                       <Text style={styles.userPhone}>
-                        {userItem.phone_number}
+                        {formatLebanesePhone(userItem.phone_number)}
                       </Text>
                     </View>
                     {isLoading && (
