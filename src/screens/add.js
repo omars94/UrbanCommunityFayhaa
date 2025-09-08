@@ -40,6 +40,7 @@ import { getAdminEmails } from '../api/userApi.js';
 import { sendComplaintSttsNotification } from '../services/notifications.js';
 import ImageService from '../services/ImageService.js';
 import HeaderSection from '../components/headerSection.js';
+import {checkLocationServicesEnabled} from '../utils/Permissions.js';
 
 //Yup validation schema
 const ComplaintSchema = Yup.object().shape({
@@ -64,35 +65,35 @@ export default function AddComplaintScreen() {
   console.log('Current User:', user);
   console.log('Current User id:', user?.id);
 
-  const checkLocationServicesEnabled = () => {
-    return new Promise(resolve => {
-      Geolocation.getCurrentPosition(
-        position => {
-          resolve(true);
-        },
-        error => {
-          // Check error codes to determine if location services are disabled
-          if (error.code === 1) {
-            // PERMISSION_DENIED - could be permissions or location services off
-            resolve(false);
-          } else if (error.code === 2) {
-            // POSITION_UNAVAILABLE - location services might be off
-            resolve(false);
-          } else if (error.code === 3) {
-            // TIMEOUT - services are on but taking too long
-            resolve(true);
-          } else {
-            resolve(false);
-          }
-        },
-        {
-          enableHighAccuracy: false,
-          timeout: 5000,
-          maximumAge: 0,
-        },
-      );
-    });
-  };
+  // const checkLocationServicesEnabled = () => {
+  //   return new Promise(resolve => {
+  //     Geolocation.getCurrentPosition(
+  //       position => {
+  //         resolve(true);
+  //       },
+  //       error => {
+  //         // Check error codes to determine if location services are disabled
+  //         if (error.code === 1) {
+  //           // PERMISSION_DENIED - could be permissions or location services off
+  //           resolve(false);
+  //         } else if (error.code === 2) {
+  //           // POSITION_UNAVAILABLE - location services might be off
+  //           resolve(false);
+  //         } else if (error.code === 3) {
+  //           // TIMEOUT - services are on but taking too long
+  //           resolve(true);
+  //         } else {
+  //           resolve(false);
+  //         }
+  //       },
+  //       {
+  //         enableHighAccuracy: false,
+  //         timeout: 5000,
+  //         maximumAge: 0,
+  //       },
+  //     );
+  //   });
+  // };
 
   const showLocationSettingsAlert = () => {
     Alert.alert(

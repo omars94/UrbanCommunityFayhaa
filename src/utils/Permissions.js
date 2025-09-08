@@ -1,4 +1,5 @@
 import { Alert, PermissionsAndroid, Platform, Linking } from 'react-native';
+import Geolocation from '@react-native-community/geolocation';
 
 export const requestLocationPermission = async () => {
   if (Platform.OS === 'android') {
@@ -154,3 +155,33 @@ export const requestCameraPermissions = async () => {
   // iOS handling
   return true;
 };
+
+export const checkLocationServicesEnabled = () => {
+    return new Promise(resolve => {
+      Geolocation.getCurrentPosition(
+        position => {
+          resolve(true);
+        },
+        error => {
+          // Check error codes to determine if location services are disabled
+          if (error.code === 1) {
+            // PERMISSION_DENIED - could be permissions or location services off
+            resolve(false);
+          } else if (error.code === 2) {
+            // POSITION_UNAVAILABLE - location services might be off
+            resolve(false);
+          } else if (error.code === 3) {
+            // TIMEOUT - services are on but taking too long
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 5000,
+          maximumAge: 0,
+        },
+      );
+    });
+  };

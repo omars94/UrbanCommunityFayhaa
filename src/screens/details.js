@@ -59,6 +59,8 @@ import StatusTimeline from '../components/detailsComponents/timeline.js';
 import ImageService from '../services/ImageService.js';
 import HeaderSection from '../components/headerSection';
 import { formatLebanesePhone } from '../utils/index';
+import {checkLocationServicesEnabled} from '../utils/Permissions.js';
+import CustomAlert from "../components/customAlert";
 
 const { width } = Dimensions.get('window');
 
@@ -130,6 +132,23 @@ export default function ComplaintDetailsScreen() {
   const [capturedImageUri, setCapturedImageUri] = useState('');
   const [shouldRenderMap, setShouldRenderMap] = useState(false);
   const [capturedLocation, setCapturedLocation] = useState(null);
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertData, setAlertData] = useState({
+    title: '',
+    message: '',
+    buttons: [],
+  });
+
+  // Custom Alert Functions
+  const showCustomAlert = (title, message, buttons = []) => {
+    setAlertData({ title, message, buttons });
+    setAlertVisible(true);
+  };
+
+  const hideCustomAlert = () => {
+    setAlertVisible(false);
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -260,10 +279,10 @@ export default function ComplaintDetailsScreen() {
           user.id,
         );
         setShowAssignModal(false);
-        Alert.alert('نجح', 'تم تعيين الشكوى بنجاح');
+        showCustomAlert('نجح', 'تم تعيين الشكوى بنجاح');
       } catch (error) {
         console.error('Error assigning complaint:', error);
-        Alert.alert('خطأ', 'حدث خطأ أثناء تعيين الشكوى');
+        showCustomAlert('خطأ', 'حدث خطأ أثناء تعيين الشكوى');
       } finally {
         setIsLoading(false);
       }
@@ -271,18 +290,48 @@ export default function ComplaintDetailsScreen() {
     [complaint?.id, user],
   );
 
+  const showLocationSettingsAlert = () => {
+    showCustomAlert(
+      'خدمات الموقع مطلوبة',
+      'يرجى تمكين خدمات الموقع لاستخدام ميزة الكاميرا.',
+      [
+        {
+          text: 'إلغاء',
+          style: 'cancel',
+          onPress: hideCustomAlert,
+        },
+        {
+          text: 'فتح الإعدادات',
+          onPress: () => {
+            if (Platform.OS === 'ios') {
+              Linking.openURL('App-Prefs:Privacy&path=LOCATION');
+            } else {
+              Linking.sendIntent('android.settings.LOCATION_SOURCE_SETTINGS');
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const handleResolveComplaint = useCallback(async () => {
     try {
       // Request camera permissions
       const getLocationPermissions = await requestLocationPermission();
       if (!getLocationPermissions) {
-        Alert.alert('خطأ', 'لا يمكن الوصول إلى الموقع بدون الأذونات اللازمة');
+        showCustomAlert('خطأ', 'لا يمكن الوصول إلى الموقع بدون الأذونات اللازمة');
         return;
       }
 
       const getCameraPermissions = await requestCameraPermissions();
       if (!getCameraPermissions) {
-        Alert.alert('خطأ', 'لا يمكن الوصول إلى الكاميرا بدون الأذونات اللازمة');
+        showCustomAlert('خطأ', 'لا يمكن الوصول إلى الكاميرا بدون الأذونات اللازمة');
+        return;
+      }
+
+      const locationServicesEnabled = await checkLocationServicesEnabled();
+      if (!locationServicesEnabled) {
+        showLocationSettingsAlert();
         return;
       }
 
@@ -325,7 +374,7 @@ export default function ComplaintDetailsScreen() {
       }
     } catch (error) {
       console.error('Error in handleResolveComplaint:', error);
-      Alert.alert('خطأ', 'حدث خطأ أثناء تحضير حل المشكلة');
+      showCustomAlert('خطأ', 'حدث خطأ أثناء تحضير حل المشكلة');
     }
   }, []);
 
@@ -356,34 +405,34 @@ export default function ComplaintDetailsScreen() {
           capturedLocation?.longitude || null,
         );
 
-        Alert.alert('نجح', 'تم تحديث حالة الشكوى إلى "تم الحل"');
+        showCustomAlert('نجح', 'تم تحديث حالة الشكوى إلى "تم الحل"');
 
         // Clear captured data
         setCapturedImageUri('');
         setCapturedLocation(null);
       } else {
-        Alert.alert('خطأ', 'حدث خطأ أثناء تحديث الشكوى');
+        showCustomAlert('خطأ', 'حدث خطأ أثناء تحديث الشكوى');
       }
     } catch (error) {
       console.error('Error resolving complaint:', error);
-      Alert.alert('خطأ', 'حدث خطأ أثناء تحديث الشكوى');
+      showCustomAlert('خطأ', 'حدث خطأ أثناء تحديث الشكوى');
     } finally {
       setIsLoading(false);
     }
   };
   const handleCompleteComplaint = useCallback(async () => {
-    Alert.alert('تأكيد الإنجاز', 'هل أنت متأكد من إنجاز هذه الشكوى نهائياً؟', [
-      { text: 'إلغاء', style: 'cancel' },
+    showCustomAlert('تأكيد الإنجاز', 'هل أنت متأكد من إنجاز هذه الشكوى نهائياً؟', [
+      { text: 'إلغاء', style: 'cancel', onPress: hideCustomAlert },
       {
         text: 'تأكيد',
         onPress: async () => {
           setIsLoading(true);
           try {
             await completeComplaint(complaint.id, user.id);
-            Alert.alert('نجح', 'تم إنجاز الشكوى بنجاح');
+            showCustomAlert('نجح', 'تم إنجاز الشكوى بنجاح');
           } catch (error) {
             console.error('Error completing complaint:', error);
-            Alert.alert('خطأ', 'حدث خطأ أثناء إنجاز الشكوى');
+            showCustomAlert('خطأ', 'حدث خطأ أثناء إنجاز الشكوى');
           } finally {
             setIsLoading(false);
           }
@@ -394,7 +443,7 @@ export default function ComplaintDetailsScreen() {
 
   const handleRejectComplaint = useCallback(async () => {
     if (!rejectionReason.trim()) {
-      Alert.alert('خطأ', 'يجب كتابة سبب الرفض');
+      showCustomAlert('خطأ', 'يجب كتابة سبب الرفض');
       return;
     }
     setIsLoading(true);
@@ -402,10 +451,10 @@ export default function ComplaintDetailsScreen() {
       await rejectComplaint(complaint.id, user.id, rejectionReason.trim());
       setShowRejectModal(false);
       setRejectionReason('');
-      Alert.alert('تم', 'تم رفض الشكوى');
+      showCustomAlert('تم', 'تم رفض الشكوى');
     } catch (error) {
       console.error('Error rejecting complaint:', error);
-      Alert.alert('خطأ', 'حدث خطأ أثناء رفض الشكوى');
+      showCustomAlert('خطأ', 'حدث خطأ أثناء رفض الشكوى');
     } finally {
       setIsLoading(false);
     }
@@ -702,6 +751,14 @@ export default function ComplaintDetailsScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      <CustomAlert
+        visible={alertVisible}
+        title={alertData.title}
+        message={alertData.message}
+        buttons={alertData.buttons}
+        onClose={hideCustomAlert}
+      />
 
       <ScrollView
         style={styles.scrollView}

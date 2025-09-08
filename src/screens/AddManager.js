@@ -233,7 +233,7 @@ export default function AddManagerScreen() {
 
       <View style={styles.infoBox}>
         <Text style={styles.infoText} numberOfLines={2}>
-          صلاحيات المسؤول: يمكن للمسؤولين مراجعة التبليغات وحذفها مؤقتًا، وإضافة موظفين جدد.
+          صلاحيات المسؤول: يمكن للمسؤولين مراجعة التبليغات وتعيينها، وإضافة موظفين جدد.
         </Text>
       </View>
 
