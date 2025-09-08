@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Alert,
   Text,
   Image,
   StyleSheet,
@@ -34,13 +33,14 @@ import { addComplaint } from '../slices/complaintsSlice.js';
 import {
   requestLocationPermission,
   requestCameraPermissions,
+  useCustomAlert,
 } from '../utils/Permissions.js';
 import { addNewComplaint } from '../api/complaintsApi.js';
 import { getAdminEmails } from '../api/userApi.js';
 import { sendComplaintSttsNotification } from '../services/notifications.js';
 import ImageService from '../services/ImageService.js';
 import HeaderSection from '../components/headerSection.js';
-import {checkLocationServicesEnabled} from '../utils/Permissions.js';
+import { checkLocationServicesEnabled } from '../utils/Permissions.js';
 
 //Yup validation schema
 const ComplaintSchema = Yup.object().shape({
@@ -57,6 +57,9 @@ export default function AddComplaintScreen() {
   const [metadata, setMetadata] = useState(null);
   const [imageProcessing, setImageProcessing] = useState(false);
 
+  // Add custom alert hook
+  const { showAlert, AlertComponent } = useCustomAlert();
+
   const { areas, indicators } = useSelector(state => state.data);
   const { user } = useSelector(state => state.user);
 
@@ -65,38 +68,8 @@ export default function AddComplaintScreen() {
   console.log('Current User:', user);
   console.log('Current User id:', user?.id);
 
-  // const checkLocationServicesEnabled = () => {
-  //   return new Promise(resolve => {
-  //     Geolocation.getCurrentPosition(
-  //       position => {
-  //         resolve(true);
-  //       },
-  //       error => {
-  //         // Check error codes to determine if location services are disabled
-  //         if (error.code === 1) {
-  //           // PERMISSION_DENIED - could be permissions or location services off
-  //           resolve(false);
-  //         } else if (error.code === 2) {
-  //           // POSITION_UNAVAILABLE - location services might be off
-  //           resolve(false);
-  //         } else if (error.code === 3) {
-  //           // TIMEOUT - services are on but taking too long
-  //           resolve(true);
-  //         } else {
-  //           resolve(false);
-  //         }
-  //       },
-  //       {
-  //         enableHighAccuracy: false,
-  //         timeout: 5000,
-  //         maximumAge: 0,
-  //       },
-  //     );
-  //   });
-  // };
-
   const showLocationSettingsAlert = () => {
-    Alert.alert(
+    showAlert(
       'خدمات الموقع مطلوبة',
       'يرجى تمكين خدمات الموقع لاستخدام ميزة الكاميرا.',
       [
@@ -119,10 +92,10 @@ export default function AddComplaintScreen() {
   };
 
   const takePhoto = async setFieldValue => {
-    const cameraGranted = await requestCameraPermissions();
+    const cameraGranted = await requestCameraPermissions(showAlert);
     if (!cameraGranted) return;
 
-    const locationGranted = await requestLocationPermission();
+    const locationGranted = await requestLocationPermission(showAlert);
     if (!locationGranted) return;
 
     const locationServicesEnabled = await checkLocationServicesEnabled();
@@ -144,7 +117,7 @@ export default function AddComplaintScreen() {
       // Validate image first
       // const validation = await ImageService.validateImage(originalUri);
       // if (!validation.valid) {
-      //   Alert.alert('خطأ في الصورة', validation.error);
+      //   showAlert('خطأ في الصورة', validation.error);
       //   return;
       // }
 
@@ -162,7 +135,7 @@ export default function AddComplaintScreen() {
           });
         },
         error => {
-          Alert.alert('خطأ', 'تعذر الحصول على الموقع');
+          showAlert('خطأ', 'تعذر الحصول على الموقع');
           console.error(error);
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
@@ -240,22 +213,23 @@ export default function AddComplaintScreen() {
           );
         }
         console.log('Success! Showing alert...');
-        Alert.alert('تم الحفظ بنجاح', 'تم حفظ الشكوى بنجاح', [
+        showAlert('تم الحفظ بنجاح', 'تم حفظ الشكوى بنجاح', [
           {
             text: 'حسناً',
             onPress: () => {
-              console.log('Navigating back...');
-              navigation.goBack();
+              console.log('back to complaints....');
+              // navigation.goBack();
+              navigation.navigate('Complaints');
             },
           },
         ]);
       } else {
         console.log('Database error, showing error alert');
-        Alert.alert('خطأ', 'حدث خطأ أثناء الحفظ');
+        showAlert('خطأ', 'حدث خطأ أثناء الحفظ');
       }
     } catch (error) {
       console.error('Error submitting complaint:', error);
-      Alert.alert('خطأ', error.message || 'حدث خطأ أثناء الحفظ');
+      showAlert('خطأ', error.message || 'حدث خطأ أثناء الحفظ');
     } finally {
       console.log('Setting submitting to false');
       setSubmitting(false);
@@ -406,6 +380,9 @@ export default function AddComplaintScreen() {
             </View>
           )}
         </Formik>
+
+        {/* Custom Alert Component */}
+        <AlertComponent />
       </View>
     </ScrollView>
   );
