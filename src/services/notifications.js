@@ -44,10 +44,9 @@ export const sendRoleInviteNotification = async (userEmail, role) => {
       },
     };
 
-    // Using axios instead of fetch
     const response = await axios.post(
       'https://api.onesignal.com/notifications',
-      notificationPayload, // axios automatically stringifies JSON
+      notificationPayload,
       {
         headers: {
           Authorization: `Key ${ONESIGNAL_REST_API_KEY}`,
@@ -148,4 +147,18 @@ export const sendComplaintSttsNotification = async (
     // throw error;
     throw new Error(`Failed to send notification: ${errorMessage}`);
   }
+};
+
+// navigationIntent
+let pendingNavigation = null;
+
+export const setPendingNavigation = intent => {
+  pendingNavigation = intent;
+};
+
+export const consumePendingNavigation = () => {
+  if (!pendingNavigation) return null;
+  const intent = pendingNavigation;
+  pendingNavigation = null;
+  return intent;
 };

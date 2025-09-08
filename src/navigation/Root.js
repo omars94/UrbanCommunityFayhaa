@@ -18,6 +18,10 @@ import { OneSignal, LogLevel } from 'react-native-onesignal';
 import { ONESIGNAL_APP_ID } from '@env';
 import { setUserForNotifications } from '../services/notifications';
 import { navigationRef } from '../services/notifications';
+import {
+  setPendingNavigation,
+  consumePendingNavigation,
+} from '../services/notifications';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,83 +34,38 @@ I18nManager.allowRTL(true);
 I18nManager.forceRTL(true);
 function Layout() {
   useEffect(() => {
-    // Enable verbose logging (for setup, remove in production)
     OneSignal.Debug.setLogLevel(LogLevel.Verbose);
 
-    // Initialize OneSignal with your App ID
     OneSignal.initialize(ONESIGNAL_APP_ID);
 
     // Request permission (iOS only)
     OneSignal.Notifications.requestPermission(false);
 
     const handleNotificationClick = event => {
-      console.log('=== OneSignal: Notification clicked ===');
-      console.log('Full event object:', JSON.stringify(event, null, 2));
-
-      // Check if we have the expected structure
-      if (!event) {
-        console.error('Event is null/undefined');
-        return;
-      }
-
-      if (!event.notification) {
-        console.error('event.notification is missing');
-        return;
-      }
-
-      console.log(
-        'Notification object:',
-        JSON.stringify(event.notification, null, 2),
-      );
-
-      const data = event.notification.additionalData;
-      console.log('Additional data:', JSON.stringify(data, null, 2));
-
-      // Check navigation ref
-      console.log('Navigation ref current:', navigationRef.current);
-      console.log('Navigation ref ready:', !!navigationRef.current);
+      const data = event.notification?.additionalData;
 
       if (data?.type === 'status_update' && data?.complaint) {
-        console.log('Condition met - navigating...');
-        console.log('Target complaint:', data.complaint);
-
-        // Retry navigation with increasing delays
-        const attemptNavigation = (attempt = 1, maxAttempts = 5) => {
-          const delay = attempt * 500;
-
-          setTimeout(() => {
-            if (navigationRef.current && navigationRef.isReady?.()) {
-              console.log(`Navigation attempt ${attempt} - SUCCESS!`);
-              try {
-                // Navigate to the complaint details with full complaint object
-                navigationRef.current.navigate(ROUTE_NAMES.MAIN, {
-                  screen: ROUTE_NAMES.COMPLAINTS,
-                  params: {
-                    screen: ROUTE_NAMES.COMPLAINT_DETAILS,
-                    params: { complaint: data.complaint },
-                  },
-                });
-                console.log('Navigation called successfully');
-              } catch (error) {
-                console.error('Navigation error:', error);
-              }
-            } else if (attempt < maxAttempts) {
-              console.log(`Navigation attempt ${attempt} failed, retrying...`);
-              attemptNavigation(attempt + 1, maxAttempts);
-            } else {
-              console.error(`Navigation failed after ${maxAttempts} attempts`);
-            }
-          }, delay);
+        const intent = {
+          route: ROUTE_NAMES.MAIN,
+          params: {
+            screen: ROUTE_NAMES.COMPLAINTS,
+            params: {
+              screen: ROUTE_NAMES.COMPLAINT_DETAILS,
+              params: { complaint: data.complaint },
+            },
+          },
         };
 
-        attemptNavigation();
-      } else {
-        console.log('Condition not met:');
-        console.log('data?.type:', data?.type);
-        console.log('data?.complaint:', data?.complaint);
-        console.log('Expected type: status_update');
+        // If navigator ready, go now
+        if (navigationRef.current && navigationRef.isReady?.()) {
+          navigationRef.current.navigate(intent.route, intent.params);
+        } else {
+          // Otherwise, save it for when NavigationContainer mounts
+          setPendingNavigation(intent);
+        }
       }
     };
+
     OneSignal.Notifications.addEventListener('click', handleNotificationClick);
 
     return () => {
@@ -211,7 +170,6 @@ export default function Root() {
 }
 
 const styles = StyleSheet.create({
-  // Loading Styles
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

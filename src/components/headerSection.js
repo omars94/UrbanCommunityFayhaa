@@ -7,59 +7,40 @@ import {
   SPACING,
   FONT_SIZES,
   FONT_WEIGHTS,
-  FONT_FAMILIES
-} from '../constants';
+  BORDER_RADIUS,
+} from '../constants/index.ts';
 
 const HeaderSection = ({
   title,
   subtitle,
   showBackButton = false,
   onBackPress,
-  customStyles = {}
+  customStyles = {},
 }) => {
   return (
     <View style={[styles.header, customStyles.header]}>
       {showBackButton && (
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={onBackPress}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
           <Ionicons name="arrow-forward" size={24} color={COLORS.white} />
         </TouchableOpacity>
       )}
       <Text style={[styles.headerTitle, customStyles.title]}>{title}</Text>
       {subtitle && (
-        <Text style={[styles.headerSubtitle, customStyles.subtitle]}>{subtitle}</Text>
+        <Text style={[styles.headerSubtitle, customStyles.subtitle]}>
+          {subtitle}
+        </Text>
       )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  // header: {
-  //   backgroundColor: COLORS.primary,
-  //   padding: SPACING.lg,
-  //   paddingTop: SPACING.xxl,
-  // },
-  // headerTitle: {
-  //   color: COLORS.white,
-  //   fontSize: FONT_SIZES.xxxl,
-  //   fontWeight: FONT_WEIGHTS.bold,
-  //   fontFamily: FONT_FAMILIES.arabic,
-  //   textAlign: 'center',
-  //   marginBottom: SPACING.xs,
-  // },
-  // headerSubtitle: {
-  //   color: COLORS.white,
-  //   fontSize: FONT_SIZES.md,
-  //   fontFamily: FONT_FAMILIES.arabic,
-  //   textAlign: 'center',
-  //   opacity: 0.9,
-  // },
   header: {
     backgroundColor: COLORS.primary,
     padding: SPACING.lg,
-    paddingTop: SPACING.xxxl,
+    paddingTop: SPACING.huge,
+    borderBottomLeftRadius: BORDER_RADIUS.lg,
+    borderBottomRightRadius: BORDER_RADIUS.lg,
   },
   headerTitle: {
     fontSize: FONT_SIZES.xxl,
@@ -74,7 +55,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: SPACING.xxl + 20,
+    top: SPACING.huge,
     left: SPACING.lg,
     zIndex: 1,
     padding: SPACING.xs,

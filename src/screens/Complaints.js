@@ -1,7 +1,4 @@
-import {
-  useFocusEffect,
-  useNavigation,
-} from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import React, { useEffect, useState, useMemo } from 'react';
 import {
@@ -21,11 +18,22 @@ import Icon from '@react-native-vector-icons/ionicons';
 import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
 import { useSelector, useDispatch } from 'react-redux';
 import SimplePicker from '../components/SimplePicker';
-import { ROUTE_NAMES, COLORS, ROLES, COMPLAINT_STATUS, COMPLAINT_STATUS_AR, SPACING, FONT_SIZES, BORDER_RADIUS, FONT_WEIGHTS } from '../constants';
+import {
+  ROUTE_NAMES,
+  COLORS,
+  ROLES,
+  COMPLAINT_STATUS,
+  COMPLAINT_STATUS_AR,
+  SPACING,
+  FONT_SIZES,
+  BORDER_RADIUS,
+  FONT_WEIGHTS,
+} from '../constants';
 // import database from '@react-native-firebase/database';
 import moment from 'moment';
 import { fetchComplaints } from '../api/complaintsApi';
 import { setComplaints } from '../slices/complaintsSlice';
+import HeaderSection from '../components/headerSection';
 
 // const { width, height } = Dimensions.get('window');
 
@@ -39,41 +47,71 @@ export default function ComplaintsScreen() {
   const [selectedFilter, setSelectedFilter] = useState('all');
 
   const dispatch = useDispatch();
-  const complaints = useSelector(state => state.complaints.complaints)
+  const complaints = useSelector(state => state.complaints.complaints);
   const { areas, indicators } = useSelector(state => state.data);
   const user = useSelector(state => state.user.user);
 
   // Get role-based filter options
   const getFilterOptions = () => {
-    const baseOptions = [
-      { id: 'my', label: 'شكاواي', value: 'my' }
-    ];
+    const baseOptions = [{ id: 'my', label: 'شكاواي', value: 'my' }];
 
     switch (user?.role) {
       case ROLES.ADMIN:
         return [
-          { id: 'pending', label: COMPLAINT_STATUS_AR.PENDING, value: 'pending' },
+          {
+            id: 'pending',
+            label: COMPLAINT_STATUS_AR.PENDING,
+            value: 'pending',
+          },
           { id: 'all', label: 'جميع الشكاوى', value: 'all' },
-          { id: 'assigned', label: COMPLAINT_STATUS_AR.ASSIGNED, value: 'assigned' },
-          { id: 'resolved', label: COMPLAINT_STATUS_AR.RESOLVED, value: 'resolved' },
-          { id: 'completed', label: COMPLAINT_STATUS_AR.COMPLETED, value: 'completed' },
-          { id: 'rejected', label: COMPLAINT_STATUS_AR.REJECTED, value: 'rejected' },
+          {
+            id: 'assigned',
+            label: COMPLAINT_STATUS_AR.ASSIGNED,
+            value: 'assigned',
+          },
+          {
+            id: 'resolved',
+            label: COMPLAINT_STATUS_AR.RESOLVED,
+            value: 'resolved',
+          },
+          {
+            id: 'completed',
+            label: COMPLAINT_STATUS_AR.COMPLETED,
+            value: 'completed',
+          },
+          {
+            id: 'rejected',
+            label: COMPLAINT_STATUS_AR.REJECTED,
+            value: 'rejected',
+          },
           ...baseOptions,
         ];
 
       case ROLES.MANAGER:
         return [
-          { id: 'assigned_to_me', label: 'المُعيّنة لي', value: 'assigned_to_me' },
-          { id: 'assigned_by_me', label: 'عيّنتها للعمال', value: 'assigned_by_me' },
+          {
+            id: 'assigned_to_me',
+            label: 'المُعيّنة لي',
+            value: 'assigned_to_me',
+          },
+          {
+            id: 'assigned_by_me',
+            label: 'عيّنتها للعمال',
+            value: 'assigned_by_me',
+          },
           { id: 'resolved_by_me', label: 'حلّيتها', value: 'resolved_by_me' },
-          ...baseOptions
+          ...baseOptions,
         ];
 
       case ROLES.WORKER:
         return [
-          { id: 'assigned_to_me', label: 'المُعيّنة لي', value: 'assigned_to_me' },
+          {
+            id: 'assigned_to_me',
+            label: 'المُعيّنة لي',
+            value: 'assigned_to_me',
+          },
           { id: 'resolved_by_me', label: 'حلّيتها', value: 'resolved_by_me' },
-          ...baseOptions
+          ...baseOptions,
         ];
 
       case ROLES.CITIZEN:
@@ -94,7 +132,9 @@ export default function ComplaintsScreen() {
       // Area filter
       let areaMatch = selectedArea ? item.area_id === selectedArea.id : true;
       // Indicator filter
-      let indicatorMatch = selectedIndicator ? item.indicator_id === selectedIndicator.id : true;
+      let indicatorMatch = selectedIndicator
+        ? item.indicator_id === selectedIndicator.id
+        : true;
 
       if (!areaMatch || !indicatorMatch) return false;
 
@@ -119,18 +159,28 @@ export default function ComplaintsScreen() {
           return item.status === COMPLAINT_STATUS.REJECTED;
 
         case 'assigned_to_me':
-          return (user?.role === ROLES.MANAGER && item.manager_assignee_id === user.id) ||
-            (user?.role === ROLES.WORKER && item.worker_assignee_id === user.id);
+          return (
+            (user?.role === ROLES.MANAGER &&
+              item.manager_assignee_id === user.id) ||
+            (user?.role === ROLES.WORKER && item.worker_assignee_id === user.id)
+          );
 
         case 'assigned_by_me':
-          return (user?.role === ROLES.MANAGER && item.manager_assignee_id === user.id) ||
-            (user?.role === ROLES.ADMIN) &&
-            item.worker_assignee_id; // Manager assigned to worker
+          return (
+            (user?.role === ROLES.MANAGER &&
+              item.manager_assignee_id === user.id) ||
+            (user?.role === ROLES.ADMIN && item.worker_assignee_id)
+          ); // Manager assigned to worker
 
         case 'resolved_by_me':
-          return ((user?.role === ROLES.MANAGER && item.manager_assignee_id === user.id) ||
-            (user?.role === ROLES.WORKER && item.worker_assignee_id === user.id)) &&
-            (item.status === COMPLAINT_STATUS.RESOLVED || item.status === COMPLAINT_STATUS.COMPLETED);
+          return (
+            ((user?.role === ROLES.MANAGER &&
+              item.manager_assignee_id === user.id) ||
+              (user?.role === ROLES.WORKER &&
+                item.worker_assignee_id === user.id)) &&
+            (item.status === COMPLAINT_STATUS.RESOLVED ||
+              item.status === COMPLAINT_STATUS.COMPLETED)
+          );
 
         case 'all':
         default:
@@ -143,14 +193,16 @@ export default function ComplaintsScreen() {
     });
 
     // Sort by created_at (newest to oldest)
-    return filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return filtered.sort(
+      (a, b) => new Date(b.created_at) - new Date(a.created_at),
+    );
   }, [complaints, selectedArea, selectedIndicator, selectedFilter, user]);
 
   const getComplaints = async () => {
     setLoading(true);
     try {
       // const complaintsArray = await fetchComplaints();
-      fetchComplaints(dispatch,setComplaints);
+      fetchComplaints(dispatch, setComplaints);
     } catch (error) {
       console.error('خطأ في جلب الشكاوى:', error);
       Alert.alert('خطأ', 'حدث خطأ أثناء جلب الشكاوى');
@@ -178,16 +230,20 @@ export default function ComplaintsScreen() {
     }, []),
   );
 
-  const getStatusText = (status) => {
+  const getStatusText = status => {
     switch (status) {
       case COMPLAINT_STATUS.PENDING:
         return COMPLAINT_STATUS_AR.PENDING;
       case COMPLAINT_STATUS.ASSIGNED:
         return COMPLAINT_STATUS_AR.ASSIGNED;
       case COMPLAINT_STATUS.RESOLVED:
-        return (user?.role === ROLES.CITIZEN) ? COMPLAINT_STATUS_AR.ASSIGNED : COMPLAINT_STATUS_AR.RESOLVED;
+        return user?.role === ROLES.CITIZEN
+          ? COMPLAINT_STATUS_AR.ASSIGNED
+          : COMPLAINT_STATUS_AR.RESOLVED;
       case COMPLAINT_STATUS.COMPLETED:
-        return (user?.role === ROLES.CITIZEN) ? COMPLAINT_STATUS_AR.RESOLVED : COMPLAINT_STATUS_AR.COMPLETED;
+        return user?.role === ROLES.CITIZEN
+          ? COMPLAINT_STATUS_AR.RESOLVED
+          : COMPLAINT_STATUS_AR.COMPLETED;
       case COMPLAINT_STATUS.REJECTED:
         return COMPLAINT_STATUS_AR.REJECTED;
       default:
@@ -195,16 +251,20 @@ export default function ComplaintsScreen() {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = status => {
     switch (status) {
       case COMPLAINT_STATUS.PENDING:
         return COLORS.status.pending;
       case COMPLAINT_STATUS.ASSIGNED:
         return COLORS.status.assigned;
       case COMPLAINT_STATUS.RESOLVED:
-        return (user?.role === ROLES.CITIZEN) ? COLORS.status.assigned : COLORS.status.resolved;
+        return user?.role === ROLES.CITIZEN
+          ? COLORS.status.assigned
+          : COLORS.status.resolved;
       case COMPLAINT_STATUS.COMPLETED:
-        return (user?.role === ROLES.CITIZEN) ? COLORS.status.resolved : COLORS.status.completed;
+        return user?.role === ROLES.CITIZEN
+          ? COLORS.status.resolved
+          : COLORS.status.completed;
       case COMPLAINT_STATUS.REJECTED:
         return COLORS.status.rejected;
       default:
@@ -214,9 +274,15 @@ export default function ComplaintsScreen() {
 
   // Check if any filters are active
   const hasActiveFilters = () => {
-    const defaultFilter = user?.role === ROLES.CITIZEN ? 'my' :
-      user?.role === ROLES.ADMIN ? 'pending' : 'assigned_to_me';
-    return selectedArea || selectedIndicator || selectedFilter !== defaultFilter;
+    const defaultFilter =
+      user?.role === ROLES.CITIZEN
+        ? 'my'
+        : user?.role === ROLES.ADMIN
+        ? 'pending'
+        : 'assigned_to_me';
+    return (
+      selectedArea || selectedIndicator || selectedFilter !== defaultFilter
+    );
   };
 
   // Clear all filters
@@ -259,7 +325,9 @@ export default function ComplaintsScreen() {
       <TouchableOpacity
         style={styles.complaintCard}
         onPress={() =>
-          navigation.navigate(ROUTE_NAMES.COMPLAINT_DETAILS, { complaint: item })
+          navigation.navigate(ROUTE_NAMES.COMPLAINT_DETAILS, {
+            complaint: item,
+          })
         }
       >
         {/* Status Strip */}
@@ -267,7 +335,7 @@ export default function ComplaintsScreen() {
 
         <View style={styles.cardContainer}>
           {/* Right Image */}
-          {(thumbnail_url) && (
+          {thumbnail_url && (
             <View style={styles.imageSection}>
               <View style={styles.imageContainer}>
                 <Image
@@ -303,12 +371,26 @@ export default function ComplaintsScreen() {
             <View style={styles.topSection}>
               {/* Location Section */}
               <View style={styles.locationSection}>
-                <Icon name="location-outline" size={16} color={COLORS.primary} />
-                <Text style={styles.areaText}>{area?.name_ar || 'غير محدد'}</Text>
+                <Icon
+                  name="location-outline"
+                  size={16}
+                  color={COLORS.primary}
+                />
+                <Text style={styles.areaText}>
+                  {area?.name_ar || 'غير محدد'}
+                </Text>
               </View>
               {/* Status Badge - Top Left */}
-              <View style={[styles.statusBadge, { backgroundColor: statusColor.background }]}>
-                <Text style={[styles.statusText, { color: statusColor.text }]} numberOfLines={1}>
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: statusColor.background },
+                ]}
+              >
+                <Text
+                  style={[styles.statusText, { color: statusColor.text }]}
+                  numberOfLines={1}
+                >
                   {getStatusText(status)}
                 </Text>
               </View>
@@ -316,7 +398,11 @@ export default function ComplaintsScreen() {
 
             {/* Title Section */}
             <View style={styles.titleSection}>
-              <Text style={styles.indicatorTitle} numberOfLines={2} ellipsizeMode='tail'>
+              <Text
+                style={styles.indicatorTitle}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
                 {indicator?.description_ar || 'غير محدد'}
               </Text>
             </View>
@@ -328,7 +414,11 @@ export default function ComplaintsScreen() {
             </View> */}
 
             {/* Description */}
-            <Text style={styles.description} numberOfLines={1} ellipsizeMode='tail'>
+            <Text
+              style={styles.description}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               {description || 'لا يوجد وصف'}
             </Text>
 
@@ -338,7 +428,11 @@ export default function ComplaintsScreen() {
                 <Text style={styles.dateText}>
                   {moment(created_at).format('DD/MM/YYYY - hh:mm A')}
                 </Text>
-                <Icon name="time-outline" size={10} color={COLORS.text.secondary} />
+                <Icon
+                  name="time-outline"
+                  size={10}
+                  color={COLORS.text.secondary}
+                />
               </View>
 
               {/* {resolved_at && (
@@ -398,8 +492,7 @@ export default function ComplaintsScreen() {
       <Text style={styles.emptySubText}>
         {user?.role === ROLES.CITIZEN
           ? 'لم تقم بتقديم أي شكاوى بعد'
-          : 'لا توجد شكاوى مطابقة للفلاتر المحددة'
-        }
+          : 'لا توجد شكاوى مطابقة للفلاتر المحددة'}
       </Text>
     </View>
   );
@@ -415,10 +508,7 @@ export default function ComplaintsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>الشكاوى</Text>
-        <Text style={styles.headerSubtitle}>تابع حالة شكواك خطوة بخطوة</Text>
-      </View>
+      <HeaderSection title="الشكاوى" subtitle="تابع حالة الشكاوى خطوة بخطوة" />
       {/* Filter Bar */}
       <View style={styles.filterBar}>
         <View style={styles.filterContent}>
@@ -434,8 +524,11 @@ export default function ComplaintsScreen() {
                 label="نوع الشكاوى"
                 options={getFilterOptions()}
                 labelKey="label"
-                selectedValue={getFilterOptions().find(opt => opt.value === selectedFilter)?.label}
-                onValueChange={(item) => setSelectedFilter(item.value)}
+                selectedValue={
+                  getFilterOptions().find(opt => opt.value === selectedFilter)
+                    ?.label
+                }
+                onValueChange={item => setSelectedFilter(item.value)}
                 style={styles.filterPicker}
                 showLabel={false}
               />
@@ -482,8 +575,6 @@ export default function ComplaintsScreen() {
         </View>
       </View>
 
-
-
       {/* Complaints List */}
       <FlatList
         data={filteredComplaints}
@@ -500,7 +591,11 @@ export default function ComplaintsScreen() {
         }
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={filteredComplaints.length === 0 ? styles.emptyListContent : styles.listContent}
+        contentContainerStyle={
+          filteredComplaints.length === 0
+            ? styles.emptyListContent
+            : styles.listContent
+        }
       />
 
       {/* Add Complaint FAB */}
@@ -509,7 +604,11 @@ export default function ComplaintsScreen() {
         onPress={() => navigation.navigate(ROUTE_NAMES.ADD_COMPLAINT)}
       >
         {/* <Icon name="add" size={28} color={COLORS.white} /> */}
-        <MaterialDesignIcons name="camera-plus-outline" size={28} color={COLORS.white} />
+        <MaterialDesignIcons
+          name="camera-plus-outline"
+          size={28}
+          color={COLORS.white}
+        />
       </TouchableOpacity>
     </View>
   );
@@ -648,11 +747,11 @@ const styles = StyleSheet.create({
     // alignItems: 'flex-end',
     marginBottom: SPACING.xs,
     flexDirection: 'row',
-    justifyContent: "space-between",
+    justifyContent: 'space-between',
   },
   titleSection: {
     marginBottom: SPACING.xs,
-    writingDirection: "rtl"
+    writingDirection: 'rtl',
   },
   locationSection: {
     flexDirection: 'row',

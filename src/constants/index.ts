@@ -120,8 +120,7 @@ export const SPACING = {
   xl: 20,
   xxl: 30,
   xxxl: 40,
-  huge: 50,
-  massive: 60,
+  huge: 65,
 };
 
 // Border Radius

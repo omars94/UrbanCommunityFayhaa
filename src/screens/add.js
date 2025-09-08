@@ -39,6 +39,7 @@ import { addNewComplaint } from '../api/complaintsApi.js';
 import { getAdminEmails } from '../api/userApi.js';
 import { sendComplaintSttsNotification } from '../services/notifications.js';
 import ImageService from '../services/ImageService.js';
+import HeaderSection from '../components/headerSection.js';
 
 //Yup validation schema
 const ComplaintSchema = Yup.object().shape({
@@ -106,9 +107,9 @@ export default function AddComplaintScreen() {
           text: 'فتح الإعدادات',
           onPress: () => {
             if (Platform.OS === 'ios') {
-              Linking.openURL('app-settings:');
+              Linking.openURL('App-Prefs:Privacy&path=LOCATION');
             } else {
-              Linking.openSettings();
+              Linking.sendIntent('android.settings.LOCATION_SOURCE_SETTINGS');
             }
           },
         },
@@ -261,21 +262,15 @@ export default function AddComplaintScreen() {
     }
   };
 
-  // Your form component return statement (updated)
   return (
     <ScrollView>
       <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()} // or your navigation function
-          >
-            <Ionicons name="arrow-forward" size={24} color={COLORS.white} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>تقديم شكوى</Text>
-          <Text style={styles.headerSub}>الإبلاغ عن مشكلة في منطقتك</Text>
-        </View>
+        <HeaderSection
+          title="تقديم شكوى"
+          subtitle="الإبلاغ عن مشكلة في منطقتك"
+          showBackButton={true}
+          onBackPress={() => navigation.goBack()}
+        />
 
         <Formik
           initialValues={{
@@ -296,11 +291,6 @@ export default function AddComplaintScreen() {
             touched,
           }) => (
             <View style={styles.content}>
-              {/* Info Box */}
-              {/* <View style={styles.infoBox}>
-              <Text style={styles.infoText}>الموقع الحالي: طرابلس، لبنان</Text>
-            </View> */}
-
               {/* Form Card */}
               <View style={styles.formCard}>
                 {/* Photo Capture */}
@@ -424,49 +414,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  header: {
-    backgroundColor: COLORS.primary,
-    padding: SPACING.lg,
-    paddingTop: SPACING.xl + 10,
-  },
-  backButton: {
-    position: 'absolute',
-    top: SPACING.lg + 20,
-    left: SPACING.lg,
-    zIndex: 1,
-    padding: SPACING.xs,
-  },
-
-  headerTitle: {
-    color: COLORS.white,
-    fontSize: FONT_SIZES.xxxl,
-    fontWeight: FONT_WEIGHTS.bold,
-    textAlign: 'center',
-    marginBottom: SPACING.xs,
-  },
-  headerSub: {
-    color: COLORS.white,
-    fontSize: FONT_SIZES.md,
-    textAlign: 'center',
-    opacity: 0.9,
-  },
   content: {
     flex: 1,
     padding: SPACING.lg,
   },
-  // infoBox: {
-  //   backgroundColor: COLORS.location,
-  //   borderRadius: BORDER_RADIUS.sm,
-  //   padding: SPACING.md,
-  //   marginBottom: SPACING.lg,
-  //   flexDirection: 'row',
-  //   alignItems: 'center',
-  // },
-  // infoText: {
-  //   color: COLORS.text.secondary,
-  //   fontSize: FONT_SIZES.sm,
-  //   marginLeft: SPACING.sm,
-  // },
   formCard: {
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.lg,

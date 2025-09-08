@@ -226,7 +226,7 @@ export default function HomeScreen() {
         <View style={styles.headerSection}>
           <View style={styles.logoContainer}>
             <Image
-              source={require('../assets/logo1.png')} // Adjust path as needed
+              source={require('../assets/logo.png')}
               style={styles.logo}
               resizeMode="contain"
             />
@@ -303,8 +303,22 @@ export default function HomeScreen() {
                   style={[styles.icon, { color: COLORS.roles.admin.text }]}
                 />
               </View>
-              <Text style={styles.menuTitle}>التخلص من النفايات</Text>
-              <Text style={styles.menuSubtitle}>معلومات النفايات الخاصة</Text>
+              <Text
+                style={styles.menuTitle}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
+                التخلص من النفايات
+              </Text>
+              <Text
+                style={styles.menuSubtitle}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
+                معلومات النفايات الخاصة
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.menuCard}
@@ -355,7 +369,8 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     backgroundColor: COLORS.primary,
-    paddingTop: SIZES.header.height - SPACING.sm,
+    // paddingTop: SIZES.header.height - SPACING.sm,
+    paddingTop: SPACING.huge,
     paddingBottom: SPACING.xxl,
     paddingHorizontal: SPACING.xl,
     alignItems: 'center',
@@ -372,8 +387,10 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   logo: {
-    width: SIZES.logo.sm,
-    height: SIZES.logo.sm,
+    width: SIZES.logo.md,
+    height: SIZES.logo.md,
+    marginRight: SPACING.xs,
+    marginBottom: SPACING.sm,
   },
   welcomeText: {
     fontSize: FONT_SIZES.xxxl,
