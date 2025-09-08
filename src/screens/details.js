@@ -52,6 +52,7 @@ import ImageSlider from '../components/detailsComponents/imageSlider.js';
 import {
   requestCameraPermissions,
   requestLocationPermission,
+  useCustomAlert,
 } from '../utils/Permissions.js';
 import { ImageResolutionComponent } from '../components/resolveComponent.js';
 import storage from '@react-native-firebase/storage';
@@ -132,7 +133,8 @@ export default function ComplaintDetailsScreen() {
   const [capturedImageUri, setCapturedImageUri] = useState('');
   const [shouldRenderMap, setShouldRenderMap] = useState(false);
   const [capturedLocation, setCapturedLocation] = useState(null);
-
+  // Add custom alert hook
+  const { showAlert, AlertComponent } = useCustomAlert();
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertData, setAlertData] = useState({
     title: '',
@@ -317,15 +319,15 @@ export default function ComplaintDetailsScreen() {
   const handleResolveComplaint = useCallback(async () => {
     try {
       // Request camera permissions
-      const getLocationPermissions = await requestLocationPermission();
+      const getLocationPermissions = await requestLocationPermission(showAlert);
       if (!getLocationPermissions) {
-        showCustomAlert('خطأ', 'لا يمكن الوصول إلى الموقع بدون الأذونات اللازمة');
+        // showCustomAlert('خطأ', 'لا يمكن الوصول إلى الموقع بدون الأذونات اللازمة');
         return;
       }
 
-      const getCameraPermissions = await requestCameraPermissions();
+      const getCameraPermissions = await requestCameraPermissions(showAlert);
       if (!getCameraPermissions) {
-        showCustomAlert('خطأ', 'لا يمكن الوصول إلى الكاميرا بدون الأذونات اللازمة');
+        // showCustomAlert('خطأ', 'لا يمكن الوصول إلى الكاميرا بدون الأذونات اللازمة');
         return;
       }
 
@@ -759,6 +761,9 @@ export default function ComplaintDetailsScreen() {
         buttons={alertData.buttons}
         onClose={hideCustomAlert}
       />
+
+      {/* Custom Alert Component */}
+        <AlertComponent />
 
       <ScrollView
         style={styles.scrollView}
