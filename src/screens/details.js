@@ -183,22 +183,22 @@ const sendNotificationsForStatusChange = async (complaint, newStatus, oldStatus)
         }
         
         // Notify user about assignment
-        if (userEmail) {
-          notifications.push({
-            emails: [userEmail],
-            message: 'تم تعيين شكواك للجهة المختصة'
-          });
-        }
+        // if (userEmail) {
+        //   notifications.push({
+        //     emails: [userEmail],
+        //     message: 'تم تعيين شكواك للجهة المختصة'
+        //   });
+        // }
         break;
         
       case COMPLAINT_STATUS.RESOLVED:
         // Notify manager when worker resolves
-        if (managerEmail) {
-          notifications.push({
-            emails: [managerEmail],
-            message: 'تم حل شكوى من قبل العامل المسؤول'
-          });
-        }
+        // if (managerEmail) {
+        //   notifications.push({
+        //     emails: [managerEmail],
+        //     message: 'تم حل شكوى من قبل العامل المسؤول'
+        //   });
+        // }
         
         // Notify admin when complaint is resolved
         if (adminEmails.length > 0) {
@@ -209,30 +209,30 @@ const sendNotificationsForStatusChange = async (complaint, newStatus, oldStatus)
         }
         
         // Notify user about resolution
-        if (userEmail) {
-          notifications.push({
-            emails: [userEmail],
-            message: 'تم حل شكواك وفي انتظار تأكيد الإنجاز'
-          });
-        }
+        // if (userEmail) {
+        //   notifications.push({
+        //     emails: [userEmail],
+        //     message: 'تم حل شكواك وفي انتظار تأكيد الإنجاز'
+        //   });
+        // }
         break;
         
       case COMPLAINT_STATUS.COMPLETED:
         // Notify manager when admin completes
-        if (managerEmail) {
-          notifications.push({
-            emails: [managerEmail],
-            message: 'تم تأكيد إنجاز شكوى من قبل الإدارة'
-          });
-        }
+        // if (managerEmail) {
+        //   notifications.push({
+        //     emails: [managerEmail],
+        //     message: 'تم تأكيد إنجاز شكوى من قبل الإدارة'
+        //   });
+        // }
         
         // Notify worker(s) when admin completes
-        if (workerEmails.length > 0) {
-          notifications.push({
-            emails: workerEmails,
-            message: 'تم تأكيد إنجاز شكوى عملت عليها'
-          });
-        }
+        // if (workerEmails.length > 0) {
+        //   notifications.push({
+        //     emails: workerEmails,
+        //     message: 'تم تأكيد إنجاز شكوى عملت عليها'
+        //   });
+        // }
         
         // Notify user about completion
         if (userEmail) {
@@ -245,28 +245,28 @@ const sendNotificationsForStatusChange = async (complaint, newStatus, oldStatus)
         
       case COMPLAINT_STATUS.REJECTED:
         // Notify manager when admin rejects
-        if (managerEmail) {
-          notifications.push({
-            emails: [managerEmail],
-            message: 'تم رفض شكوى من قبل الإدارة'
-          });
-        }
+        // if (managerEmail) {
+        //   notifications.push({
+        //     emails: [managerEmail],
+        //     message: 'تم رفض شكوى من قبل الإدارة'
+        //   });
+        // }
         
         // Notify worker(s) when admin rejects
-        if (workerEmails.length > 0) {
-          notifications.push({
-            emails: workerEmails,
-            message: 'تم رفض شكوى كنت مسؤولاً عنها'
-          });
-        }
+        // if (workerEmails.length > 0) {
+        //   notifications.push({
+        //     emails: workerEmails,
+        //     message: 'تم رفض شكوى كنت مسؤولاً عنها'
+        //   });
+        // }
         
         // Notify user about rejection
-        if (userEmail) {
-          notifications.push({
-            emails: [userEmail],
-            message: 'تم رفض شكواك'
-          });
-        }
+        // if (userEmail) {
+        //   notifications.push({
+        //     emails: [userEmail],
+        //     message: 'تم رفض شكواك'
+        //   });
+        // }
         break;
     }
     
@@ -422,6 +422,18 @@ const sendNotificationsForStatusChange = async (complaint, newStatus, oldStatus)
       try {
         const oldStatus = complaint.status;
 
+        // Check if worker is already assigned (only for manager role assigning workers)
+        if (user?.role === ROLES.MANAGER && complaintData?.worker_assignee_id) {
+          const currentWorkerIds = Array.isArray(complaintData.worker_assignee_id) 
+            ? complaintData.worker_assignee_id 
+            : [complaintData.worker_assignee_id];
+          
+          if (currentWorkerIds.includes(assignedUserId)) {
+            Alert.alert('تحذير', `العامل ${assignedUserName} مُعيّن بالفعل لهذه الشكوى`);
+            setIsLoading(false);
+            return;
+          }
+        }
         await assignComplaint(
           complaint.id,
           assignedUserId,
@@ -429,7 +441,6 @@ const sendNotificationsForStatusChange = async (complaint, newStatus, oldStatus)
           user.role,
         );
 
-        // Send notifications after successful assignment
       const updatedComplaint = { 
         ...complaint, 
         status: COMPLAINT_STATUS.ASSIGNED,
@@ -452,7 +463,7 @@ const sendNotificationsForStatusChange = async (complaint, newStatus, oldStatus)
         setIsLoading(false);
       }
     },
-    [complaint?.id, user],
+    [complaint?.id, user, complaintData?.worker_assignee_id],
   );
 
   const showLocationSettingsAlert = () => {
@@ -997,7 +1008,7 @@ const sendNotificationsForStatusChange = async (complaint, newStatus, oldStatus)
               complaint={complaintData || complaint}
               status={status}
               getTimeAgo={getTimeAgo}
-              userRole={user?.role} // Add this line
+              userRole={user?.role} 
             />
           </View>
           <View style={styles.section}>
