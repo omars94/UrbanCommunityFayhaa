@@ -19,13 +19,14 @@ import {
 } from 'react-native';
 import { getCurrentLocation } from '../utils/CurrentLocation.js';
 import { launchCamera } from 'react-native-image-picker';
+import {sendComplaintSttsNotification} from '../services/notifications.js';
 import {
   useRoute,
   useNavigation,
   useFocusEffect,
 } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
-import { listenUsersByRole } from '../api/userApi';
+import { listenUsersByRole , getEmailbyId, getAdminEmails} from '../api/userApi';
 import {
   assignComplaint,
   resolveComplaint,
@@ -142,6 +143,152 @@ export default function ComplaintDetailsScreen() {
     buttons: [],
   });
 
+  // Helper function to send notifications based on complaint status change
+const sendNotificationsForStatusChange = async (complaint, newStatus, oldStatus) => {
+  try {
+    const notifications = [];
+    
+    // Get user email (complaint creator)
+    const userEmail = await getEmailbyId(complaint.user_id);
+    
+    // Get manager email if assigned
+    const managerEmail = complaint.manager_assignee_id 
+      ? await getEmailbyId(complaint.manager_assignee_id) 
+      : null;
+    
+    // Get worker emails if assigned (handle array)
+    const workerEmails = complaint.worker_assignee_id 
+      ? await getEmailbyId(complaint.worker_assignee_id)
+      : [];
+    
+    // Get admin emails 
+    const adminEmails = await getAdminEmails(); 
+    
+    switch (newStatus) {
+      case COMPLAINT_STATUS.ASSIGNED:
+        // When admin assigns to manager
+        if (oldStatus === COMPLAINT_STATUS.PENDING && managerEmail) {
+          notifications.push({
+            emails: [managerEmail],
+            message: 'تم تعيين شكوى جديدة لك من قبل الإدارة'
+          });
+        }
+        
+        // When manager assigns to worker(s)
+        if (workerEmails.length > 0 && oldStatus === COMPLAINT_STATUS.ASSIGNED) {
+          notifications.push({
+            emails: workerEmails,
+            message: 'تم تعيين شكوى جديدة لك من قبل المدير'
+          });
+        }
+        
+        // Notify user about assignment
+        if (userEmail) {
+          notifications.push({
+            emails: [userEmail],
+            message: 'تم تعيين شكواك للجهة المختصة'
+          });
+        }
+        break;
+        
+      case COMPLAINT_STATUS.RESOLVED:
+        // Notify manager when worker resolves
+        if (managerEmail) {
+          notifications.push({
+            emails: [managerEmail],
+            message: 'تم حل شكوى من قبل العامل المسؤول'
+          });
+        }
+        
+        // Notify admin when complaint is resolved
+        if (adminEmails.length > 0) {
+          notifications.push({
+            emails: adminEmails,
+            message: 'شكوى جديدة تحتاج إلى تأكيد الإنجاز'
+          });
+        }
+        
+        // Notify user about resolution
+        if (userEmail) {
+          notifications.push({
+            emails: [userEmail],
+            message: 'تم حل شكواك وفي انتظار تأكيد الإنجاز'
+          });
+        }
+        break;
+        
+      case COMPLAINT_STATUS.COMPLETED:
+        // Notify manager when admin completes
+        if (managerEmail) {
+          notifications.push({
+            emails: [managerEmail],
+            message: 'تم تأكيد إنجاز شكوى من قبل الإدارة'
+          });
+        }
+        
+        // Notify worker(s) when admin completes
+        if (workerEmails.length > 0) {
+          notifications.push({
+            emails: workerEmails,
+            message: 'تم تأكيد إنجاز شكوى عملت عليها'
+          });
+        }
+        
+        // Notify user about completion
+        if (userEmail) {
+          notifications.push({
+            emails: [userEmail],
+            message: 'تم إنجاز شكواك بنجاح'
+          });
+        }
+        break;
+        
+      case COMPLAINT_STATUS.REJECTED:
+        // Notify manager when admin rejects
+        if (managerEmail) {
+          notifications.push({
+            emails: [managerEmail],
+            message: 'تم رفض شكوى من قبل الإدارة'
+          });
+        }
+        
+        // Notify worker(s) when admin rejects
+        if (workerEmails.length > 0) {
+          notifications.push({
+            emails: workerEmails,
+            message: 'تم رفض شكوى كنت مسؤولاً عنها'
+          });
+        }
+        
+        // Notify user about rejection
+        if (userEmail) {
+          notifications.push({
+            emails: [userEmail],
+            message: 'تم رفض شكواك'
+          });
+        }
+        break;
+    }
+    
+    // Send all notifications
+    for (const notification of notifications) {
+      try {
+        await sendComplaintSttsNotification(
+          notification.emails,
+          newStatus,
+          complaint
+        );
+        console.log(`Notification sent to:`, notification.emails, `Message: ${notification.message}`);
+      } catch (error) {
+        console.error('Error sending notification:', error);
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error in sendNotificationsForStatusChange:', error);
+  }
+};
+  
   // Custom Alert Functions
   const showCustomAlert = (title, message, buttons = []) => {
     setAlertData({ title, message, buttons });
@@ -273,13 +420,29 @@ export default function ComplaintDetailsScreen() {
     async (assignedUserId, assignedUserName) => {
       setIsLoading(true);
       try {
+        const oldStatus = complaint.status;
+
         await assignComplaint(
           complaint.id,
           assignedUserId,
           assignedUserName,
           user.role,
-          user.id,
         );
+
+        // Send notifications after successful assignment
+      const updatedComplaint = { 
+        ...complaint, 
+        status: COMPLAINT_STATUS.ASSIGNED,
+        [user.role === ROLES.ADMIN ? 'manager_assignee_id' : 'worker_assignee_id']: 
+          user.role === ROLES.ADMIN ? assignedUserId : 
+          Array.isArray(complaint.worker_assignee_id) 
+            ? [...complaint.worker_assignee_id, assignedUserId]
+            : [assignedUserId]
+      };
+      
+      await sendNotificationsForStatusChange(updatedComplaint, COMPLAINT_STATUS.ASSIGNED, oldStatus);
+      
+
         setShowAssignModal(false);
         showCustomAlert('نجح', 'تم تعيين الشكوى بنجاح');
       } catch (error) {
@@ -398,6 +561,8 @@ export default function ComplaintDetailsScreen() {
       console.log('Photo uploaded:', result);
 
       if (result.success) {
+        const oldStatus = complaint.status;
+
         // Pass location coordinates to resolveComplaint
         await resolveComplaint(
           complaint.id,
@@ -406,6 +571,14 @@ export default function ComplaintDetailsScreen() {
           capturedLocation?.latitude || null,
           capturedLocation?.longitude || null,
         );
+
+        // Send notifications after successful resolution
+      const updatedComplaint = { 
+        ...complaint, 
+        status: COMPLAINT_STATUS.RESOLVED 
+      };
+      
+      await sendNotificationsForStatusChange(updatedComplaint, COMPLAINT_STATUS.RESOLVED, oldStatus);
 
         showCustomAlert('نجح', 'تم تحديث حالة الشكوى إلى "تم الحل"');
 
@@ -430,7 +603,18 @@ export default function ComplaintDetailsScreen() {
         onPress: async () => {
           setIsLoading(true);
           try {
-            await completeComplaint(complaint.id, user.id);
+            const oldStatus = complaint.status;
+
+            await completeComplaint(complaint.id);
+
+            // Send notifications after successful completion
+          const updatedComplaint = { 
+            ...complaint, 
+            status: COMPLAINT_STATUS.COMPLETED 
+          };
+          
+          await sendNotificationsForStatusChange(updatedComplaint, COMPLAINT_STATUS.COMPLETED, oldStatus);
+
             showCustomAlert('نجح', 'تم إنجاز الشكوى بنجاح');
           } catch (error) {
             console.error('Error completing complaint:', error);
@@ -450,7 +634,15 @@ export default function ComplaintDetailsScreen() {
     }
     setIsLoading(true);
     try {
-      await rejectComplaint(complaint.id, user.id, rejectionReason.trim());
+      const oldStatus = complaint.status;
+      await rejectComplaint(complaint.id,rejectionReason.trim());
+      const updatedComplaint = { 
+      ...complaint, 
+      status: COMPLAINT_STATUS.REJECTED,
+      rejection_reason: rejectionReason.trim()
+    };
+    
+    await sendNotificationsForStatusChange(updatedComplaint, COMPLAINT_STATUS.REJECTED, oldStatus);
       setShowRejectModal(false);
       setRejectionReason('');
       showCustomAlert('تم', 'تم رفض الشكوى');
@@ -548,7 +740,7 @@ export default function ComplaintDetailsScreen() {
 
             <TextInput
               style={styles.textInput}
-              placeholder=" اكتب سبب الرفض... (10-500 حرف)"
+              placeholder=" اكتب سبب الرفض... "
               multiline
               numberOfLines={4}
               value={rejectionReason}
@@ -567,11 +759,11 @@ export default function ComplaintDetailsScreen() {
                 style={[
                   styles.modalButton,
                   styles.rejectButton,
-                  (isLoading || rejectionReason.length < 10) &&
+                  (isLoading || rejectionReason.length < 1) &&
                     styles.disabledButton,
                 ]}
                 onPress={handleRejectComplaint}
-                disabled={isLoading || rejectionReason.length < 10}
+                disabled={isLoading || rejectionReason.length < 1}
               >
                 {isLoading ? (
                   <ActivityIndicator size="small" color={COLORS.white} />

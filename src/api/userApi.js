@@ -190,3 +190,56 @@ export const getAdminEmails = async () => {
     throw error;
   }
 };
+
+export const getEmailbyId = async (ids) => {
+  try {
+    // Handle both single ID and array of IDs
+    const idsArray = Array.isArray(ids) ? ids : [ids];
+    const isInvalidInput = idsArray.length === 0 || idsArray.some(id => !id);
+    
+    if (isInvalidInput) {
+      throw new Error('معرف المستخدم مطلوب');
+    }
+
+    const emailPromises = idsArray.map(async (id) => {
+      try {
+        const snapshot = await database()
+          .ref('users')
+          .orderByChild('id')
+          .equalTo(id)
+          .once('value');
+        
+        if (!snapshot.exists()) {
+          return { id, email: null, error: 'المستخدم غير موجود' };
+        }
+        
+        const userKey = Object.keys(snapshot.val())[0];
+        const userData = snapshot.val()[userKey];
+        return { id, email: userData.email || null };
+      } catch (error) {
+        return { id, email: null, error: error.message };
+      }
+    });
+
+    const results = await Promise.all(emailPromises);
+    
+    // If single ID was passed, return single result
+    if (!Array.isArray(ids)) {
+      const result = results[0];
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      return result.email;
+    }
+    
+    // For arrays, return array of emails (excluding failed ones)
+    return results
+      .filter(result => result.email !== null && !result.error)
+      .map(result => result.email);
+    
+  } catch (error) {
+    console.log('Fetching emails failed:', error);
+    throw error;
+  }
+};
+
