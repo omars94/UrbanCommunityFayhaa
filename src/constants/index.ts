@@ -5,10 +5,14 @@ export const APP_NAME_ARABIC = 'مجتمع حضري فيحاء';
 
 // Colors - Based on your red theme
 export const COLORS = {
-  primary: '#d32f2f',
-  primaryDark: '#b71c1c',
-  secondary: '#667eea',
-  secondaryDark: '#764ba2',
+  // primary: '#d32f2f',
+  // primaryDark: '#b71c1c',
+  // secondary: '#667eea',
+  // secondaryDark: '#764ba2',
+  primary: '#239ebc',
+  primaryDark: '#880e4f',
+  secondary: '#fdb614',
+  secondaryDark: '#4a148c',
   
   // Status Colors
   success: '#2e7d32',

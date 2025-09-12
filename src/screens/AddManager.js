@@ -201,7 +201,7 @@ export default function AddManagerScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#d32f2f" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>جاري التحميل ...</Text>
       </View>
     );
