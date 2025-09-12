@@ -75,7 +75,7 @@ export default function OTPScreen() {
       <View style={styles.logoContainer}>
         <View style={styles.logoPlaceholder}>
           <Image
-            source={require('../assets/logo1.png')}
+            source={require('../assets/appIcon.png')}
             style={styles.logo}
             resizeMode="contain"
           />

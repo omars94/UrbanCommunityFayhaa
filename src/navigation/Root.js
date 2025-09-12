@@ -136,7 +136,7 @@ function Layout() {
     return (
       <View style={styles.loadingContainer}>
         <Image
-          source={require('../assets/loadingImage.png')}
+          source={require('../assets/SplashScreen.png')}
           style={styles.loadingImage}
           resizeMode="contain"
         />
