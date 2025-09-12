@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   // RefreshControl,
   Linking,
-  Alert
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import HeaderSection from '../components/headerSection';
@@ -20,7 +20,7 @@ import {
   FONT_WEIGHTS,
   FONT_FAMILIES,
   BORDER_RADIUS,
-  SHADOWS
+  SHADOWS,
 } from '../constants';
 import { useDispatch, useSelector } from 'react-redux';
 import { setWasteItems } from '../slices/dataSlice';
@@ -35,14 +35,13 @@ const WasteScreen = ({ navigation }) => {
 
   useEffect(() => {
     loadWasteItems();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadWasteItems = async () => {
     try {
       setLoading(true);
-      if (wasteItems === null)
-        await fetchWasteItems(dispatch, setWasteItems);
+      if (wasteItems === null) await fetchWasteItems(dispatch, setWasteItems);
       // setWasteItems(items);
     } catch (error) {
       Alert.alert('خطأ', 'حدث خطأ في تحميل البيانات');
@@ -57,14 +56,14 @@ const WasteScreen = ({ navigation }) => {
   //   setRefreshing(false);
   // };
 
-  const handlePhonePress = (phone) => {
+  const handlePhonePress = phone => {
     const phoneNumber = phone.replace(/\s/g, '');
     Linking.openURL(`tel:${phoneNumber}`).catch(() => {
       Alert.alert('خطأ', 'لا يمكن إجراء المكالمة');
     });
   };
 
-  const getIconComponent = (icon) => {
+  const getIconComponent = icon => {
     // Map emoji icons to Ionicons
     // const iconMap = {
     //   '🔋': { name: 'battery-half', color: COLORS.warning },
@@ -79,14 +78,19 @@ const WasteScreen = ({ navigation }) => {
 
     return (
       // <View style={[styles.iconContainer, { backgroundColor: `${iconConfig.color}15` }]}>
-      <View style={[styles.iconContainer, { backgroundColor: `${COLORS.danger}15` }]}>
+      <View
+        style={[
+          styles.iconContainer,
+          { backgroundColor: `${COLORS.danger}15` },
+        ]}
+      >
         {/* <Ionicons name={iconConfig.name} size={24} color={iconConfig.color} /> */}
         <Text style={[styles.itemIcon]}>{icon}</Text>
       </View>
     );
   };
 
-  const renderWasteItem = (item) => (
+  const renderWasteItem = item => (
     <TouchableOpacity
       key={item.id}
       style={styles.menuItem}
@@ -111,7 +115,7 @@ const WasteScreen = ({ navigation }) => {
       title="التخلص من النفايات"
       subtitle="معلومات التخلص من النفايات الخاصة"
       showBackButton={false}
-    // onBackPress={() => navigation.goBack()}
+      // onBackPress={() => navigation.goBack()}
     />
   );
 
@@ -144,17 +148,28 @@ const WasteScreen = ({ navigation }) => {
       >
         <View style={styles.menuItems}>
           {wasteItems.length > 0 ? (
-            wasteItems.filter((item) => item.active !== false).map(renderWasteItem)
+            wasteItems
+              .filter(item => item.active !== false)
+              .map(renderWasteItem)
           ) : (
             <View style={styles.emptyContainer}>
-              <Ionicons name="trash-outline" size={60} color={COLORS.gray[400]} />
+              <Ionicons
+                name="trash-outline"
+                size={60}
+                color={COLORS.gray[400]}
+              />
               <Text style={styles.emptyText}>لا توجد عناصر متاحة</Text>
             </View>
           )}
         </View>
 
         <View style={styles.infoCard}>
-          <Ionicons name="information-circle" size={20} color={COLORS.info} />
+          <Ionicons
+            name="information-circle"
+            size={20}
+            color={COLORS.primary}
+            marginRight={5}
+          />
           <Text style={styles.infoText}>
             اضغط على أي عنصر للاتصال بالخدمة المختصة
           </Text>
@@ -250,7 +265,7 @@ const styles = StyleSheet.create({
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: `${COLORS.info}10`,
+    backgroundColor: COLORS.primaryLight,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
     marginTop: SPACING.lg,
@@ -260,8 +275,8 @@ const styles = StyleSheet.create({
     marginRight: SPACING.sm,
     fontSize: FONT_SIZES.sm,
     fontFamily: FONT_FAMILIES.arabic,
-    color: COLORS.info,
+    color: COLORS.primary,
   },
-})
+});
 
 export default WasteScreen;

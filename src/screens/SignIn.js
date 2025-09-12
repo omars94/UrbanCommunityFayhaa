@@ -192,9 +192,7 @@ export default function SignIn() {
         } finally {
           setShowResendLink(true);
         }
-      } else if (
-        error?.message?.includes('auth/invalid-credential')
-      ) {
+      } else if (error?.message?.includes('auth/invalid-credential')) {
         setStatus('كلمة المرور التي أدخلتها غير صحيحة. يرجى المحاولة مرة أخرى');
       } else {
         setStatus(
@@ -211,7 +209,7 @@ export default function SignIn() {
       <View style={styles.logoContainer}>
         <View style={styles.logoPlaceholder}>
           <Image
-            source={require('../assets/logo1.png')}
+            source={require('../assets/appIcon.png')}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -384,8 +382,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.gray?.[200] || '#e5e7eb',
   },
   logo: {
-    width: SIZES.logo?.sm || 40,
-    height: SIZES.logo?.sm || 40,
+    width: SIZES.logo?.md || 40,
+    height: SIZES.logo?.md || 40,
   },
   logoTitle: {
     fontSize: FONT_SIZES.xl,

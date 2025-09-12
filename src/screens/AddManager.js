@@ -1,8 +1,5 @@
-import React, { useEffect, useState } from "react";
-import {
-  useFocusEffect,
-  useNavigation,
-} from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -12,19 +9,25 @@ import {
   RefreshControl,
   TouchableOpacity,
   TextInput,
-} from "react-native";
-import { COLORS, ROLES, FONT_FAMILIES, BORDER_RADIUS, SHADOWS } from "../constants";
-import { getAllByRole, promoteToRole, revokeRole } from "../api/userApi";
-import { checkIfUserExist } from "../api/authApi";
-import CustomAlert from "../components/customAlert";
-import HeaderSection from "../components/headerSection";
-import { formatLebanesePhone } from "../utils";
+} from 'react-native';
+import {
+  COLORS,
+  ROLES,
+  FONT_FAMILIES,
+  BORDER_RADIUS,
+  SHADOWS,
+} from '../constants';
+import { getAllByRole, promoteToRole, revokeRole } from '../api/userApi';
+import { checkIfUserExist } from '../api/authApi';
+import CustomAlert from '../components/customAlert';
+import HeaderSection from '../components/headerSection';
+import { formatLebanesePhone } from '../utils';
 
 export default function AddManagerScreen() {
   const [managersArray, setManagersArray] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState('');
   const navigation = useNavigation();
 
   const [alertVisible, setAlertVisible] = useState(false);
@@ -56,9 +59,10 @@ export default function AddManagerScreen() {
       const managers = await getAllByRole(ROLES.MANAGER);
       const array = managers
         ? Object.keys(managers).map(key => ({
-          id: key,
-          ...managers[key]
-        })) : [];
+            id: key,
+            ...managers[key],
+          }))
+        : [];
       setManagersArray(array || []);
     } catch (error) {
       showCustomAlert('خطأ', 'فشل تحميل بيانات المسؤولين');
@@ -76,7 +80,6 @@ export default function AddManagerScreen() {
 
   const handleAddManager = async () => {
     try {
-
       if (!phone.trim()) {
         showCustomAlert('تنبيه', 'الرجاء إدخال رقم هاتف المسؤول');
         return;
@@ -92,8 +95,7 @@ export default function AddManagerScreen() {
       if (role === ROLES.MANAGER) {
         showCustomAlert('خطأ', 'المستخدم مسؤول بالفعل');
         return;
-      }
-      else if (role === ROLES.ADMIN) {
+      } else if (role === ROLES.ADMIN) {
         showCustomAlert('خطأ', 'المستخدم مدير ولا يمكن ترقيته');
         return;
       }
@@ -105,79 +107,70 @@ export default function AddManagerScreen() {
             '',
             `هل تريد إرسال دعوة إلى ${full_name}`,
             `(${formatLebanesePhone(formattedPhone)})`,
-            'ليصبح مسؤولاً؟'
+            'ليصبح مسؤولاً؟',
           ].join('\n'),
           [
             {
               text: 'تأكيد',
               onPress: async () => {
-          try {
-            await promoteToRole(id, ROLES.MANAGER);
-            setPhone("");
-            fetchManagers();
-            showCustomAlert('نجاح', 'تم  ارسال دعوة الترقية بنجاح');
-          } catch (error) {
-            showCustomAlert('خطأ', error?.message || 'حدث خطأ غير متوقع');
-            console.log(error);
-          }
-              }
+                try {
+                  await promoteToRole(id, ROLES.MANAGER);
+                  setPhone('');
+                  fetchManagers();
+                  showCustomAlert('نجاح', 'تم  ارسال دعوة الترقية بنجاح');
+                } catch (error) {
+                  showCustomAlert('خطأ', error?.message || 'حدث خطأ غير متوقع');
+                  console.log(error);
+                }
+              },
             },
             {
               text: 'إلغاء',
               style: 'cancel',
-              onPress: hideCustomAlert
-            }
-          ]
+              onPress: hideCustomAlert,
+            },
+          ],
         );
       }
-
     } catch (error) {
       showCustomAlert('خطأ', 'حدث خطأ غير متوقع');
       console.log(error);
     }
   };
 
-  const handleRevokeRole = async (id) => {
+  const handleRevokeRole = async id => {
     try {
-      showCustomAlert(
-        'ازالة مسؤول',
-        `هل تريد ازالة هذا المسؤول`,
-        [
-          {
-            text: 'تأكيد',
-            onPress: async () => {
-              try {
-                await revokeRole(id);
-                fetchManagers();
-                showCustomAlert('نجاح', 'تم  ازالة المسؤول بنجاح');
-              } catch (error) {
-                showCustomAlert('خطأ', 'حدث خطأ غير متوقع');
-                console.log(error);
-              }
+      showCustomAlert('ازالة مسؤول', `هل تريد ازالة هذا المسؤول`, [
+        {
+          text: 'تأكيد',
+          onPress: async () => {
+            try {
+              await revokeRole(id);
+              fetchManagers();
+              showCustomAlert('نجاح', 'تم  ازالة المسؤول بنجاح');
+            } catch (error) {
+              showCustomAlert('خطأ', 'حدث خطأ غير متوقع');
+              console.log(error);
             }
           },
-          {
-            text: 'إلغاء',
-            style: 'cancel',
-            onPress: hideCustomAlert
-          }
-        ]
-      );
+        },
+        {
+          text: 'إلغاء',
+          style: 'cancel',
+          onPress: hideCustomAlert,
+        },
+      ]);
     } catch (error) {
       showCustomAlert('خطأ', 'حدث خطأ غير متوقع');
       console.log(error);
     }
-  }
+  };
 
   const renderManager = ({ item }) => {
-    const {
-      phone_number,
-      full_name,
-    } = item;
+    const { phone_number, full_name } = item;
 
     return (
       <View style={styles.managerCard}>
-
         <Text style={styles.managerName} numberOfLines={1}>
           {full_name}
         </Text>
@@ -187,13 +180,19 @@ export default function AddManagerScreen() {
             <Text style={styles.badgeText}>مسؤول</Text>
           </View>
 
-
-          <TouchableOpacity style={styles.deleteBtn} onPress={() => { handleRevokeRole(item.id) }}>
+          <TouchableOpacity
+            style={styles.deleteBtn}
+            onPress={() => {
+              handleRevokeRole(item.id);
+            }}
+          >
             <Text style={styles.deleteText}>إزالة</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.phoneText}>{formatLebanesePhone(phone_number)}</Text>
+        <Text style={styles.phoneText}>
+          {formatLebanesePhone(phone_number)}
+        </Text>
       </View>
     );
   };
@@ -207,10 +206,8 @@ export default function AddManagerScreen() {
     );
   }
 
-
   return (
     <View style={styles.screen}>
-
       <CustomAlert
         visible={alertVisible}
         title={alertData.title}
@@ -219,21 +216,21 @@ export default function AddManagerScreen() {
         onClose={hideCustomAlert}
       />
 
-
       {/* <View style={styles.header}>
         <Text style={styles.headerTitle}>إدارة المديرين</Text>
         <Text style={styles.headerSub}>إضافة وإدارة المديرين</Text>
       </View> */}
       <HeaderSection
-        title='إدارة المسؤولين'
-        subtitle='إضافة وإدارة المسؤولين'
+        title="إدارة المسؤولين"
+        subtitle="إضافة وإدارة المسؤولين"
         showBackButton
-        onBackPress= {() => navigation.goBack()}
+        onBackPress={() => navigation.goBack()}
       />
 
       <View style={styles.infoBox}>
         <Text style={styles.infoText} numberOfLines={2}>
-          صلاحيات المسؤول: يمكن للمسؤولين مراجعة التبليغات وتعيينها، وإضافة موظفين جدد.
+          صلاحيات المسؤول: يمكن للمسؤولين مراجعة التبليغات وتعيينها، وإضافة
+          موظفين جدد.
         </Text>
       </View>
 
@@ -277,7 +274,6 @@ export default function AddManagerScreen() {
             }
           />
         </>
-
       )}
       {managersArray?.length === 0 && (
         <View style={styles.emptyBox}>
@@ -304,7 +300,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: COLORS.white,
     fontSize: 22,
-    fontWeight: "700",
+    fontWeight: '700',
     textAlign: 'center',
     fontFamily: FONT_FAMILIES.arabic,
   },
@@ -324,17 +320,17 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILIES.primary,
   },
   infoBox: {
-    backgroundColor: COLORS.roles.admin.background,
+    backgroundColor: COLORS.secondaryLight,
     borderRadius: BORDER_RADIUS.md,
     padding: 16,
     marginHorizontal: 16,
     marginTop: 20,
     marginBottom: 16,
     borderLeftWidth: 4,
-    borderLeftColor: COLORS.success,
+    borderLeftColor: COLORS.secondary,
   },
   infoText: {
-    color: COLORS.success,
+    color: COLORS.secondary,
     fontSize: 13,
     lineHeight: 20,
     fontFamily: FONT_FAMILIES.primary,
@@ -354,7 +350,7 @@ const styles = StyleSheet.create({
   },
   addTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: '700',
     marginBottom: 16,
     color: COLORS.text.primary,
     fontFamily: FONT_FAMILIES.primary,
@@ -366,14 +362,14 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILIES.primary,
   },
   rowBetween: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 8,
   },
   inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
   input: {
@@ -393,14 +389,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     height: 50,
     borderRadius: BORDER_RADIUS.md,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     minWidth: 80,
     ...SHADOWS.sm,
   },
   addBtnText: {
     color: COLORS.white,
-    fontWeight: "700",
+    fontWeight: '700',
     fontSize: 14,
     fontFamily: FONT_FAMILIES.primary,
   },
@@ -410,7 +406,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginHorizontal: 16,
     marginBottom: 12,
@@ -433,7 +429,7 @@ const styles = StyleSheet.create({
   },
   managerName: {
     fontSize: 17,
-    fontWeight: "700",
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 8,
     fontFamily: FONT_FAMILIES.primary,
@@ -446,7 +442,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     backgroundColor: COLORS.roles.manager.background,
-    alignSelf: "flex-end",
+    alignSelf: 'flex-end',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: BORDER_RADIUS.xl,
@@ -454,12 +450,12 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     color: COLORS.roles.manager.text,
-    fontWeight: "600",
+    fontWeight: '600',
     fontFamily: FONT_FAMILIES.primary,
   },
   deleteBtn: {
     backgroundColor: COLORS.primary,
-    alignSelf: "flex-start",
+    alignSelf: 'flex-start',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: BORDER_RADIUS.sm,
@@ -468,12 +464,12 @@ const styles = StyleSheet.create({
   deleteText: {
     color: COLORS.white,
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '600',
     fontFamily: FONT_FAMILIES.primary,
   },
   emptyBox: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 40,
     paddingHorizontal: 20,
   },
@@ -485,8 +481,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: COLORS.background,
   },
   loadingText: {

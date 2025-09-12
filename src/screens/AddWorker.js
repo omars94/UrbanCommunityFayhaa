@@ -260,7 +260,7 @@ export default function AddWorkerScreen() {
 
       {workersArray?.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>الموظفين الحاليون</Text>
+          <Text style={styles.sectionTitle}>الموظفين الحاليين</Text>
           <FlatList
             data={workersArray}
             style={styles.list}
@@ -323,17 +323,17 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILIES.primary,
   },
   infoBox: {
-    backgroundColor: COLORS.roles.admin.background,
+    backgroundColor: COLORS.secondaryLight,
     borderRadius: BORDER_RADIUS.md,
     padding: 16,
     marginHorizontal: 16,
     marginTop: 20,
     marginBottom: 16,
     borderLeftWidth: 4,
-    borderLeftColor: COLORS.success,
+    borderLeftColor: COLORS.secondary,
   },
   infoText: {
-    color: COLORS.success,
+    color: COLORS.secondary,
     fontSize: 13,
     lineHeight: 20,
     fontFamily: FONT_FAMILIES.primary,

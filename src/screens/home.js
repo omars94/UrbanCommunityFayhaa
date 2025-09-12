@@ -226,7 +226,7 @@ export default function HomeScreen() {
         <View style={styles.headerSection}>
           <View style={styles.logoContainer}>
             <Image
-              source={require('../assets/logo.png')}
+              source={require('../assets/appIcon.png')}
               style={styles.logo}
               resizeMode="contain"
             />
@@ -267,8 +267,16 @@ export default function HomeScreen() {
               <View style={styles.iconContainer}>
                 <MaterialDesignIcons
                   name="file-document-outline"
-                  style={[styles.icon, { color: COLORS.status.pending.text }]}
+                  style={[styles.icon, { color: COLORS.warning }]}
                 />
+                {/* <Image
+                  source={require('../assets/complaintsIcon.png')} // path to your PNG
+                  style={{
+                    width: 50,
+                    height: 55,
+                    marginRight: SPACING.xs,
+                  }}
+                /> */}
               </View>
               <Text style={styles.menuTitle}>شكاوي</Text>
               <Text style={styles.menuSubtitle}>تتبع الحالة</Text>
@@ -284,8 +292,15 @@ export default function HomeScreen() {
               <View style={styles.iconContainer}>
                 <MaterialDesignIcons
                   name="camera-plus-outline"
-                  style={[styles.icon, { color: COLORS.status.assigned.text }]}
+                  style={[styles.icon, { color: COLORS.secondary }]}
                 />
+                {/* <Image
+                  source={require('../assets/cameraIcon.png')} //
+                  style={{
+                    width: 50,
+                    height: 50,
+                  }}
+                /> */}
               </View>
               <Text style={styles.menuTitle}>تقديم شكوى</Text>
               <Text style={styles.menuSubtitle}>الإبلاغ عن مشكلة</Text>
@@ -300,7 +315,8 @@ export default function HomeScreen() {
               <View style={styles.iconContainer}>
                 <MaterialDesignIcons
                   name="recycle"
-                  style={[styles.icon, { color: COLORS.roles.admin.text }]}
+                  // style={[styles.icon, { color: COLORS.primary }]}
+                  style={[styles.icon, { color: '#34A853' }]}
                 />
               </View>
               <Text
@@ -326,12 +342,22 @@ export default function HomeScreen() {
             >
               <View style={styles.iconContainer}>
                 <MaterialDesignIcons
-                  name="phone"
-                  style={[styles.icon, { color: COLORS.primary }]}
+                  // name="phone"
+                  // name="fire-extinguisher"
+                  name="fire-truck"
+                  style={[
+                    styles.icon,
+                    {
+                      // color: COLORS.secondary,
+                      color: COLORS.red,
+                      // color: COLORS.danger,
+                      // transform: [{ rotate: '270deg' }],
+                    },
+                  ]}
                 />
               </View>
               <Text style={styles.menuTitle}>طوارئ</Text>
-              <Text style={styles.menuSubtitle}>الدفاع المدني </Text>
+              <Text style={styles.menuSubtitle}> فوج الإطفاء </Text>
             </TouchableOpacity>
           </View>
 
@@ -389,8 +415,8 @@ const styles = StyleSheet.create({
   logo: {
     width: SIZES.logo.md,
     height: SIZES.logo.md,
-    marginRight: SPACING.xs,
-    marginBottom: SPACING.sm,
+    // marginRight: SPACING.xs,
+    // marginBottom: SPACING.sm,
   },
   welcomeText: {
     fontSize: FONT_SIZES.xxxl,
@@ -425,7 +451,7 @@ const styles = StyleSheet.create({
   menuContainer: {
     flex: 1,
     paddingHorizontal: SPACING.xl,
-    paddingTop: SPACING.xxl,
+    paddingTop: SPACING.lg,
   },
   menuRow: {
     flexDirection: 'row',
@@ -448,7 +474,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   icon: {
-    fontSize: SPACING.xxxl + SPACING.sm,
+    fontSize: SPACING.xxxl,
   },
   menuTitle: {
     fontSize: FONT_SIZES.lg,

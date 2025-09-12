@@ -175,7 +175,7 @@ export default function SignUp() {
             email: '',
             password: '',
             confirmPassword: '',
-            phone: '', 
+            phone: '',
             area: null,
             dateOfBirth: null,
           },
@@ -205,7 +205,7 @@ export default function SignUp() {
         <View style={styles.logoContainer}>
           <View style={styles.logoPlaceholder}>
             <Image
-              source={require('../assets/logo1.png')}
+              source={require('../assets/appIcon.png')}
               style={styles.logo}
               resizeMode="contain"
             />
@@ -527,8 +527,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.gray?.[200] || '#e5e7eb',
   },
   logo: {
-    width: SIZES.logo?.sm || 40,
-    height: SIZES.logo?.sm || 40,
+    width: SIZES.logo?.md || 40,
+    height: SIZES.logo?.md || 40,
   },
   logoTitle: {
     fontSize: FONT_SIZES.xl,
