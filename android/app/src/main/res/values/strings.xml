@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">UrbanCommunityFayhaa</string>
+    <string moduleConfig="true" name="CodePushServerUrl">https://api.revopush.org</string>
+    <string moduleConfig="true" name="CodePushDeploymentKey">fUWRxr-2U0uInyKLT1rE82Ytbv7yNyHrnAeiMe</string>
 </resources>

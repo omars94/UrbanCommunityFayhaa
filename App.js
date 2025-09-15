@@ -7,6 +7,7 @@ import {
   navigationRef,
   consumePendingNavigation,
 } from './src/services/notifications';
+import codePush from '@revopush/react-native-code-push';
 
 function App() {
   return (
@@ -28,4 +29,4 @@ function App() {
   );
 }
 
-export default App;
+export default codePush(App);

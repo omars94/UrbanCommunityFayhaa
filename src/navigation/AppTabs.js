@@ -23,7 +23,9 @@ export default function TabLayout(props) {
             icon = 'chatbubble-outline';
           if (route.name === ROUTE_NAMES.WASTE) {
             icon = 'recycle';
-            return <MaterialDesignIcons name={icon} size={size} color={color} />
+            return (
+              <MaterialDesignIcons name={icon} size={size} color={color} />
+            );
           }
           if (route.name === ROUTE_NAMES.SETTINGS) icon = 'settings-outline';
           return <Ionicons name={icon} size={size} color={color} />;

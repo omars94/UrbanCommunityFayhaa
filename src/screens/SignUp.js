@@ -42,6 +42,7 @@ import MaterialDesignIcons from '@react-native-vector-icons/material-design-icon
 import { auth } from '../utils/firebase';
 import { signUpUser } from '../api/authApi';
 import CustomAlert from '../components/customAlert';
+import { signInWithEmailAndPassword } from '@react-native-firebase/auth';
 
 const validationSchema = Yup.object().shape({
   fullName: Yup.string()
@@ -142,30 +143,30 @@ export default function SignUp() {
         return;
       }
 
-      const user = {
-        email: values.email,
-        password: values.password,
-        phone_number: formattedValue,
-        full_name: values.fullName,
-        date_of_birth: values.dateOfBirth
-          ? new Date(values.dateOfBirth).toISOString()
-          : null,
-        area_id: values.area?.id,
-        role: ROLES.CITIZEN,
-      };
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password,
+      );
 
-      const userKey = await signUpUser(user);
-
-      if (userKey) {
-        console.log('User registered successfully:', userKey);
-
-        const userCredential = await createUserWithEmailAndPassword(
-          auth,
-          values.email,
-          values.password,
-        );
+      if (userCredential) {
         const userr = userCredential.user;
         const firebase_uid = userr.uid;
+        const user = {
+          email: values.email,
+          password: values.password,
+          phone_number: formattedValue,
+          full_name: values.fullName,
+          date_of_birth: values.dateOfBirth
+            ? new Date(values.dateOfBirth).toISOString()
+            : null,
+          area_id: values.area?.id,
+          role: ROLES.CITIZEN,
+          firebase_uid,
+        };
+        const userKey = await signUpUser(user);
+        console.log('User registered successfully:', userKey);
+
         await database().ref(`users/${userKey}`).update({ firebase_uid });
         await sendEmailVerification(userr);
         await auth.signOut();

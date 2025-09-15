@@ -1,5 +1,5 @@
 import { OneSignal } from 'react-native-onesignal';
-import { ONESIGNAL_APP_ID, ONESIGNAL_REST_API_KEY } from '@env';
+
 import { COMPLAINT_STATUS } from '../constants';
 import axios from 'axios';
 import { createNavigationContainerRef } from '@react-navigation/native';
@@ -22,7 +22,7 @@ export const sendRoleInviteNotification = async (userEmail, role) => {
     };
 
     const notificationPayload = {
-      app_id: ONESIGNAL_APP_ID,
+      app_id: process.env.ONESIGNAL_APP_ID,
       // Updated to use new targeting approach
       include_aliases: {
         external_id: [userEmail],
@@ -49,7 +49,7 @@ export const sendRoleInviteNotification = async (userEmail, role) => {
       notificationPayload,
       {
         headers: {
-          Authorization: `Key ${ONESIGNAL_REST_API_KEY}`,
+          Authorization: `Key ${process.env.ONESIGNAL_REST_API_KEY}`,
           'Content-Type': 'application/json',
         },
       },
@@ -73,7 +73,7 @@ export const sendComplaintSttsNotification = async (
       throw new Error('User emails are required and cannot be empty');
     }
 
-    if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
+    if (!process.env.ONESIGNAL_APP_ID || !process.env.ONESIGNAL_REST_API_KEY) {
       throw new Error('OneSignal configuration is missing');
     }
     const targetEmails = Array.isArray(userEmails) ? userEmails : [userEmails];
@@ -97,7 +97,7 @@ export const sendComplaintSttsNotification = async (
     }
 
     const notificationPayload = {
-      app_id: ONESIGNAL_APP_ID,
+      app_id: process.env.ONESIGNAL_APP_ID,
       // Support both single user and multiple users
       include_aliases: {
         external_id: targetEmails,
@@ -123,7 +123,7 @@ export const sendComplaintSttsNotification = async (
       notificationPayload,
       {
         headers: {
-          Authorization: `Key ${ONESIGNAL_REST_API_KEY}`,
+          Authorization: `Key ${process.env.ONESIGNAL_REST_API_KEY}`,
           'Content-Type': 'application/json',
         },
       },

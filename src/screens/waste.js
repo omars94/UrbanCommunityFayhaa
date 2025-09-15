@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
+import { FontAwesome } from '@react-native-vector-icons/fontawesome';
 import HeaderSection from '../components/headerSection';
 import { fetchWasteItems } from '../api/wasteApi';
 import {
@@ -98,12 +99,47 @@ const WasteScreen = ({ navigation }) => {
       onPress={() => handlePhonePress(item.phone)}
     >
       {getIconComponent(item.icon || '🗑️')}
-      <View style={styles.itemContent}>
-        <Text style={styles.itemTitle}>{item.title_ar}</Text>
-        <Text style={styles.itemDescription}>{item.description_ar}</Text>
-        <View style={styles.phoneContainer}>
-          <Text style={styles.phoneText}>{`\u200E${item.phone}`}</Text>
-          <Ionicons name="call" size={14} color={COLORS.success} />
+      <View style={{ flexDirection: 'row', flex: 1 }}>
+        <View style={styles.itemContent}>
+          <Text style={styles.itemTitle}>{item.title_ar}</Text>
+          <Text style={styles.itemDescription}>{item.description_ar}</Text>
+        </View>
+        <View style={styles.buttonsContainer}>
+          {item.whatsapp && (
+            <View style={styles.button}>
+              <Ionicons
+                name="logo-whatsapp"
+                size={22}
+                onPress={() => {
+                  Linking.openURL('https://wa.me/' + item.whatsapp);
+                }}
+                color={COLORS.success}
+              />
+            </View>
+          )}
+          {item.longitude && item.latitude && (
+            <View style={styles.button}>
+              <FontAwesome
+                name="map-marker"
+                size={22}
+                onPress={() => {
+                  const url = `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`;
+                  Linking.openURL(url);
+                }}
+                color={COLORS.success}
+              />
+            </View>
+          )}
+          <View style={styles.button}>
+            <Ionicons
+              name="call"
+              size={22}
+              onPress={() => {
+                Linking.openURL('tel:' + item.phone);
+              }}
+              color={COLORS.success}
+            />
+          </View>
         </View>
       </View>
       {/* <Ionicons name="call" paddingRight={SPACING.md} size={20} color={COLORS.gray[400]} /> */}
@@ -162,18 +198,6 @@ const WasteScreen = ({ navigation }) => {
             </View>
           )}
         </View>
-
-        <View style={styles.infoCard}>
-          <Ionicons
-            name="information-circle"
-            size={20}
-            color={COLORS.primary}
-            marginRight={5}
-          />
-          <Text style={styles.infoText}>
-            اضغط على أي عنصر للاتصال بالخدمة المختصة
-          </Text>
-        </View>
       </ScrollView>
     </View>
   );
@@ -229,10 +253,18 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     marginBottom: SPACING.xs,
   },
-  phoneContainer: {
+  buttonsContainer: {
+    flex: 0.5,
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     marginTop: SPACING.xs,
+  },
+  button: {
+    width: '33.33%',
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   phoneText: {
     fontSize: FONT_SIZES.sm,

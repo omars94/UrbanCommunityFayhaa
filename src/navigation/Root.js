@@ -1,12 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { I18nManager, StyleSheet, View, Image, Dimensions } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import store from '../../store';
-import { ActivityIndicator } from 'react-native-paper';
 import auth from '@react-native-firebase/auth';
 import { clearUser, setUser } from '../slices/userSlice';
 import { COLORS, ROUTE_NAMES } from '../constants';
@@ -15,15 +14,12 @@ import OTPScreen from '../screens/otp';
 import TabLayout from './AppTabs';
 import { getUserByFbUID } from '../api/userApi';
 import { OneSignal, LogLevel } from 'react-native-onesignal';
-import { ONESIGNAL_APP_ID } from '@env';
 import { setUserForNotifications } from '../services/notifications';
 import { navigationRef } from '../services/notifications';
-import {
-  setPendingNavigation,
-  consumePendingNavigation,
-} from '../services/notifications';
+import { setPendingNavigation } from '../services/notifications';
 
 const Stack = createNativeStackNavigator();
+OneSignal.initialize(process.env.ONESIGNAL_APP_ID);
 
 const { width, height } = Dimensions.get('window');
 
@@ -36,7 +32,7 @@ function Layout() {
   useEffect(() => {
     OneSignal.Debug.setLogLevel(LogLevel.Verbose);
 
-    OneSignal.initialize(ONESIGNAL_APP_ID);
+    OneSignal.initialize(process.env.ONESIGNAL_APP_ID);
 
     // Request permission (iOS only)
     OneSignal.Notifications.requestPermission(false);
