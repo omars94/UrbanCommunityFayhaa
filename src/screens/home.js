@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Linking,
   Image,
+  Dimensions,
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useDispatch, useSelector } from 'react-redux';
@@ -235,7 +236,7 @@ export default function HomeScreen() {
           <Text style={styles.welcomeText}>أهلاً وسهلاً</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={styles.userName}>{user?.full_name}</Text>
-            <Ionicons
+            {/* <Ionicons
               name="remove"
               size={42}
               color={COLORS.white}
@@ -247,7 +248,7 @@ export default function HomeScreen() {
             />
             <View style={styles.roleContainer}>
               <Text style={styles.roleText}> {role_text}</Text>
-            </View>
+            </View> */}
           </View>
 
           <Text style={styles.subtitle}>اتحاد بلديات الفيحاء</Text>
@@ -463,7 +464,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.xl,
     alignItems: 'center',
-    width: '47%',
+    width: '48%',
     elevation: 3,
     shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 2 },

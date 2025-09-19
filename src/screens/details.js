@@ -67,6 +67,7 @@ import HeaderSection from '../components/headerSection';
 import { formatLebanesePhone } from '../utils/index';
 import { checkLocationServicesEnabled } from '../utils/Permissions.js';
 import CustomAlert from '../components/customAlert';
+import moment from 'moment';
 
 const { width } = Dimensions.get('window');
 
@@ -77,7 +78,7 @@ const uploadPhoto = async uri => {
   return await reference.getDownloadURL();
 };
 
-const getTimeAgo = timestamp => {
+export const getTimeAgo = timestamp => {
   if (!timestamp) return '';
 
   try {
@@ -1072,15 +1073,8 @@ export default function ComplaintDetailsScreen() {
               <Text style={styles.infoLabel}>تاريخ التقديم</Text>
               <Text style={styles.infoValue}>
                 {complaintData.created_at
-                  ? new Date(complaintData.created_at).toLocaleDateString(
-                      'ar-EG',
-                      {
-                        year: 'numeric',
-                        month: 'numeric',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      },
+                  ? moment(complaintData.created_at).format(
+                      'DD/MM/YYYY hh:mm A',
                     )
                   : 'غير محدد'}
               </Text>
@@ -1168,7 +1162,7 @@ export default function ComplaintDetailsScreen() {
                   status={status}
                 />
               )}
-              <View style={styles.coordinatesContainer}>
+              {/* <View style={styles.coordinatesContainer}>
                 <Ionicons
                   name="pin"
                   size={20}
@@ -1179,7 +1173,7 @@ export default function ComplaintDetailsScreen() {
                   إحداثيات الشكوى: {complaintData.latitude},{' '}
                   {complaintData.longitude}
                 </Text>
-              </View>
+              </View> */}
             </View>
           </View>
 

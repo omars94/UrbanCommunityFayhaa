@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
     marginRight: SPACING.xs,
   },
   errorText: {
-    color: COLORS.primary,
+    color: COLORS.danger,
     fontSize: FONT_SIZES.sm,
     marginTop: SPACING.xs,
     fontWeight: FONT_WEIGHTS.medium,

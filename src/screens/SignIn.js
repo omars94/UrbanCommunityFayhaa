@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingTop: '20%',
+    paddingTop: SPACING.xl,
   },
   logoContainer: {
     alignItems: 'center',
@@ -436,6 +436,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 14,
+    color: COLORS.black,
     textAlign: 'right',
   },
   eyeIcon: {

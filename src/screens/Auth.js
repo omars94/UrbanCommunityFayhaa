@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { Button} from 'react-native-paper';
-import { useDispatch} from 'react-redux';
+import { StyleSheet, Text, View } from 'react-native';
+import { Button } from 'react-native-paper';
+import { useDispatch } from 'react-redux';
 import { setAreas } from '../slices/dataSlice';
 import SignIn from './SignIn';
 import SignUp from './SignUp';
 import { fetchAreas } from '../api/areasApi';
-import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, FONT_SIZES, FONT_WEIGHTS, FONT_FAMILIES } from '../constants';
+import {
+  COLORS,
+  SPACING,
+  BORDER_RADIUS,
+  SHADOWS,
+  FONT_SIZES,
+  FONT_WEIGHTS,
+  FONT_FAMILIES,
+} from '../constants';
 
 export default function AuthScreen() {
   const [mode, setMode] = useState('signin'); // 'signin' or 'signup'
@@ -28,49 +32,6 @@ export default function AuthScreen() {
     getAreas();
   }, []);
 
-  // const sendVerificationCode = async () => {
-  //   setError('');
-  //   try {
-  //     debugger;
-
-  //     const confirmation = await auth().signInWithPhoneNumber(formattedValue);
-  //     console.log('Confirmation:', confirmation);
-  //     setConfirm(confirmation);
-  //   } catch (err) {
-  //     setError('خطأ في إرسال رمز التحقق');
-  //   }
-  // };
-
-  // const confirmCode = async () => {
-  //   try {
-  //     debugger;
-
-  //     const userCredential = await confirm.confirm(verificationCode);
-  //     if (mode === 'signup') {
-  //       const profile = {
-  //         id: userCredential.user.uid,
-  //         phone: formattedValue,
-  //         full_name: fullName,
-  //         date_of_birth: dateOfBirth,
-  //         role: 'citizen',
-  //         profile_complete: true,
-  //         area_id: area?.id,
-  //       };
-  //       const db = firebase.firestore();
-  //       await db.collection('profiles').add(profile);
-  //     }
-
-  //     // dispatch(
-  //     //   setUser({
-  //     //     access_token: await userCredential.user.getIdToken(),
-  //     //     ...userCredential.user,
-  //     //   }),
-  //     // );
-  //   } catch (err) {
-  //     setError('رمز التحقق غير صحيح');
-  //   }
-  // };
-
   return (
     <View style={styles.container}>
       <View style={styles.toggleContainer}>
@@ -82,6 +43,7 @@ export default function AuthScreen() {
           onPress={() => setMode('signin')}
         >
           <Text
+            adjustsFontSizeToFit
             style={[
               styles.toggleText,
               mode === 'signin' && styles.toggleTextActive,
@@ -98,6 +60,7 @@ export default function AuthScreen() {
           onPress={() => setMode('signup')}
         >
           <Text
+            adjustsFontSizeToFit
             style={[
               styles.toggleText,
               mode === 'signup' && styles.toggleTextActive,
@@ -108,10 +71,9 @@ export default function AuthScreen() {
         </Button>
       </View>
 
-      {mode === 'signup' && (<SignUp />)}
+      {mode === 'signup' && <SignUp />}
 
-      {mode === 'signin' && (<SignIn />)}
-
+      {mode === 'signin' && <SignIn />}
     </View>
   );
 }
@@ -122,8 +84,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     // justifyContent: 'center',
     // alignItems: 'center',
-    padding: SPACING.huge,
-    marginTop: SPACING.xxl
+    padding: SPACING.xxl,
+    marginTop: SPACING.xxl,
   },
   toggleContainer: {
     flexDirection: 'row',

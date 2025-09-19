@@ -34,6 +34,7 @@ import moment from 'moment';
 import { fetchComplaints } from '../api/complaintsApi';
 import { setComplaints } from '../slices/complaintsSlice';
 import HeaderSection from '../components/headerSection';
+import { getTimeAgo } from './details';
 
 // const { width, height } = Dimensions.get('window');
 
@@ -161,16 +162,19 @@ export default function ComplaintsScreen() {
         case 'assigned_to_me':
           return (
             (user?.role === ROLES.MANAGER &&
-              item.manager_assignee_id === user.id  && 
-              item.worker_assignee_id != null) ||
-            (user?.role === ROLES.WORKER && (item.worker_assignee_id??item.worker_assignee_id[item.worker_assignee_id.length - 1]) === user.id)
+              item.manager_assignee_id === user.id) ||
+            (user?.role === ROLES.WORKER &&
+              (item.worker_assignee_id?.length ??
+                item.worker_assignee_id[item.worker_assignee_id.length - 1]) ===
+                user.id)
           );
 
         case 'assigned_by_me':
           return (
             (user?.role === ROLES.MANAGER &&
-              item.manager_assignee_id === user.id && item.worker_assignee_id?.length > 0) ||
-            (user?.role === ROLES.ADMIN && item.worker_assignee_id?.length > 0 )
+              item.manager_assignee_id === user.id &&
+              item.worker_assignee_id?.length > 0) ||
+            (user?.role === ROLES.ADMIN && item.worker_assignee_id?.length > 0)
           ); // Manager assigned to worker
 
         case 'resolved_by_me':
@@ -178,7 +182,8 @@ export default function ComplaintsScreen() {
             ((user?.role === ROLES.MANAGER &&
               item.manager_assignee_id === user.id) ||
               (user?.role === ROLES.WORKER &&
-                item.worker_assignee_id[item.worker_assignee_id.length - 1] === user.id)) &&
+                item.worker_assignee_id[item.worker_assignee_id.length - 1] ===
+                  user.id)) &&
             (item.status === COMPLAINT_STATUS.RESOLVED ||
               item.status === COMPLAINT_STATUS.COMPLETED)
           );
@@ -309,7 +314,7 @@ export default function ComplaintsScreen() {
       thumbnail_url,
       // photo_url,
       created_at,
-      // updated_at,
+      updated_at,
       // latitude,
       // longitude,
       // manager_assignee_id,
@@ -427,7 +432,8 @@ export default function ComplaintsScreen() {
             <View style={styles.footerInfo}>
               <View style={styles.dateContainer}>
                 <Text style={styles.dateText}>
-                  {moment(created_at).format('DD/MM/YYYY - hh:mm A')}
+                  {/* {moment(created_at).format('DD/MM/YYYY hh:mm A')} -{' '} */}
+                  {getTimeAgo(new Date(updated_at || created_at))}{' '}
                 </Text>
                 <Icon
                   name="time-outline"
