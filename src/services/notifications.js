@@ -59,7 +59,8 @@ export const sendRoleInviteNotification = async (userEmail, role) => {
     return response.data;
   } catch (error) {
     console.error('Notification error:', error);
-    throw error;
+    // throw error;
+    return null;
   }
 };
 
@@ -70,11 +71,17 @@ export const sendComplaintSttsNotification = async (
 ) => {
   try {
     if (!userEmails || (Array.isArray(userEmails) && userEmails.length === 0)) {
-      throw new Error('User emails are required and cannot be empty');
+      console.error(
+        'Notification error: User emails are required and cannot be empty',
+      );
+      // throw new Error('User emails are required and cannot be empty');
+      return null;
     }
 
     if (!process.env.ONESIGNAL_APP_ID || !process.env.ONESIGNAL_REST_API_KEY) {
-      throw new Error('OneSignal configuration is missing');
+      // throw new Error('OneSignal configuration is missing');
+      console.error('OneSignal configuration is missing');
+      return null;
     }
     const targetEmails = Array.isArray(userEmails) ? userEmails : [userEmails];
 
@@ -143,9 +150,9 @@ export const sendComplaintSttsNotification = async (
       error.message;
 
     console.error('Notification error:', errorMessage);
-    // console.error('No tification error:', error);
-    // throw error;
-    throw new Error(`Failed to send notification: ${errorMessage}`);
+
+    // throw new Error(`Failed to send notification: ${errorMessage}`);
+    return null;
   }
 };
 

@@ -143,7 +143,7 @@ export default function AddComplaintScreen() {
     }
   };
 
-  const handleSubmitComplaint = async values => {
+  const handleSubmitComplaint = async (values, resetForm) => {
     console.log('Starting submission...');
     setSubmitting(true);
     setImageProcessing(true);
@@ -206,13 +206,24 @@ export default function AddComplaintScreen() {
         console.log('Admin emails:', adminEmails);
 
         if (adminEmails.length > 0) {
-          await sendComplaintSttsNotification(
-            adminEmails,
-            complaintData.status,
-            result.complaint,
-          );
+          //   await sendComplaintSttsNotification(
+          //     adminEmails,
+          //     complaintData.status,
+          //     result.complaint,
+          //   );
+          // }
+          try {
+            await sendComplaintSttsNotification(
+              adminEmails,
+              complaintData.status,
+              result.complaint,
+            );
+          } catch (notifyError) {
+            console.error('Failed to send notification:', notifyError);
+          }
         }
         console.log('Success! Showing alert...');
+        resetForm();
         showAlert('تم الحفظ بنجاح', 'تم حفظ الشكوى بنجاح', [
           {
             text: 'حسناً',
@@ -255,7 +266,10 @@ export default function AddComplaintScreen() {
             photo: null,
           }}
           validationSchema={ComplaintSchema}
-          onSubmit={handleSubmitComplaint}
+          // onSubmit={handleSubmitComplaint}
+          onSubmit={(values, { resetForm }) =>
+            handleSubmitComplaint(values, resetForm)
+          }
         >
           {({
             handleChange,
