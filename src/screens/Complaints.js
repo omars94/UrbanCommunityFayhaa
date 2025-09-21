@@ -164,26 +164,29 @@ export default function ComplaintsScreen() {
             (user?.role === ROLES.MANAGER &&
               item.manager_assignee_id === user.id) ||
             (user?.role === ROLES.WORKER &&
-              (item.worker_assignee_id?.length ??
-                item.worker_assignee_id[item.worker_assignee_id.length - 1]) ===
-                user.id)
+              Array.isArray(item.worker_assignee_id) &&
+              item.worker_assignee_id[item.worker_assignee_id.length - 1] === user.id)
           );
 
         case 'assigned_by_me':
           return (
             (user?.role === ROLES.MANAGER &&
               item.manager_assignee_id === user.id &&
-              item.worker_assignee_id?.length > 0) ||
-            (user?.role === ROLES.ADMIN && item.worker_assignee_id?.length > 0)
-          ); // Manager assigned to worker
+              Array.isArray(item.worker_assignee_id) &&
+              item.worker_assignee_id.length > 0) ||
+            (user?.role === ROLES.ADMIN &&
+              Array.isArray(item.worker_assignee_id) &&
+              item.worker_assignee_id.length > 0)
+          );
 
         case 'resolved_by_me':
           return (
             ((user?.role === ROLES.MANAGER &&
               item.manager_assignee_id === user.id) ||
               (user?.role === ROLES.WORKER &&
+                Array.isArray(item.worker_assignee_id) &&
                 item.worker_assignee_id[item.worker_assignee_id.length - 1] ===
-                  user.id)) &&
+                user.id)) &&
             (item.status === COMPLAINT_STATUS.RESOLVED ||
               item.status === COMPLAINT_STATUS.COMPLETED)
           );
@@ -284,8 +287,8 @@ export default function ComplaintsScreen() {
       user?.role === ROLES.CITIZEN
         ? 'my'
         : user?.role === ROLES.ADMIN
-        ? 'pending'
-        : 'assigned_to_me';
+          ? 'pending'
+          : 'assigned_to_me';
     return (
       selectedArea || selectedIndicator || selectedFilter !== defaultFilter
     );
@@ -976,335 +979,3 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
 });
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: COLORS.background,
-//   },
-
-//   // Filter Bar Styles
-//   filterBar: {
-//     backgroundColor: COLORS.white,
-//     paddingVertical: SPACING.md,
-//     paddingHorizontal: SPACING.sm,
-//     borderBottomWidth: 1,
-//     borderBottomColor: COLORS.gray[200],
-//     shadowColor: COLORS.shadow,
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowOpacity: 0.1,
-//     shadowRadius: 4,
-//     elevation: 3,
-//   },
-//   filterScrollContent: {
-//     alignItems: 'center',
-//     paddingRight: SPACING.md,
-//   },
-//   filterPicker: {
-//     marginRight: SPACING.sm,
-//   },
-//   clearFilterButton: {
-//     backgroundColor: COLORS.danger,
-//     paddingVertical: SPACING.sm,
-//     paddingHorizontal: SPACING.md,
-//     borderRadius: BORDER_RADIUS.sm,
-//     marginTop: SPACING.sm,
-//     alignSelf: 'center',
-//   },
-//   clearFilterText: {
-//     color: COLORS.white,
-//     fontWeight: '600',
-//     fontSize: FONT_SIZES.sm,
-//     textAlign: 'center',
-//   },
-
-//   // Results Counter
-//   resultsContainer: {
-//     backgroundColor: COLORS.white,
-//     paddingVertical: SPACING.sm,
-//     paddingHorizontal: SPACING.md,
-//     borderBottomWidth: 1,
-//     borderBottomColor: COLORS.gray[100],
-//   },
-//   resultsText: {
-//     fontSize: FONT_SIZES.sm,
-//     color: COLORS.text.secondary,
-//     textAlign: 'right',
-//   },
-
-//   // List Styles
-//   flatList: {
-//     flex: 1,
-//   },
-//   listContent: {
-//     paddingBottom: 100,
-//   },
-//   emptyListContent: {
-//     flexGrow: 1,
-//     justifyContent: 'center',
-//   },
-
-//   // Complaint Card Styles
-//   complaintCard: {
-//     backgroundColor: COLORS.white,
-//     marginHorizontal: SPACING.md,
-//     marginVertical: SPACING.sm,
-//     borderRadius: BORDER_RADIUS.md,
-//     shadowColor: COLORS.shadow,
-//     shadowOffset: { width: 0, height: 4 },
-//     shadowOpacity: 0.12,
-//     shadowRadius: 8,
-//     elevation: 5,
-//     overflow: 'hidden',
-//   },
-//   statusStrip: {
-//     height: 4,
-//     width: '100%',
-//   },
-//   cardContainer: {
-//     flexDirection: 'row',
-//     padding: SPACING.lg,
-//     minHeight: 140,
-//   },
-
-//   // Left Content
-//   leftContent: {
-//     flex: 1,
-//     marginLeft: SPACING.md,
-//     justifyContent: 'space-between',
-//   },
-//   topSection: {
-//     alignItems: 'flex-start',
-//     marginBottom: SPACING.sm,
-//   },
-//   titleSection: {
-//     marginBottom: SPACING.sm,
-//     writingDirection: "rtl"
-//   },
-//   locationSection: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     justifyContent: 'flex-start',
-//     marginBottom: SPACING.md,
-//   },
-//   indicatorTitle: {
-//     fontSize: FONT_SIZES.lg,
-//     fontWeight: '700',
-//     color: COLORS.text.primary,
-//     // textAlign: 'auto',
-//     lineHeight: 24,
-//   },
-//   areaText: {
-//     fontSize: FONT_SIZES.md,
-//     color: COLORS.primary,
-//     fontWeight: '600',
-//     // textAlign: 'right',
-//     marginLeft: 4,
-//   },
-//   statusBadge: {
-//     paddingHorizontal: SPACING.md,
-//     paddingVertical: SPACING.sm,
-//     borderRadius: BORDER_RADIUS.lg,
-//     minWidth: 80,
-//     alignItems: 'center',
-//   },
-//   statusText: {
-//     fontSize: FONT_SIZES.sm,
-//     fontWeight: '700',
-//     textAlign: 'center',
-//   },
-//   description: {
-//     fontSize: FONT_SIZES.md,
-//     color: COLORS.text.primary,
-//     textAlign: 'auto',
-//     lineHeight: 22,
-//     marginBottom: SPACING.md,
-//   },
-
-//   // Footer Info
-//   footerInfo: {
-//     gap: SPACING.sm,
-//   },
-//   dateContainer: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     justifyContent: 'flex-end',
-//   },
-//   dateText: {
-//     fontSize: FONT_SIZES.sm,
-//     color: COLORS.text.secondary,
-//     fontWeight: '500',
-//     marginLeft: 4,
-//   },
-//   resolvedContainer: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     justifyContent: 'flex-end',
-//   },
-//   resolvedText: {
-//     fontSize: FONT_SIZES.sm,
-//     color: COLORS.success,
-//     fontWeight: '600',
-//     marginLeft: 4,
-//   },
-//   assignmentTags: {
-//     flexDirection: 'row',
-//     gap: SPACING.sm,
-//     justifyContent: 'flex-end',
-//     flexWrap: 'wrap',
-//   },
-//   assignmentTag: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     backgroundColor: COLORS.primary + '15',
-//     paddingHorizontal: SPACING.sm,
-//     paddingVertical: 4,
-//     borderRadius: BORDER_RADIUS.sm,
-//     borderWidth: 1,
-//     borderColor: COLORS.primary + '30',
-//   },
-//   assignmentText: {
-//     fontSize: FONT_SIZES.xs,
-//     color: COLORS.primary,
-//     fontWeight: '600',
-//     marginLeft: 4,
-//   },
-
-//   // Right Image Section
-//   imageSection: {
-//     width: 110,
-//     alignItems: 'center',
-//     gap: SPACING.sm,
-//   },
-//   imageContainer: {
-//     position: 'relative',
-//     width: 110,
-//     height: 110,
-//     borderRadius: BORDER_RADIUS.md,
-//     overflow: 'hidden',
-//     shadowColor: COLORS.shadow,
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowOpacity: 0.15,
-//     shadowRadius: 4,
-//     elevation: 3,
-//   },
-//   complaintImage: {
-//     width: '100%',
-//     height: '100%',
-//   },
-//   imageOverlay: {
-//     position: 'absolute',
-//     bottom: 0,
-//     left: 0,
-//     right: 0,
-//     backgroundColor: COLORS.success + 'CC',
-//     paddingVertical: 4,
-//     paddingHorizontal: SPACING.sm,
-//   },
-//   imageOverlayText: {
-//     color: COLORS.white,
-//     fontSize: FONT_SIZES.xs,
-//     fontWeight: '700',
-//     textAlign: 'center',
-//   },
-//   secondaryImageContainer: {
-//     position: 'relative',
-//     width: 60,
-//     height: 40,
-//     borderRadius: BORDER_RADIUS.sm,
-//     overflow: 'hidden',
-//     borderWidth: 2,
-//     borderColor: COLORS.gray[300],
-//   },
-//   secondaryImage: {
-//     width: '100%',
-//     height: '100%',
-//   },
-//   secondaryImageText: {
-//     position: 'absolute',
-//     bottom: 0,
-//     left: 0,
-//     right: 0,
-//     backgroundColor: COLORS.warning + 'CC',
-//     color: COLORS.white,
-//     fontSize: 10,
-//     fontWeight: '600',
-//     textAlign: 'center',
-//     paddingVertical: 2,
-//   },
-
-//   // Progress Bar
-//   progressContainer: {
-//     paddingHorizontal: SPACING.lg,
-//     paddingBottom: SPACING.md,
-//   },
-//   progressBar: {
-//     height: 4,
-//     backgroundColor: COLORS.gray[200],
-//     borderRadius: 2,
-//     overflow: 'hidden',
-//   },
-//   progressFill: {
-//     height: '100%',
-//     borderRadius: 2,
-//   },
-
-//   // Loading Styles
-//   loadingContainer: {
-//     flex: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     backgroundColor: COLORS.background,
-//   },
-//   loadingText: {
-//     marginTop: SPACING.md,
-//     fontSize: FONT_SIZES.lg,
-//     color: COLORS.text.secondary,
-//     textAlign: 'center',
-//   },
-
-//   // Empty State
-//   emptyContainer: {
-//     flex: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     paddingHorizontal: SPACING.xl,
-//   },
-//   emptyText: {
-//     fontSize: FONT_SIZES.xl,
-//     fontWeight: '600',
-//     color: COLORS.text.secondary,
-//     textAlign: 'center',
-//     marginBottom: SPACING.sm,
-//   },
-//   emptySubText: {
-//     fontSize: FONT_SIZES.md,
-//     color: COLORS.text.secondary,
-//     textAlign: 'center',
-//     lineHeight: 22,
-//   },
-
-//   // FAB Styles
-//   fab: {
-//     position: 'absolute',
-//     right: SPACING.xl,
-//     bottom: SPACING.xl,
-//     width: 56,
-//     height: 56,
-//     borderRadius: 28,
-//     backgroundColor: COLORS.primary,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     shadowColor: COLORS.shadowDark,
-//     shadowOffset: { width: 0, height: 4 },
-//     shadowOpacity: 0.3,
-//     shadowRadius: 8,
-//     elevation: 8,
-//   },
-//   fabIcon: {
-//     color: COLORS.white,
-//     fontSize: 32,
-//     lineHeight: 32,
-//     fontWeight: '300',
-//   },
-// });

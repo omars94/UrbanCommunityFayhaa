@@ -71,6 +71,10 @@ export const COLORS = {
       background: '#e2e3e5',
       text: '#383d41',
     },
+    denied: {
+      background: '#f8d7da',
+      text: '#721c24',
+    }
   },
   
   // Role Badge Colors
@@ -91,6 +95,10 @@ export const COLORS = {
       background: '#fce4ec',
       text: '#c2185b',
     },
+    supervisor: {
+      background: '#f5e4fcff',
+      text: '#8918c2ff',
+    }
   },
   
   // Special Colors
@@ -270,19 +278,19 @@ export const ROUTE_NAMES = {
 export const COMPLAINT_STATUS = {
   PENDING: 'pending',
   ASSIGNED: 'assigned',
-  // IN_PROGRESS: 'in_progress',
+  REJECTED: 'rejected',
   RESOLVED: 'resolved',
   COMPLETED: 'completed',
-  REJECTED: 'rejected',
+  DENIED: 'denied',
 };
 
 export const COMPLAINT_STATUS_AR = {
   PENDING: 'قيد الانتظار',
   ASSIGNED: 'مُعيّنة',
-  // IN_PROGRESS: 'in_progress',
+  REJECTED: 'ملغاة',
   RESOLVED: 'محلولة',
   COMPLETED: 'مكتملة',
-  REJECTED: 'ملغاة',
+  DENIED: 'مرفوضة',
 };
 
 // Complaint Types
