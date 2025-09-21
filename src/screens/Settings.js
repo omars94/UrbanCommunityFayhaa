@@ -30,7 +30,10 @@ export default function SettingsScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const { user } = useSelector(state => state.user);
+  const emergency_number  = useSelector(state => state.data.constants?.emergency);
+  const link = 'tel:' + (emergency_number);
   console.log(user);
+  console.log("link", link)
 
   const phone = user?.phone_number;
   const fullname = user?.full_name;
@@ -46,6 +49,12 @@ export default function SettingsScreen() {
     case 3:
       role_text = 'موظف';
       break;
+    case 4:
+      role_text = 'مواطن';
+      break;
+    case 5:
+      role_text = 'مراقب';
+      break;
     default:
       role_text = 'مواطن';
   }
@@ -59,7 +68,7 @@ export default function SettingsScreen() {
     // Take first letter of first two parts
     for (let i = 0; i < Math.min(2, nameParts.length); i++) {
       if (nameParts[i].length > 0) {
-        initials += nameParts[i][0];
+        initials += ' ' + nameParts[i][0];
       }
     }
 
@@ -109,6 +118,14 @@ export default function SettingsScreen() {
         />
         {role === ROLES.ADMIN && (
           <MenuItem
+            icon="shield-checkmark"
+            label="إدارة المراقبين"
+            subLabel="إضافة وإدارة المراقبين"
+            onPress={() => navigation.navigate(ROUTE_NAMES.ADD_SUPERVISOR)}
+          />
+        )}
+        {role === ROLES.ADMIN && (
+          <MenuItem
             icon="book"
             label="إدارة المسؤولين"
             subLabel="إضافة وإدارة المسؤولين"
@@ -134,7 +151,7 @@ export default function SettingsScreen() {
           icon="call"
           label="اتصل بالدعم"
           subLabel="احصل على مساعدة"
-          onPress={() => Linking.openURL('tel:175')}
+          onPress={() => Linking.openURL(link)}
         />
         <MenuItem
           icon="log-out"

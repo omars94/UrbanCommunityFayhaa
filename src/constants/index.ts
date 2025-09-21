@@ -10,7 +10,7 @@ export const COLORS = {
   primaryDark: '#1b7a99',
   primaryLight:'#d6f5fcff',
   secondary: '#fdb614',
-    secondaryLight: '#ffeec5ff',
+  secondaryLight: '#fcf2dbee',
 
   // secondaryDark: '#',
   red: '#d32f2f',
@@ -105,7 +105,8 @@ export const ROLES = {
   ADMIN: 1,
   MANAGER: 2,
   WORKER: 3,
-  CITIZEN: 4
+  CITIZEN: 4,
+  SUPERVISOR: 5,
 }
 
 // Gradients
@@ -257,6 +258,8 @@ export const ROUTE_NAMES = {
   ADD_USER: 'AddUser',
   ADD_MANAGER:'AddManager',
   ADD_WORKER:'AddWorker',
+  ADD_SUPERVISOR:'AddSupervisor',
+  ADD_USER_FORM:'AddUserForm',
   WASTE: 'Waste',
   SETTINGS: 'Settings',
   EMERGENCY: 'Emergency',

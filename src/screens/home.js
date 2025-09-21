@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -15,6 +15,8 @@ import {
   setAreas,
   setIndicators,
   setWasteItems,
+  setMunicipalities,
+  setConstants,
 } from '../../src/slices/dataSlice';
 import { setUser } from '../slices/userSlice';
 import { setComplaints } from '../slices/complaintsSlice';
@@ -47,14 +49,29 @@ export async function getData(dispatch) {
   database()
     .ref('/areas')
     .once('value', snapshot => {
-      console.log('User data: ', snapshot.val());
+      console.log('Areas data: ', snapshot.val());
       dispatch(setAreas(snapshot.val()));
+    });
+  database()
+    .ref('/municipalities')
+    .once('value', snapshot => {
+      console.log('Municipalities data: ', snapshot.val());
+      dispatch(setMunicipalities(snapshot.val()));
+    })
+    .catch(error => {
+      console.error('Error fetching municipalities:', error);
     });
   database()
     .ref('/indicators')
     .once('value', snapshot => {
-      console.log('User data: ', snapshot.val());
+      console.log('Indicators data: ', snapshot.val());
       dispatch(setIndicators(snapshot.val()));
+    });
+  database()
+    .ref('/constants')
+    .once('value', snapshot => {
+      console.log('constants data: ', snapshot.val());
+      dispatch(setConstants(snapshot.val()));
     });
   fetchWasteItems(dispatch, setWasteItems);
   fetchComplaints(dispatch, setComplaints);
@@ -92,14 +109,20 @@ export default function HomeScreen() {
   const role = user.role;
   let role_text = '';
   switch (role) {
-    case ROLES.ADMIN:
+    case 1:
       role_text = 'مدير النظام';
       break;
-    case ROLES.MANAGER:
+    case 2:
       role_text = 'مسؤول';
       break;
-    case ROLES.WORKER:
+    case 3:
       role_text = 'موظف';
+      break;
+    case 4:
+      role_text = 'مواطن';
+      break;
+    case 5:
+      role_text = 'مراقب';
       break;
     default:
       role_text = 'مواطن';
@@ -138,6 +161,11 @@ export default function HomeScreen() {
       console.log('USERR', user, 'IR: ', user?.invite_role);
 
       const roleMessages = {
+        [ROLES.SUPERVISOR]: {
+          title: 'لقد تمت دعوتك لتصبح مراقباً في النظام',
+          message: 'هل تقبل الدعوة لتصبح مراقباً في النظام؟',
+          success: 'تمت الترقية بنجاح',
+        },
         [ROLES.MANAGER]: {
           title: 'لقد تمت دعوتك لتصبح مسؤولاً في النظام',
           message: 'هل تقبل الدعوة لتصبح مسؤولاً في النظام؟',
@@ -151,7 +179,8 @@ export default function HomeScreen() {
       };
 
       const inviteRole = user?.invite_role;
-      if (![ROLES.MANAGER, ROLES.WORKER].includes(inviteRole)) return;
+      if (![ROLES.MANAGER, ROLES.WORKER, ROLES.SUPERVISOR].includes(inviteRole))
+        return;
 
       const { title, message, success } = roleMessages[inviteRole];
 
@@ -163,6 +192,12 @@ export default function HomeScreen() {
             user.id,
             accept,
             accept ? inviteRole : user.role,
+            {
+              municipalities: user.invite_municipalities
+                ? user.invite_municipalities
+                : null,
+              areas: user.invite_areas ? user.invite_areas : null,
+            },
           );
 
           if (accept) {

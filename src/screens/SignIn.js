@@ -7,9 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
 } from 'react-native';
-import PhoneInput from 'react-native-phone-number-input';
 import { useNavigation } from '@react-navigation/native';
-import { sendOtp } from '../services/otpService';
 import {
   checkIfUserExistByEmail,
   loginUser,
@@ -25,8 +23,6 @@ import {
   FONT_WEIGHTS,
   FONT_FAMILIES,
 } from '../constants';
-import { validateLebaneseNumber } from '../utils';
-import { useRoute } from '@react-navigation/native';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
@@ -34,14 +30,17 @@ import { checkResendEligibility } from '../api/authApi';
 import {
   sendEmailVerification,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth } from '../utils/firebase';
+import CustomAlert from '../components/customAlert';
+import { set } from '@react-native-firebase/database';
 
 const validationSchema = Yup.object().shape({
   email: Yup.string()
     .email('البريد الإلكتروني غير صحيح')
     .required('البريد الإلكتروني مطلوب')
-    .matches(/^[a-zA-Z0-9._%+-]+@gmail\.com$/i, 'البريد الإلكتروني غير صالح'),
+    .matches(/^[a-zA-Z0-9._%+-]+@.+$/i, 'البريد الإلكتروني غير صالح'),
   password: Yup.string()
     .min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل')
     .required('كلمة المرور مطلوبة'),
@@ -63,6 +62,19 @@ export default function SignIn() {
   const [password, setPassword] = useState('');
   const [countdownTimer, setCountdownTimer] = useState(null);
   const [remainingTime, setRemainingTime] = useState(0);
+  const [error, setError] = useState('');
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertData, setAlertData] = useState({
+    title: '',
+    message: '',
+    buttons: [],
+    loading: false,
+  });
+
+  //reset password
+  const [resetting, setResetting] = useState(false);
+  const [resetCooldown, setResetCooldown] = useState(0);
+  const resetCooldownSeconds = 60;
 
   const initialValues = {
     email: '',
@@ -76,6 +88,15 @@ export default function SignIn() {
       }
     };
   }, [countdownTimer]);
+
+  const showCustomAlert = (title, message, buttons = [], loading = false) => {
+    setAlertData({ title, message, buttons, loading });
+    setAlertVisible(true);
+  };
+
+  const hideCustomAlert = () => {
+    setAlertVisible(false);
+  };
 
   // Start countdown timer
   const startCountdown = seconds => {
@@ -92,6 +113,46 @@ export default function SignIn() {
     }, 1000);
 
     setCountdownTimer(timer);
+  };
+
+  const startResetCountdown = seconds => {
+    setResetCooldown(seconds);
+    const timer = setInterval(() => {
+      setResetCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleForgotPassword = async (
+    email
+  ) => {
+    setError(null);
+    console.log(email);
+    if (!email) {
+      setError('الرجاء إدخال بريدك الإلكتروني أولاً');
+      return;
+    }
+    if (resetting || resetCooldown > 0) return;
+
+    setResetting(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      showCustomAlert(
+        'تم الإرسال',
+        'لقد أرسلنا رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني',
+      );
+      startResetCountdown(resetCooldownSeconds);
+    } catch (error) {
+      console.log('Password reset error:', error);
+      showCustomAlert('خطأ', 'تعذر إرسال البريد، تحقق من صحة بريدك');
+    } finally {
+      setResetting(false);
+    }
   };
 
   const onResendEmail = async (email, password) => {
@@ -218,6 +279,14 @@ export default function SignIn() {
         <Text style={styles.logoSubtitle}>Urban Community Fayhaa</Text>
       </View>
 
+      <CustomAlert
+        visible={alertVisible}
+        title={alertData.title}
+        message={alertData.message}
+        buttons={alertData.buttons}
+        onClose={hideCustomAlert}
+      />
+
       <Formik
         initialValues={initialValues}
         validationSchema={validationSchema}
@@ -300,7 +369,7 @@ export default function SignIn() {
 
             {/* General Error */}
             {status && <Text style={styles.error}>{status}</Text>}
-
+            {error && <Text style={styles.error}>{error}</Text>}
             {/* Resend Email Section */}
             {showResendLink && (
               <TouchableOpacity
@@ -350,9 +419,23 @@ export default function SignIn() {
               </View>
             </TouchableOpacity>
 
-            {/* <Text style={styles.footerText}>
-              تحقق من بريدك الإلكتروني للتأكيد
-            </Text> */}
+            <TouchableOpacity
+              onPress={() => handleForgotPassword(values.email)}
+              disabled={resetting || resetCooldown > 0}
+            >
+              <Text
+                style={[
+                  styles.footerText,
+                  (resetting || resetCooldown > 0) && { opacity: 0.6 },
+                ]}
+              >
+                {resetting
+                  ? 'جاري الإرسال...'
+                  : resetCooldown > 0
+                  ? `يمكنك إعادة المحاولة بعد ${resetCooldown}s`
+                  : 'هل نسيت كلمة المرور؟ اضغط هنا لإعادة تعيينها عبر البريد الإلكتروني'}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
       </Formik>

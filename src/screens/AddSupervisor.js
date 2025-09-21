@@ -25,8 +25,8 @@ import HeaderSection from '../components/headerSection';
 import { formatLebanesePhone } from '../utils';
 import { useSelector } from 'react-redux';
 
-export default function AddWorkerScreen() {
-  const [workersArray, setWorkersArray] = useState([]);
+export default function AddSupervisorScreen() {
+  const [supervisorsArray, setSupervisorsArray] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   // const [phone, setPhone] = useState('');
@@ -53,23 +53,23 @@ export default function AddWorkerScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchWorkers();
+    await fetchSupervisors();
     setRefreshing(false);
   };
 
-  const fetchWorkers = async () => {
+  const fetchSupervisors = async () => {
     setLoading(true);
     try {
-      const workers = await getAllByRole(ROLES.WORKER);
-      const array = workers
-        ? Object.keys(workers).map(key => ({
+      const supervisors = await getAllByRole(ROLES.SUPERVISOR);
+      const array = supervisors
+        ? Object.keys(supervisors).map(key => ({
             id: key,
-            ...workers[key],
+            ...supervisors[key],
           }))
         : [];
-      setWorkersArray(array || []);
+      setSupervisorsArray(array || []);
     } catch (error) {
-      showCustomAlert('خطأ', 'فشل تحميل بيانات الموظفين');
+      showCustomAlert('خطأ', 'فشل تحميل بيانات المراقبين');
       console.log(error);
     } finally {
       setLoading(false);
@@ -78,24 +78,24 @@ export default function AddWorkerScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      fetchWorkers();
+      fetchSupervisors();
     }, []),
   );
 
-  const handleAddWorker = async () => {
-    navigation.navigate(ROUTE_NAMES.ADD_USER_FORM, { role: ROLES.WORKER });
+  const handleAddSupervisor = async () => {
+    navigation.navigate(ROUTE_NAMES.ADD_USER_FORM, { role: ROLES.SUPERVISOR });
   };
 
   const handleRevokeRole = async id => {
     try {
-      showCustomAlert('ازالة موظف', `هل تريد ازالة هذا الموظف`, [
+      showCustomAlert('ازالة مراقب', `هل تريد ازالة هذا المراقب`, [
         {
           text: 'تأكيد',
           onPress: async () => {
             try {
               await revokeRole(id);
-              fetchWorkers();
-              showCustomAlert('نجاح', 'تم  ازالة الموظف بنجاح');
+              fetchSupervisors();
+              showCustomAlert('نجاح', 'تم  ازالة المراقب بنجاح');
             } catch (error) {
               showCustomAlert('خطأ', 'حدث خطأ غير متوقع');
               console.log(error);
@@ -116,13 +116,13 @@ export default function AddWorkerScreen() {
 
   const handleEdit = item => {
     navigation.navigate(ROUTE_NAMES.ADD_USER_FORM, {
-      role: ROLES.WORKER,
+      role: ROLES.SUPERVISOR,
       mode: 'update',
       userData: item,
     });
   };
 
-  const renderWorker = ({ item }) => {
+  const renderSupervisor = ({ item }) => {
     const { phone_number, full_name, municipalities_ids, assigned_areas_ids } =
       item;
 
@@ -164,9 +164,9 @@ export default function AddWorkerScreen() {
     };
 
     return (
-      <View style={styles.workerCard}>
+      <View style={styles.supervisorCard}>
         <View style={styles.rowBetween}>
-          <Text style={styles.workerName} numberOfLines={1}>
+          <Text style={styles.supervisorName} numberOfLines={1}>
             {full_name}
           </Text>
           <View style={styles.buttonGroup}>
@@ -238,35 +238,34 @@ export default function AddWorkerScreen() {
       />
 
       <HeaderSection
-        title="إدارة الموظفين"
-        subtitle="إضافة وإدارة موظفي الميدان"
+        title="إدارة المراقبين"
+        subtitle="إضافة وإدارة مراقبي الميدان"
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
 
       <View style={styles.infoBox}>
         <Text style={styles.infoText} numberOfLines={2}>
-          صلاحيات الموظف: يمكن للموظفين استلام الشكاوى المعيّنة وحلها مع تقديم
-          الأدلة المطلوبة
+          صلاحيات المراقب: يمكن للمراقبين اكمال حل الشكاوى
         </Text>
       </View>
 
       <View style={styles.addButtonContainer}>
-        <TouchableOpacity style={styles.addButton} onPress={handleAddWorker}>
+        <TouchableOpacity style={styles.addButton} onPress={handleAddSupervisor}>
           <Text style={styles.addButtonIcon}>+</Text>
-          <Text style={styles.addButtonText}>إضافة موظف جديد</Text>
+          <Text style={styles.addButtonText}>إضافة مراقب جديد</Text>
         </TouchableOpacity>
       </View>
 
-      {workersArray?.length > 0 && (
+      {supervisorsArray?.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>الموظفين الحاليين</Text>
+          <Text style={styles.sectionTitle}>المراقبين الحاليين</Text>
           <FlatList
-            data={workersArray}
+            data={supervisorsArray}
             style={styles.list}
             contentContainerStyle={{ paddingBottom: 20 }}
             keyExtractor={item => item.id.toString()}
-            renderItem={renderWorker}
+            renderItem={renderSupervisor}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -278,9 +277,9 @@ export default function AddWorkerScreen() {
           />
         </>
       )}
-      {workersArray?.length === 0 && (
+      {supervisorsArray?.length === 0 && (
         <View style={styles.emptyBox}>
-          <Text style={styles.emptyText}>لا يوجد موظفين</Text>
+          <Text style={styles.emptyText}>لا يوجد مراقبين</Text>
         </View>
       )}
     </View>
@@ -445,7 +444,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontFamily: FONT_FAMILIES.primary,
   },
-  workerCard: {
+  supervisorCard: {
     backgroundColor: COLORS.white,
     borderRadius: BORDER_RADIUS.lg,
     padding: 18,
@@ -460,7 +459,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.gray[100],
   },
-  workerName: {
+  supervisorName: {
     fontSize: 17,
     fontWeight: '700',
     color: COLORS.text.primary,

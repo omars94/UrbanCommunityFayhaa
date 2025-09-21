@@ -52,7 +52,7 @@ const validationSchema = Yup.object().shape({
   email: Yup.string()
     .email('البريد الإلكتروني غير صحيح')
     .required('البريد الإلكتروني مطلوب')
-    .matches(/^[a-zA-Z0-9._%+-]+@gmail\.com$/i, 'البريد الإلكتروني غير صالح'),
+    .matches(/^[a-zA-Z0-9._%+-]+@.+$/i, 'البريد الإلكتروني غير صالح'),
   password: Yup.string()
     .min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل')
     .max(20, 'كلمة المرور يجب أن تكون أقل من 20 حرف')
@@ -183,7 +183,7 @@ export default function SignUp() {
         });
         showCustomAlert(
           'نجاح',
-          'تم التسجيل بنجاح الرجاء التحقق من البريد الالكتروني ثم تسجيل الدخول',
+          'تم التسجيل بنجاح الرجاء التحقق من البريد الالكتروني او مجلد الرسائل غير المرغوب (spam) فيها  ثم تسجيل الدخول',
           [{ text: 'حسناً', onPress: hideCustomAlert }],
         );
       } else {
@@ -499,7 +499,7 @@ export default function SignUp() {
                 adjustsFontSizeToFit
               >
                 يُرجى مراجعة صندوق البريد الإلكتروني أو مجلد الرسائل غير المرغوب
-                فيها
+                فيها (spam)
               </Text>
             </View>
           )}
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: FONT_WEIGHTS.bold,
     fontFamily: FONT_FAMILIES.primary,
-    paddingBottom: SPACING.sm,
+    // paddingBottom: SPACING.sm,
   },
   logoSubtitle: {
     fontSize: FONT_SIZES.sm,
