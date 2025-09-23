@@ -16,7 +16,13 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import CustomAlert from '../components/customAlert';
 import { setUser } from '../slices/userSlice';
-import { COLORS, FONT_FAMILIES, BORDER_RADIUS, SHADOWS } from '../constants';
+import {
+  COLORS,
+  FONT_FAMILIES,
+  BORDER_RADIUS,
+  SHADOWS,
+  ROLES,
+} from '../constants';
 import { updateUser } from '../api/userApi';
 import { useNavigation } from '@react-navigation/native';
 import HeaderSection from '../components/headerSection';
@@ -34,6 +40,7 @@ export default function ProfileScreen() {
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.user);
   const areas = useSelector(state => state.data.areas) || [];
+  const municipalities = useSelector(state => state.data.municipalities);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
@@ -77,6 +84,47 @@ export default function ProfileScreen() {
     }
   };
 
+  const getMunicipalityNames = () => {
+    if (
+      !user.municipalities_ids ||
+      !Array.isArray(user.municipalities_ids) ||
+      !municipalities
+    ) {
+      return 'غير محدد';
+    }
+
+    const names = user.municipalities_ids
+      .map(id => {
+        const municipality = municipalities.find(
+          m => m.id.toString() === id.toString(),
+        );
+        return municipality ? municipality.name_ar : null;
+      })
+      .filter(Boolean);
+
+    return names.length > 0 ? names.join('، ') : 'غير محدد';
+  };
+
+  // Get area names
+  const getAreaNames = () => {
+    if (
+      !user.assigned_areas_ids ||
+      !Array.isArray(user.assigned_areas_ids) ||
+      !areas
+    ) {
+      return 'غير محدد';
+    }
+
+    const names = user.assigned_areas_ids
+      .map(id => {
+        const area = areas.find(a => a.id.toString() === id.toString());
+        return area ? area.name_ar : null;
+      })
+      .filter(Boolean);
+
+    return names.length > 0 ? names.join('، ') : 'غير محدد';
+  };
+
   const initialValues = {
     full_name: user?.full_name ?? '',
     area: areas.find(a => String(a.id) === String(user?.area_id)) ?? null,
@@ -95,7 +143,7 @@ export default function ProfileScreen() {
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
         <View style={{ paddingHorizontal: 16 }}>
           <Formik
             initialValues={initialValues}
@@ -164,7 +212,9 @@ export default function ProfileScreen() {
                   <Text style={styles.errorText}>{errors.area}</Text>
                 )}
 
-                <Text style={[styles.label, { marginTop: 12 }]}>تاريخ الميلاد</Text>
+                <Text style={[styles.label, { marginTop: 12 }]}>
+                  تاريخ الميلاد
+                </Text>
                 <View>
                   {showDatePicker || Platform.OS === 'ios' ? (
                     <DateTimePicker
@@ -219,6 +269,30 @@ export default function ProfileScreen() {
               </View>
             )}
           </Formik>
+          {(user.role === ROLES.SUPERVISOR || user.role === ROLES.WORKER) && (
+            <View style={[styles.addCard, { paddingHorizontal: 16 }]}>
+              <Text style={styles.addTitle}>المهام المخصصة</Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>البلديات</Text>
+              </View>
+              <View style={styles.assignmentInfo}>
+                <Text style={styles.assignmentText} numberOfLines={2}>
+                  {getMunicipalityNames()}
+                </Text>
+              </View>
+
+              <View>
+                <View style={styles.areabadge}>
+                  <Text style={styles.areabadgeText}>المناطق</Text>
+                </View>
+                <View style={styles.assignmentInfo}>
+                  <Text style={styles.assignmentText} numberOfLines={3}>
+                    {getAreaNames()}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
         </View>
 
         <CustomAlert
@@ -331,6 +405,67 @@ const styles = StyleSheet.create({
     color: COLORS.danger,
     fontSize: 12,
     marginTop: 6,
+    fontFamily: FONT_FAMILIES.primary,
+  },
+  supervisorCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: 18,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    ...SHADOWS.sm,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.gray[100],
+  },
+  badge: {
+    backgroundColor: COLORS.roles.worker.background,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BORDER_RADIUS.xl,
+  },
+  badgeText: {
+    fontSize: 12,
+    color: COLORS.roles.worker.text,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILIES.primary,
+  },
+  areabadge: {
+    backgroundColor: COLORS.secondaryLight,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BORDER_RADIUS.xl,
+  },
+  areabadgeText: {
+    fontSize: 12,
+    color: COLORS.secondary,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILIES.primary,
+  },
+  assignmentInfo: {
+    flex: 1,
+    marginRight: 12,
+    paddingLeft: 4,
+    paddingBottom: 6,
+    paddingTop: 2,
+  },
+  assignmentLabel: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    fontWeight: '600',
+    marginBottom: 4,
+    fontFamily: FONT_FAMILIES.primary,
+  },
+  assignmentText: {
+    fontSize: 13,
+    color: COLORS.text.primary,
+    lineHeight: 18,
     fontFamily: FONT_FAMILIES.primary,
   },
 });
