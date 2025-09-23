@@ -60,47 +60,83 @@ export default function ComplaintsScreen() {
       case ROLES.ADMIN:
         return [
           {
-            id: 'pending',
+            id: COMPLAINT_STATUS.PENDING,
             label: COMPLAINT_STATUS_AR.PENDING,
-            value: 'pending',
+            value: COMPLAINT_STATUS.PENDING,
           },
           { id: 'all', label: 'جميع الشكاوى', value: 'all' },
           {
-            id: 'assigned',
+            id: COMPLAINT_STATUS.ASSIGNED,
             label: COMPLAINT_STATUS_AR.ASSIGNED,
-            value: 'assigned',
+            value: COMPLAINT_STATUS.ASSIGNED,
           },
           {
-            id: 'resolved',
+            id: COMPLAINT_STATUS.RESOLVED,
             label: COMPLAINT_STATUS_AR.RESOLVED,
-            value: 'resolved',
+            value: COMPLAINT_STATUS.RESOLVED,
           },
           {
-            id: 'completed',
+            id: COMPLAINT_STATUS.COMPLETED,
             label: COMPLAINT_STATUS_AR.COMPLETED,
-            value: 'completed',
+            value: COMPLAINT_STATUS.COMPLETED,
           },
           {
-            id: 'rejected',
+            id: COMPLAINT_STATUS.REJECTED,
             label: COMPLAINT_STATUS_AR.REJECTED,
-            value: 'rejected',
+            value: COMPLAINT_STATUS.REJECTED,
+          },
+          {
+            id: COMPLAINT_STATUS.DENIED,
+            label: COMPLAINT_STATUS_AR.DENIED,
+            value: COMPLAINT_STATUS.DENIED
           },
           ...baseOptions,
         ];
 
       case ROLES.MANAGER:
         return [
+          // {
+          //   id: 'assigned_to_me',
+          //   label: 'المُعيّنة لي',
+          //   value: 'assigned_to_me',
+          // },
+          // {
+          //   id: 'assigned_by_me',
+          //   label: 'عيّنتها للعمال',
+          //   value: 'assigned_by_me',
+          // },
+          // { id: 'resolved_by_me', label: 'حلّيتها', value: 'resolved_by_me' },
           {
-            id: 'assigned_to_me',
-            label: 'المُعيّنة لي',
-            value: 'assigned_to_me',
+            id: COMPLAINT_STATUS.PENDING,
+            label: COMPLAINT_STATUS_AR.PENDING,
+            value: COMPLAINT_STATUS.PENDING,
+          },
+          { id: 'all', label: 'جميع الشكاوى', value: 'all' },
+          {
+            id: COMPLAINT_STATUS.ASSIGNED,
+            label: COMPLAINT_STATUS_AR.ASSIGNED,
+            value: COMPLAINT_STATUS.ASSIGNED,
           },
           {
-            id: 'assigned_by_me',
-            label: 'عيّنتها للعمال',
-            value: 'assigned_by_me',
+            id: COMPLAINT_STATUS.RESOLVED,
+            label: COMPLAINT_STATUS_AR.RESOLVED,
+            value: COMPLAINT_STATUS.RESOLVED,
           },
-          { id: 'resolved_by_me', label: 'حلّيتها', value: 'resolved_by_me' },
+          {
+            id: COMPLAINT_STATUS.COMPLETED,
+            label: COMPLAINT_STATUS_AR.COMPLETED,
+            value: COMPLAINT_STATUS.COMPLETED,
+          },
+          {
+            id: COMPLAINT_STATUS.REJECTED,
+            label: COMPLAINT_STATUS_AR.REJECTED,
+            value: COMPLAINT_STATUS.REJECTED,
+          },
+          {
+            id: COMPLAINT_STATUS.DENIED,
+            label: COMPLAINT_STATUS_AR.DENIED,
+            value: COMPLAINT_STATUS.DENIED
+          },
           ...baseOptions,
         ];
 
@@ -114,6 +150,43 @@ export default function ComplaintsScreen() {
           { id: 'resolved_by_me', label: 'حلّيتها', value: 'resolved_by_me' },
           ...baseOptions,
         ];
+
+      case ROLES.SUPERVISOR:
+        return [
+          { id: 'all', label: 'جميع الشكاوى', value: 'all' },
+          {
+            id: COMPLAINT_STATUS.PENDING,
+            label: COMPLAINT_STATUS_AR.PENDING,
+            value: COMPLAINT_STATUS.PENDING,
+          },
+          {
+            id: COMPLAINT_STATUS.ASSIGNED,
+            label: COMPLAINT_STATUS_AR.ASSIGNED,
+            value: COMPLAINT_STATUS.ASSIGNED,
+          },
+          {
+            id: COMPLAINT_STATUS.RESOLVED,
+            label: COMPLAINT_STATUS_AR.RESOLVED,
+            value: COMPLAINT_STATUS.RESOLVED,
+          },
+          {
+            id: COMPLAINT_STATUS.COMPLETED,
+            label: COMPLAINT_STATUS_AR.COMPLETED,
+            value: COMPLAINT_STATUS.COMPLETED,
+          },
+          {
+            id: COMPLAINT_STATUS.REJECTED,
+            label: COMPLAINT_STATUS_AR.REJECTED,
+            value: COMPLAINT_STATUS.REJECTED,
+          },
+          {
+            id: COMPLAINT_STATUS.DENIED,
+            label: COMPLAINT_STATUS_AR.DENIED,
+            value: COMPLAINT_STATUS.DENIED
+          },
+          ...baseOptions,
+        ];
+
 
       case ROLES.CITIZEN:
       default:
@@ -144,25 +217,46 @@ export default function ComplaintsScreen() {
         case 'my':
           return item.user_id === user.id;
 
-        case 'pending':
-          return item.status === COMPLAINT_STATUS.PENDING;
+        case COMPLAINT_STATUS.PENDING:
+          return (
+            (user?.role !== ROLES.SUPERVISOR || user?.assigned_areas_ids?.includes(item.area_id))
+            && item.status === COMPLAINT_STATUS.PENDING
+          );
 
-        case 'assigned':
-          return item.status === COMPLAINT_STATUS.ASSIGNED;
+        case COMPLAINT_STATUS.ASSIGNED:
+          return (
+            (user?.role !== ROLES.SUPERVISOR || user?.assigned_areas_ids?.includes(item.area_id))
+            && item.status === COMPLAINT_STATUS.ASSIGNED
+          );
 
-        case 'resolved':
-          return item.status === COMPLAINT_STATUS.RESOLVED;
+        case COMPLAINT_STATUS.RESOLVED:
+          return (
+            (user?.role !== ROLES.SUPERVISOR || user?.assigned_areas_ids?.includes(item.area_id))
+            && item.status === COMPLAINT_STATUS.RESOLVED
+          );
 
-        case 'completed':
-          return item.status === COMPLAINT_STATUS.COMPLETED;
+        case COMPLAINT_STATUS.COMPLETED:
+          return (
+            (user?.role !== ROLES.SUPERVISOR || user?.assigned_areas_ids?.includes(item.area_id))
+            && item.status === COMPLAINT_STATUS.COMPLETED
+          );
 
-        case 'rejected':
-          return item.status === COMPLAINT_STATUS.REJECTED;
+        case COMPLAINT_STATUS.REJECTED:
+          return (
+            (user?.role !== ROLES.SUPERVISOR || user?.assigned_areas_ids?.includes(item.area_id))
+            && item.status === COMPLAINT_STATUS.REJECTED
+          );
+
+        case COMPLAINT_STATUS.DENIED:
+          return (
+            (user?.role !== ROLES.SUPERVISOR || user?.assigned_areas_ids?.includes(item.area_id))
+            && item.status === COMPLAINT_STATUS.DENIED
+          );
 
         case 'assigned_to_me':
           return (
-            (user?.role === ROLES.MANAGER &&
-              item.manager_assignee_id === user.id) ||
+            // (user?.role === ROLES.MANAGER &&
+            //   item.manager_assignee_id === user.id) ||
             (user?.role === ROLES.WORKER &&
               Array.isArray(item.worker_assignee_id) &&
               item.worker_assignee_id[item.worker_assignee_id.length - 1] === user.id)
@@ -192,6 +286,13 @@ export default function ComplaintsScreen() {
           );
 
         case 'all':
+          // For SUPERVISOR, show only complaints in their assigned areas
+          if (user?.role === ROLES.SUPERVISOR) {
+            return user?.assigned_areas_ids?.includes(item.area_id);
+          } else {
+            return true;
+          }
+
         default:
           // For CITIZEN, show only their complaints
           if (user?.role === ROLES.CITIZEN) {
@@ -222,13 +323,7 @@ export default function ComplaintsScreen() {
 
   // Initialize filter based on user role
   useEffect(() => {
-    if (user?.role === ROLES.CITIZEN) {
-      setSelectedFilter('my');
-    } else if (user?.role === ROLES.ADMIN) {
-      setSelectedFilter('pending');
-    } else if (user?.role === ROLES.MANAGER || user?.role === ROLES.WORKER) {
-      setSelectedFilter('assigned_to_me');
-    }
+    clearAllFilters();
   }, [user]);
 
   // Refresh complaints when screen comes into focus
@@ -255,6 +350,8 @@ export default function ComplaintsScreen() {
           : COMPLAINT_STATUS_AR.COMPLETED;
       case COMPLAINT_STATUS.REJECTED:
         return COMPLAINT_STATUS_AR.REJECTED;
+      case COMPLAINT_STATUS.DENIED:
+        return COMPLAINT_STATUS_AR.DENIED;
       default:
         return 'غير محدد';
     }
@@ -276,36 +373,38 @@ export default function ComplaintsScreen() {
           : COLORS.status.completed;
       case COMPLAINT_STATUS.REJECTED:
         return COLORS.status.rejected;
+      case COMPLAINT_STATUS.DENIED:
+        return COLORS.status.denied;
       default:
         return { background: COLORS.gray[200], text: COLORS.gray[600] };
     }
   };
 
-  // Check if any filters are active
-  const hasActiveFilters = () => {
-    const defaultFilter =
-      user?.role === ROLES.CITIZEN
-        ? 'my'
-        : user?.role === ROLES.ADMIN
-          ? 'pending'
-          : 'assigned_to_me';
-    return (
-      selectedArea || selectedIndicator || selectedFilter !== defaultFilter
-    );
-  };
+// Role → default filter mapping
+const roleDefaultFilters = {
+  [ROLES.CITIZEN]: 'my',
+  [ROLES.ADMIN]: 'pending',
+  [ROLES.MANAGER]: 'pending',
+  [ROLES.WORKER]: 'assigned_to_me',
+  [ROLES.SUPERVISOR]: 'all',
+};
 
-  // Clear all filters
-  const clearAllFilters = () => {
-    setSelectedArea(null);
-    setSelectedIndicator(null);
-    if (user?.role === ROLES.CITIZEN) {
-      setSelectedFilter('my');
-    } else if (user?.role === ROLES.ADMIN) {
-      setSelectedFilter('pending');
-    } else {
-      setSelectedFilter('assigned_to_me');
-    }
-  };
+const getDefaultFilter = (role) => roleDefaultFilters[role] || 'pending';
+
+// Check if any filters are active
+const hasActiveFilters = () => {
+  const defaultFilter = getDefaultFilter(user?.role);
+  return (
+    selectedArea || selectedIndicator || selectedFilter !== defaultFilter
+  );
+};
+
+// Clear all filters
+const clearAllFilters = () => {
+  setSelectedArea(null);
+  setSelectedIndicator(null);
+  setSelectedFilter(getDefaultFilter(user?.role));
+};
 
   const renderComplaint = ({ item }) => {
     const {
