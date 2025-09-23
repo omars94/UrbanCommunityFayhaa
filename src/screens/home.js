@@ -94,38 +94,90 @@ export default function HomeScreen() {
     loading: false,
   });
 
-  const completeComplaints = (complaints || []).filter(
-    c => c.status === COMPLAINT_STATUS.COMPLETED,
-  ).length;
-  console.log('completeComplaints', completeComplaints);
-  const rejectedComplaints = (complaints || []).filter(
-    c => c.status === COMPLAINT_STATUS.REJECTED,
-  ).length;
-  console.log('rejectedComplaints', rejectedComplaints);
-  const activeComplaints =
-    complaintsCount - (completeComplaints + rejectedComplaints);
-  console.log('activeComplaints', activeComplaints);
-
   const role = user.role;
-  let role_text = '';
+  let complaintFirstNumber;
+  let complaintFirstLabel;
+  let complaintSecondNumber;
+  let complaintSecondLabel;
+
   switch (role) {
-    case 1:
-      role_text = 'مدير النظام';
-      break;
     case 2:
-      role_text = 'مسؤول';
+      const pendingComplaints = (complaints || []).filter(
+        c => c.status === COMPLAINT_STATUS.PENDING,
+      ).length;
+      console.log('pendingComplaints', pendingComplaints);
+
+      const assignedComplaints = (complaints || []).filter(
+        c => c.status === COMPLAINT_STATUS.ASSIGNED,
+      ).length;
+      console.log('assignedComplaints', assignedComplaints);
+
+      complaintFirstLabel = 'شكوى معيّنة';
+      complaintFirstNumber = assignedComplaints;
+      complaintSecondNumber = 'شكوى جديدة';
+      complaintSecondLabel = pendingComplaints;
       break;
     case 3:
-      role_text = 'موظف';
-      break;
-    case 4:
-      role_text = 'مواطن';
+      const workerAssignedComplaints = (complaints || []).filter(
+        c =>
+          Array.isArray(c.worker_assignee_id) &&
+          c.worker_assignee_id.includes(user.id) &&
+          c.status === COMPLAINT_STATUS.ASSIGNED,
+      ).length;
+      console.log('rejectedComplaints', workerAssignedComplaints);
+
+      const workerResolvedComplaints = (complaints || []).filter(
+        c =>
+          Array.isArray(c.worker_assignee_id) &&
+          c.worker_assignee_id.includes(user.id) &&
+          c.status === COMPLAINT_STATUS.RESOLVED,
+      ).length;
+      console.log('rejectedComplaints', workerResolvedComplaints);
+      complaintFirstLabel = 'شكوى معيّنة';
+      complaintFirstNumber = workerAssignedComplaints;
+      complaintSecondNumber = workerResolvedComplaints;
+      complaintSecondLabel = ' شكوى محلولة';
       break;
     case 5:
-      role_text = 'مراقب';
+      const assignedAreas = user?.assigned_areas_ids || [];
+
+      const assignedAreaComplaints = (complaints || []).filter(
+        c =>
+          assignedAreas.includes(c.area_id) &&
+          c.status === COMPLAINT_STATUS.ASSIGNED,
+      ).length;
+      console.log('assignedComplaints', assignedAreaComplaints);
+
+      const notCompletedComplaints = (complaints || []).filter(
+        c =>
+          assignedAreas.includes(c.area_id) &&
+          c.status === COMPLAINT_STATUS.RESOLVED,
+      ).length;
+      console.log('notComletedComplaints', notCompletedComplaints);
+      complaintFirstLabel = 'شكوى معيّنة';
+      complaintFirstNumber = workerAssignedComplaints;
+      complaintSecondNumber = assignedComplaints;
+      complaintSecondLabel = ' شكوى للمراجعة';
+
       break;
     default:
-      role_text = 'مواطن';
+      const completedComplaints = (complaints || []).filter(
+        c => c.status === COMPLAINT_STATUS.COMPLETED,
+      ).length;
+      console.log('completeComplaints', completedComplaints);
+
+      const rejectedComplaints = (complaints || []).filter(
+        c => c.status === COMPLAINT_STATUS.REJECTED,
+      ).length;
+      console.log('rejectedComplaints', rejectedComplaints);
+
+      const activeComplaints =
+        complaintsCount - (completedComplaints + rejectedComplaints);
+      console.log('activeComplaints', activeComplaints);
+      complaintFirstLabel = 'شكوى مكتملة ';
+      complaintFirstNumber = completedComplaints;
+      complaintSecondNumber = activeComplaints;
+      complaintSecondLabel = ' شكوى نشطة';
   }
 
   // Custom Alert Functions
@@ -271,19 +323,6 @@ export default function HomeScreen() {
           <Text style={styles.welcomeText}>أهلاً وسهلاً</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={styles.userName}>{user?.full_name}</Text>
-            {/* <Ionicons
-              name="remove"
-              size={42}
-              color={COLORS.white}
-              style={{
-                transform: [{ rotate: '90deg' }],
-                marginHorizontal: -10,
-                marginBottom: SPACING.lg,
-              }}
-            />
-            <View style={styles.roleContainer}>
-              <Text style={styles.roleText}> {role_text}</Text>
-            </View> */}
           </View>
 
           <Text style={styles.subtitle}>اتحاد بلديات الفيحاء</Text>
@@ -399,12 +438,12 @@ export default function HomeScreen() {
 
           <View style={styles.menuRow}>
             <View style={styles.menuCard}>
-              <Text style={styles.statNumber}>{completeComplaints}</Text>
-              <Text style={styles.menuTitle}>شكوى مكتملة</Text>
+              <Text style={styles.statNumber}>{complaintFirstNumber}</Text>
+              <Text style={styles.menuTitle}>{complaintFirstLabel}</Text>
             </View>
             <View style={styles.menuCard}>
-              <Text style={styles.statNumber}>{activeComplaints}</Text>
-              <Text style={styles.menuTitle}>شكوى نشطة </Text>
+              <Text style={styles.statNumber}>{complaintSecondNumber}</Text>
+              <Text style={styles.menuTitle}>{complaintSecondLabel}</Text>
             </View>
           </View>
         </View>

@@ -8,6 +8,9 @@ import {
   TouchableOpacity,
   View,
   Image,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
   TextInput,
   ScrollView,
   Alert,
@@ -198,320 +201,340 @@ export default function SignUp() {
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.scrollViewContent}
-      showsVerticalScrollIndicator={false}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      <View style={styles.container}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logoPlaceholder}>
-            <Image
-              source={require('../assets/appIcon.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          </View>
-          <Text style={styles.logoTitle}>اتحاد بلديات الفيحاء</Text>
-          <Text style={styles.logoSubtitle}>Urban Community Fayhaa</Text>
-        </View>
-        <CustomAlert
-          visible={alertVisible}
-          title={alertData.title}
-          message={alertData.message}
-          buttons={alertData.buttons}
-          onClose={hideCustomAlert}
-        />
-
-        <Formik
-          initialValues={initialValues}
-          validationSchema={validationSchema}
-          onSubmit={handleSubmit}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {({
-            handleChange,
-            handleBlur,
-            handleSubmit,
-            values,
-            errors,
-            touched,
-            isSubmitting,
-            setFieldValue,
-            status,
-          }) => (
-            <View style={styles.formContainer}>
-              {/* Full Name Input */}
-              <View style={styles.fieldContainer}>
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    value={values.fullName}
-                    style={[
-                      styles.input,
-                      touched.fullName && errors.fullName && styles.inputError,
-                    ]}
-                    onChangeText={handleChange('fullName')}
-                    onBlur={handleBlur('fullName')}
-                    placeholder="الاسم الكامل"
-                    placeholderTextColor={COLORS.gray?.[500]}
-                  />
-                </View>
-                {touched.fullName && errors.fullName && (
-                  <Text style={styles.errorText}>{errors.fullName}</Text>
-                )}
+          <View style={styles.container}>
+            <View style={styles.logoContainer}>
+              <View style={styles.logoPlaceholder}>
+                <Image
+                  source={require('../assets/appIcon.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
               </View>
+              <Text style={styles.logoTitle}>اتحاد بلديات الفيحاء</Text>
+              <Text style={styles.logoSubtitle}>Urban Community Fayhaa</Text>
+            </View>
+            <CustomAlert
+              visible={alertVisible}
+              title={alertData.title}
+              message={alertData.message}
+              buttons={alertData.buttons}
+              onClose={hideCustomAlert}
+            />
 
-              {/* Email Input */}
-              <View style={styles.fieldContainer}>
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    style={[styles.input, touched.email && errors.email]}
-                    placeholder="البريد الإلكتروني"
-                    placeholderTextColor={COLORS.gray?.[500]}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    value={values.email}
-                    onChangeText={handleChange('email')}
-                    onBlur={handleBlur('email')}
-                    maxLength={128}
-                  />
-                  <MaterialDesignIcons
-                    name="email"
-                    size={20}
-                    color={COLORS.gray?.[400]}
-                    style={styles.inputIcon}
-                  />
-                </View>
-                {touched.email && errors.email && (
-                  <Text style={styles.errorText}>{errors.email}</Text>
-                )}
-              </View>
-
-              {/* Password Input */}
-              <View style={styles.fieldContainer}>
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      styles.passwordInput,
-                      touched.password && errors.password,
-                    ]}
-                    placeholder="كلمة المرور"
-                    placeholderTextColor={COLORS.gray?.[500]}
-                    secureTextEntry={!showPassword}
-                    value={values.password}
-                    onChangeText={handleChange('password')}
-                    onBlur={handleBlur('password')}
-                    maxLength={20}
-                    textAlign="right"
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowPassword(!showPassword)}
-                    style={styles.inputIcon}
-                  >
-                    <MaterialDesignIcons
-                      name={showPassword ? 'eye' : 'eye-off'}
-                      size={20}
-                      color={COLORS.gray?.[400]}
-                    />
-                  </TouchableOpacity>
-                </View>
-                {touched.password && errors.password && (
-                  <Text style={styles.errorText}>{errors.password}</Text>
-                )}
-              </View>
-
-              {/* Confirm Password Input */}
-              <View style={styles.fieldContainer}>
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      styles.passwordInput, // Add specific style for password
-                      touched.confirmPassword && errors.confirmPassword,
-                    ]}
-                    placeholder="تأكيد كلمة المرور"
-                    placeholderTextColor={COLORS.gray?.[500]}
-                    secureTextEntry={!showConfirmPassword}
-                    value={values.confirmPassword}
-                    onChangeText={handleChange('confirmPassword')}
-                    onBlur={handleBlur('confirmPassword')}
-                    maxLength={20}
-                    textAlign="right"
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                    style={styles.inputIcon}
-                  >
-                    <MaterialDesignIcons
-                      name={showConfirmPassword ? 'eye' : 'eye-off'}
-                      size={20}
-                      color={COLORS.gray?.[400]}
-                    />
-                  </TouchableOpacity>
-                </View>
-                {touched.confirmPassword && errors.confirmPassword && (
-                  <Text style={styles.errorText}>{errors.confirmPassword}</Text>
-                )}
-              </View>
-
-              <View style={styles.fieldContainer}>
-                <View style={{ flexDirection: 'row-reverse' }}>
-                  <PhoneInput
-                    ref={phoneInput}
-                    defaultValue={values.phone}
-                    defaultCode="LB"
-                    placeholder="رقم الهاتف"
-                    layout="first"
-                    //  flagButton="second"
-                    onChangeText={text => {
-                      setFieldValue('phone', text);
-                    }}
-                    onChangeFormattedText={setFormattedValue}
-                    withShadow={false}
-                    containerStyle={[
-                      styles.phoneContainer,
-                      touched.phone && errors.phone && styles.inputError,
-                      { flexDirection: 'row-reverse' },
-                    ]}
-                    textContainerStyle={[
-                      styles.phoneTextContainer,
-                      {
-                        textAlign: 'left',
-                        // paddingLeft: 5,
-                        paddingRight: 0,
-                      },
-                      { flexDirection: 'row-reverse' },
-                    ]}
-                    textInputStyle={[
-                      styles.phoneTextInput,
-                      { textAlign: 'right' },
-                    ]}
-                    countryPickerProps={{ renderFlagButton: false }}
-                    countryPickerButtonStyle={[
-                      styles.countryPickerButton,
-                      // { flexDirection: 'row-reverse' },
-                    ]}
-                    textInputProps={{
-                      keyboardType: 'number-pad',
-                      maxLength: 8,
-                    }}
-                    codeTextStyle={styles.codeTextStyle}
-                  />
-                </View>
-                {touched.phone && errors.phone && (
-                  <Text style={styles.errorText}>{errors.phone}</Text>
-                )}
-              </View>
-
-              {/* {touched.phone && errors.phone && (
-                <Text style={styles.errorText}>{errors.phone}</Text>
-              )} */}
-              {/* </View> */}
-
-              {/* Date of Birth */}
-              <View style={{ flexDirection: 'row' }}>
-                <View style={[styles.fieldContainer, { width: '50%' }]}>
-                  <View style={styles.inputContainer}>
-                    {showDatePicker || Platform.OS === 'ios' ? (
-                      <View style={styles.datePickerContainer}>
-                        <DateTimePicker
-                          value={
-                            values.dateOfBirth
-                              ? new Date(values.dateOfBirth)
-                              : new Date(2003, 8, 27)
-                          }
-                          mode="date"
-                          locale="ar"
-                          display="compact"
-                          style={styles.datePicker}
-                          textColor={COLORS.text?.primary || COLORS.primary}
-                          onChange={(event, selectedDate) => {
-                            const { type } = event;
-                            if (
-                              type === 'dismissed' ||
-                              (Platform.OS === 'android' && type === 'set')
-                            ) {
-                              setShowDatePicker(false);
-                            }
-                            if (selectedDate) {
-                              setFieldValue('dateOfBirth', selectedDate);
-                            }
-                          }}
-                          maximumDate={new Date()}
-                        />
-                      </View>
-                    ) : (
-                      <TouchableOpacity
-                        style={styles.datePickerButton}
-                        onPress={() => setShowDatePicker(true)}
-                      >
-                        <Text style={styles.datePickerButtonText}>
-                          {values.dateOfBirth
-                            ? `${new Date(
-                                values.dateOfBirth,
-                              ).toLocaleDateString('ar')}`
-                            : 'اختر تاريخ الميلاد'}
-                        </Text>
-                      </TouchableOpacity>
+            <Formik
+              initialValues={initialValues}
+              validationSchema={validationSchema}
+              onSubmit={handleSubmit}
+            >
+              {({
+                handleChange,
+                handleBlur,
+                handleSubmit,
+                values,
+                errors,
+                touched,
+                isSubmitting,
+                setFieldValue,
+                status,
+              }) => (
+                <View style={styles.formContainer}>
+                  {/* Full Name Input */}
+                  <View style={styles.fieldContainer}>
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        value={values.fullName}
+                        style={[
+                          styles.input,
+                          touched.fullName &&
+                            errors.fullName &&
+                            styles.inputError,
+                        ]}
+                        onChangeText={handleChange('fullName')}
+                        onBlur={handleBlur('fullName')}
+                        placeholder="الاسم الكامل"
+                        placeholderTextColor={COLORS.gray?.[500]}
+                      />
+                    </View>
+                    {touched.fullName && errors.fullName && (
+                      <Text style={styles.errorText}>{errors.fullName}</Text>
                     )}
                   </View>
-                  {touched.dateOfBirth && errors.dateOfBirth && (
-                    <Text style={styles.errorText}>{errors.dateOfBirth}</Text>
-                  )}
-                </View>
 
-                {/* Area Picker */}
-                <View style={[styles.fieldContainer, { width: '50%' }]}>
-                  {/* <View style={styles.pickerContainer}> */}
-                  <SimplePicker
-                    label="المنطقة"
-                    columns={1}
-                    showLabel={false}
-                    options={areas}
-                    labelKey={'name_ar'}
-                    selectedValue={values.area?.name_ar}
-                    onValueChange={selectedArea =>
-                      setFieldValue('area', selectedArea)
-                    }
-                  />
+                  {/* Email Input */}
+                  <View style={styles.fieldContainer}>
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={[styles.input, touched.email && errors.email]}
+                        placeholder="البريد الإلكتروني"
+                        placeholderTextColor={COLORS.gray?.[500]}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        value={values.email}
+                        onChangeText={handleChange('email')}
+                        onBlur={handleBlur('email')}
+                        maxLength={128}
+                      />
+                      <MaterialDesignIcons
+                        name="email"
+                        size={20}
+                        color={COLORS.gray?.[400]}
+                        style={styles.inputIcon}
+                      />
+                    </View>
+                    {touched.email && errors.email && (
+                      <Text style={styles.errorText}>{errors.email}</Text>
+                    )}
+                  </View>
+
+                  {/* Password Input */}
+                  <View style={styles.fieldContainer}>
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={[
+                          styles.input,
+                          styles.passwordInput,
+                          touched.password && errors.password,
+                        ]}
+                        placeholder="كلمة المرور"
+                        placeholderTextColor={COLORS.gray?.[500]}
+                        secureTextEntry={!showPassword}
+                        value={values.password}
+                        onChangeText={handleChange('password')}
+                        onBlur={handleBlur('password')}
+                        maxLength={20}
+                        textAlign="right"
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        style={styles.inputIcon}
+                      >
+                        <MaterialDesignIcons
+                          name={showPassword ? 'eye' : 'eye-off'}
+                          size={20}
+                          color={COLORS.gray?.[400]}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                    {touched.password && errors.password && (
+                      <Text style={styles.errorText}>{errors.password}</Text>
+                    )}
+                  </View>
+
+                  {/* Confirm Password Input */}
+                  <View style={styles.fieldContainer}>
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={[
+                          styles.input,
+                          styles.passwordInput, // Add specific style for password
+                          touched.confirmPassword && errors.confirmPassword,
+                        ]}
+                        placeholder="تأكيد كلمة المرور"
+                        placeholderTextColor={COLORS.gray?.[500]}
+                        secureTextEntry={!showConfirmPassword}
+                        value={values.confirmPassword}
+                        onChangeText={handleChange('confirmPassword')}
+                        onBlur={handleBlur('confirmPassword')}
+                        maxLength={20}
+                        textAlign="right"
+                      />
+                      <TouchableOpacity
+                        onPress={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                        style={styles.inputIcon}
+                      >
+                        <MaterialDesignIcons
+                          name={showConfirmPassword ? 'eye' : 'eye-off'}
+                          size={20}
+                          color={COLORS.gray?.[400]}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                    {touched.confirmPassword && errors.confirmPassword && (
+                      <Text style={styles.errorText}>
+                        {errors.confirmPassword}
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={styles.fieldContainer}>
+                    <View style={{ flexDirection: 'row-reverse' }}>
+                      <PhoneInput
+                        ref={phoneInput}
+                        defaultValue={values.phone}
+                        defaultCode="LB"
+                        placeholder="رقم الهاتف"
+                        layout="first"
+                        //  flagButton="second"
+                        onChangeText={text => {
+                          setFieldValue('phone', text);
+                        }}
+                        onChangeFormattedText={setFormattedValue}
+                        withShadow={false}
+                        containerStyle={[
+                          styles.phoneContainer,
+                          touched.phone && errors.phone && styles.inputError,
+                          { flexDirection: 'row-reverse' },
+                        ]}
+                        textContainerStyle={[
+                          styles.phoneTextContainer,
+                          {
+                            textAlign: 'left',
+                            // paddingLeft: 5,
+                            paddingRight: 0,
+                          },
+                          { flexDirection: 'row-reverse' },
+                        ]}
+                        textInputStyle={[
+                          styles.phoneTextInput,
+                          { textAlign: 'right' },
+                        ]}
+                        countryPickerProps={{ renderFlagButton: false }}
+                        countryPickerButtonStyle={[
+                          styles.countryPickerButton,
+                          // { flexDirection: 'row-reverse' },
+                        ]}
+                        textInputProps={{
+                          keyboardType: 'number-pad',
+                          maxLength: 8,
+                        }}
+                        codeTextStyle={styles.codeTextStyle}
+                      />
+                    </View>
+                    {touched.phone && errors.phone && (
+                      <Text style={styles.errorText}>{errors.phone}</Text>
+                    )}
+                  </View>
+
+                  {/* {touched.phone && errors.phone && (
+                <Text style={styles.errorText}>{errors.phone}</Text>
+              )} */}
                   {/* </View> */}
-                  {touched.area && errors.area && (
-                    <Text style={styles.errorText}>{errors.area}</Text>
-                  )}
+
+                  {/* Date of Birth */}
+                  <View style={{ flexDirection: 'row' }}>
+                    <View style={[styles.fieldContainer, { width: '50%' }]}>
+                      <View style={styles.inputContainer}>
+                        {showDatePicker || Platform.OS === 'ios' ? (
+                          <View style={styles.datePickerContainer}>
+                            <DateTimePicker
+                              value={
+                                values.dateOfBirth
+                                  ? new Date(values.dateOfBirth)
+                                  : new Date(2003, 8, 27)
+                              }
+                              mode="date"
+                              locale="ar"
+                              display="compact"
+                              style={styles.datePicker}
+                              textColor={COLORS.text?.primary || COLORS.primary}
+                              onChange={(event, selectedDate) => {
+                                const { type } = event;
+                                if (
+                                  type === 'dismissed' ||
+                                  (Platform.OS === 'android' && type === 'set')
+                                ) {
+                                  setShowDatePicker(false);
+                                }
+                                if (selectedDate) {
+                                  setFieldValue('dateOfBirth', selectedDate);
+                                }
+                              }}
+                              maximumDate={new Date()}
+                            />
+                          </View>
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.datePickerButton}
+                            onPress={() => setShowDatePicker(true)}
+                          >
+                            <Text style={styles.datePickerButtonText}>
+                              {values.dateOfBirth
+                                ? `${new Date(
+                                    values.dateOfBirth,
+                                  ).toLocaleDateString('ar')}`
+                                : 'اختر تاريخ الميلاد'}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      {touched.dateOfBirth && errors.dateOfBirth && (
+                        <Text style={styles.errorText}>
+                          {errors.dateOfBirth}
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* Area Picker */}
+                    <View style={[styles.fieldContainer, { width: '50%' }]}>
+                      {/* <View style={styles.pickerContainer}> */}
+                      <SimplePicker
+                        label="المنطقة"
+                        columns={1}
+                        showLabel={false}
+                        options={areas}
+                        labelKey={'name_ar'}
+                        selectedValue={values.area?.name_ar}
+                        onValueChange={selectedArea =>
+                          setFieldValue('area', selectedArea)
+                        }
+                      />
+                      {/* </View> */}
+                      {touched.area && errors.area && (
+                        <Text style={styles.errorText}>{errors.area}</Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* General Error */}
+                  {status && <Text style={styles.error}>{status}</Text>}
+
+                  <TouchableOpacity
+                    style={[
+                      styles.button,
+                      isSubmitting && styles.buttonDisabled,
+                    ]}
+                    onPress={handleSubmit}
+                    disabled={isSubmitting}
+                  >
+                    <Text style={styles.buttonText}>
+                      {isSubmitting ? 'جاري التسجيل...' : 'انشاء الحساب'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <Text
+                    style={styles.footerText}
+                    numberOfLines={2}
+                    adjustsFontSizeToFit
+                  >
+                    يُرجى مراجعة صندوق البريد الإلكتروني أو مجلد الرسائل غير
+                    المرغوب فيها (spam)
+                  </Text>
                 </View>
-              </View>
-
-              {/* General Error */}
-              {status && <Text style={styles.error}>{status}</Text>}
-
-              <TouchableOpacity
-                style={[styles.button, isSubmitting && styles.buttonDisabled]}
-                onPress={handleSubmit}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.buttonText}>
-                  {isSubmitting ? 'جاري التسجيل...' : 'انشاء الحساب'}
-                </Text>
-              </TouchableOpacity>
-
-              <Text
-                style={styles.footerText}
-                numberOfLines={2}
-                adjustsFontSizeToFit
-              >
-                يُرجى مراجعة صندوق البريد الإلكتروني أو مجلد الرسائل غير المرغوب
-                فيها (spam)
-              </Text>
-            </View>
-          )}
-        </Formik>
-      </View>
-    </ScrollView>
+              )}
+            </Formik>
+          </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 // Updated StyleSheet
 const styles = StyleSheet.create({
-  scrollViewContent: {
-    flexGrow: 1, // Changed from flex: 1
+  scrollContainer: {
+    flexGrow: 1,
     paddingTop: SPACING.xl,
   },
   container: {

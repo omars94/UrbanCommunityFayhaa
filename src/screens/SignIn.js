@@ -4,7 +4,12 @@ import {
   Text,
   View,
   Image,
+  KeyboardAvoidingView,
   TouchableOpacity,
+  Platform,
+  TouchableWithoutFeedback,
+  ScrollView,
+  Keyboard,
   TextInput,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -128,9 +133,7 @@ export default function SignIn() {
     }, 1000);
   };
 
-  const handleForgotPassword = async (
-    email
-  ) => {
+  const handleForgotPassword = async email => {
     setError(null);
     console.log(email);
     if (!email) {
@@ -264,182 +267,197 @@ export default function SignIn() {
       setSubmitting(false);
     }
   };
-
   return (
-    <View style={styles.container}>
-      <View style={styles.logoContainer}>
-        <View style={styles.logoPlaceholder}>
-          <Image
-            source={require('../assets/appIcon.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
-        <Text style={styles.logoTitle}>اتحاد بلديات الفيحاء</Text>
-        <Text style={styles.logoSubtitle}>Urban Community Fayhaa</Text>
-      </View>
-
-      <CustomAlert
-        visible={alertVisible}
-        title={alertData.title}
-        message={alertData.message}
-        buttons={alertData.buttons}
-        onClose={hideCustomAlert}
-      />
-
-      <Formik
-        initialValues={initialValues}
-        validationSchema={validationSchema}
-        onSubmit={handleSubmit}
-        enableReinitialize={true}
-      >
-        {({
-          handleChange,
-          handleBlur,
-          handleSubmit,
-          values,
-          errors,
-          touched,
-          isSubmitting,
-          status,
-        }) => (
-          <View style={styles.formContainer}>
-            {/* Email Input */}
-            <View style={styles.fieldContainer}>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={[
-                    styles.input,
-                    touched.email && errors.email && styles.inputError,
-                  ]}
-                  placeholder="البريد الإلكتروني"
-                  placeholderTextColor={COLORS.gray?.[500]}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  value={values.email}
-                  onChangeText={handleChange('email')}
-                  onBlur={handleBlur('email')}
-                  maxLength={128}
-                />
-                <MaterialDesignIcons
-                  name="email"
-                  size={20}
-                  color={COLORS.gray?.[400]}
-                  style={styles.inputIcon}
-                />
-              </View>
-              {touched.email && errors.email && (
-                <Text style={styles.errorText}>{errors.email}</Text>
-              )}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.logoContainer}>
+            <View style={styles.logoPlaceholder}>
+              <Image
+                source={require('../assets/appIcon.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
             </View>
+            <Text style={styles.logoTitle}>اتحاد بلديات الفيحاء</Text>
+            <Text style={styles.logoSubtitle}>Urban Community Fayhaa</Text>
+          </View>
 
-            {/* Password Input */}
-            <View style={styles.fieldContainer}>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={[
-                    styles.input,
-                    // styles.inputWithIcon,
-                    touched.password && errors.password && styles.inputError,
-                  ]}
-                  placeholder="كلمة المرور"
-                  placeholderTextColor={COLORS.gray?.[500]}
-                  secureTextEntry={!showPassword}
-                  value={values.password}
-                  onChangeText={handleChange('password')}
-                  onBlur={handleBlur('password')}
-                  maxLength={20}
-                  textAlign="right"
-                />
+          <CustomAlert
+            visible={alertVisible}
+            title={alertData.title}
+            message={alertData.message}
+            buttons={alertData.buttons}
+            onClose={hideCustomAlert}
+          />
+
+          <Formik
+            initialValues={initialValues}
+            validationSchema={validationSchema}
+            onSubmit={handleSubmit}
+            enableReinitialize={true}
+          >
+            {({
+              handleChange,
+              handleBlur,
+              handleSubmit,
+              values,
+              errors,
+              touched,
+              isSubmitting,
+              status,
+            }) => (
+              <View style={styles.formContainer}>
+                {/* Email Input */}
+                <View style={styles.fieldContainer}>
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        touched.email && errors.email && styles.inputError,
+                      ]}
+                      placeholder="البريد الإلكتروني"
+                      placeholderTextColor={COLORS.gray?.[500]}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      value={values.email}
+                      onChangeText={handleChange('email')}
+                      onBlur={handleBlur('email')}
+                      maxLength={128}
+                    />
+                    <MaterialDesignIcons
+                      name="email"
+                      size={20}
+                      color={COLORS.gray?.[400]}
+                      style={styles.inputIcon}
+                    />
+                  </View>
+                  {touched.email && errors.email && (
+                    <Text style={styles.errorText}>{errors.email}</Text>
+                  )}
+                </View>
+
+                {/* Password Input */}
+                <View style={styles.fieldContainer}>
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        // styles.inputWithIcon,
+                        touched.password &&
+                          errors.password &&
+                          styles.inputError,
+                      ]}
+                      placeholder="كلمة المرور"
+                      placeholderTextColor={COLORS.gray?.[500]}
+                      secureTextEntry={!showPassword}
+                      value={values.password}
+                      onChangeText={handleChange('password')}
+                      onBlur={handleBlur('password')}
+                      maxLength={20}
+                      textAlign="right"
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.inputIcon}
+                    >
+                      <MaterialDesignIcons
+                        name={showPassword ? 'eye' : 'eye-off'}
+                        size={20}
+                        color={COLORS.gray?.[400]}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {touched.password && errors.password && (
+                    <Text style={styles.errorText}>{errors.password}</Text>
+                  )}
+                </View>
+
+                {/* General Error */}
+                {status && <Text style={styles.error}>{status}</Text>}
+                {error && <Text style={styles.error}>{error}</Text>}
+                {/* Resend Email Section */}
+                {showResendLink && (
+                  <TouchableOpacity
+                    style={[
+                      styles.resendButton,
+                      (isResending ||
+                        resendCount >= maxResends ||
+                        remainingTime > 0) &&
+                        styles.resendButtonDisabled,
+                    ]}
+                    onPress={() => onResendEmail(resendEmail, password)}
+                    disabled={
+                      isResending ||
+                      resendCount >= maxResends ||
+                      remainingTime > 0
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.resendButtonText,
+                        (isResending ||
+                          resendCount >= maxResends ||
+                          remainingTime > 0) &&
+                          styles.resendButtonTextDisabled,
+                      ]}
+                    >
+                      {isResending
+                        ? 'جاري الإرسال...'
+                        : remainingTime > 0
+                        ? `إعادة الإرسال (${remainingTime}s)`
+                        : resendCount >= maxResends
+                        ? 'تم الوصول للحد الأقصى من المحاولات'
+                        : `إعادة إرسال رابط التأكيد (${
+                            maxResends - resendCount
+                          } متبقية)`}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.inputIcon}
+                  style={[styles.button, isSubmitting && styles.buttonDisabled]}
+                  onPress={handleSubmit}
+                  disabled={isSubmitting}
                 >
-                  <MaterialDesignIcons
-                    name={showPassword ? 'eye' : 'eye-off'}
-                    size={20}
-                    color={COLORS.gray?.[400]}
-                  />
+                  <View style={styles.buttonContent}>
+                    <Text style={styles.buttonText}>
+                      {isSubmitting ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handleForgotPassword(values.email)}
+                  disabled={resetting || resetCooldown > 0}
+                >
+                  <Text
+                    style={[
+                      styles.footerText,
+                      (resetting || resetCooldown > 0) && { opacity: 0.6 },
+                    ]}
+                  >
+                    {resetting
+                      ? 'جاري الإرسال...'
+                      : resetCooldown > 0
+                      ? `يمكنك إعادة المحاولة بعد ${resetCooldown}s`
+                      : 'هل نسيت كلمة المرور؟ اضغط هنا لإعادة تعيينها عبر البريد الإلكتروني'}
+                  </Text>
                 </TouchableOpacity>
               </View>
-              {touched.password && errors.password && (
-                <Text style={styles.errorText}>{errors.password}</Text>
-              )}
-            </View>
-
-            {/* General Error */}
-            {status && <Text style={styles.error}>{status}</Text>}
-            {error && <Text style={styles.error}>{error}</Text>}
-            {/* Resend Email Section */}
-            {showResendLink && (
-              <TouchableOpacity
-                style={[
-                  styles.resendButton,
-                  (isResending ||
-                    resendCount >= maxResends ||
-                    remainingTime > 0) &&
-                    styles.resendButtonDisabled,
-                ]}
-                onPress={() => onResendEmail(resendEmail, password)}
-                disabled={
-                  isResending || resendCount >= maxResends || remainingTime > 0
-                }
-              >
-                <Text
-                  style={[
-                    styles.resendButtonText,
-                    (isResending ||
-                      resendCount >= maxResends ||
-                      remainingTime > 0) &&
-                      styles.resendButtonTextDisabled,
-                  ]}
-                >
-                  {isResending
-                    ? 'جاري الإرسال...'
-                    : remainingTime > 0
-                    ? `إعادة الإرسال (${remainingTime}s)`
-                    : resendCount >= maxResends
-                    ? 'تم الوصول للحد الأقصى من المحاولات'
-                    : `إعادة إرسال رابط التأكيد (${
-                        maxResends - resendCount
-                      } متبقية)`}
-                </Text>
-              </TouchableOpacity>
             )}
-
-            <TouchableOpacity
-              style={[styles.button, isSubmitting && styles.buttonDisabled]}
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-            >
-              <View style={styles.buttonContent}>
-                <Text style={styles.buttonText}>
-                  {isSubmitting ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => handleForgotPassword(values.email)}
-              disabled={resetting || resetCooldown > 0}
-            >
-              <Text
-                style={[
-                  styles.footerText,
-                  (resetting || resetCooldown > 0) && { opacity: 0.6 },
-                ]}
-              >
-                {resetting
-                  ? 'جاري الإرسال...'
-                  : resetCooldown > 0
-                  ? `يمكنك إعادة المحاولة بعد ${resetCooldown}s`
-                  : 'هل نسيت كلمة المرور؟ اضغط هنا لإعادة تعيينها عبر البريد الإلكتروني'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </Formik>
-    </View>
+          </Formik>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -447,10 +465,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  scrollContainer: {
+    flexGrow: 1,
     paddingTop: SPACING.xl,
   },
   logoContainer: {
     alignItems: 'center',
+    marginTop: Platform.OS === 'ios' ? 40 : 20, // Added safe area for iOS
   },
   logoPlaceholder: {
     width: SIZES.logo?.lg || 80,

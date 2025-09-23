@@ -3,6 +3,7 @@ import { OneSignal } from 'react-native-onesignal';
 import { COMPLAINT_STATUS } from '../constants';
 import axios from 'axios';
 import { createNavigationContainerRef } from '@react-navigation/native';
+import { ROLES } from '../constants';
 
 export const navigationRef = createNavigationContainerRef();
 export const setUserForNotifications = async userEmail => {
@@ -16,10 +17,15 @@ export const setUserForNotifications = async userEmail => {
 
 export const sendRoleInviteNotification = async (userEmail, role) => {
   try {
-    const roleText = {
-      en: role === 2 ? 'Manager' : 'Worker',
-      ar: role === 2 ? 'مسؤول' : 'موظف',
-    };
+    let roleText;
+
+    if (role === ROLES.MANAGER) {
+      roleText = { en: 'Manager', ar: 'مسؤول' };
+    } else if (role === ROLES.WORKER) {
+      roleText = { en: 'Worker', ar: 'موظف' };
+    } else if (role === ROLES.SUPERVISOR) {
+      roleText = { en: 'Supervisor', ar: 'مراقب' };
+    }
 
     const notificationPayload = {
       app_id: process.env.ONESIGNAL_APP_ID,
@@ -34,7 +40,7 @@ export const sendRoleInviteNotification = async (userEmail, role) => {
       },
       contents: {
         en: `تم دعوتك كـ ${roleText.ar}`,
-        // ar: `تم دعوتك كـ ${roleText.ar}`,
+        // ar: 'تم دعوتك كـ${roleText.ar}`,
       },
       data: {
         type: 'role_invite',

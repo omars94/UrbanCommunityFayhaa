@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   View,
   TextInput,
+  Keyboard,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
   Platform,
   Linking,
 } from 'react-native';
@@ -46,7 +49,7 @@ import { checkLocationServicesEnabled } from '../utils/Permissions.js';
 const ComplaintSchema = Yup.object().shape({
   indicator: Yup.object().required('يرجى اختيار نوع المشكلة'),
   area: Yup.object().required('يرجى اختيار المنطقة'),
-  description: Yup.string().trim().required('يرجى إدخال الوصف'),
+  // description: Yup.string().trim().required('يرجى إدخال الوصف'),
   photo: Yup.mixed().required('يرجى إرفاق صورة'),
 });
 
@@ -249,162 +252,182 @@ export default function AddComplaintScreen() {
   };
 
   return (
-    <ScrollView>
-      <View style={styles.container}>
-        <HeaderSection
-          title="تقديم شكوى"
-          subtitle="الإبلاغ عن مشكلة في منطقتك"
-          showBackButton={true}
-          onBackPress={() => navigation.goBack()}
-        />
-
-        <Formik
-          initialValues={{
-            indicator: null,
-            area: null,
-            description: '',
-            photo: null,
-          }}
-          validationSchema={ComplaintSchema}
-          // onSubmit={handleSubmitComplaint}
-          onSubmit={(values, { resetForm }) =>
-            handleSubmitComplaint(values, resetForm)
-          }
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {({
-            handleChange,
-            handleSubmit,
-            setFieldValue,
-            values,
-            errors,
-            touched,
-          }) => (
-            <View style={styles.content}>
-              {/* Form Card */}
-              <View style={styles.formCard}>
-                {/* Photo Capture */}
-                <View style={styles.photoSection}>
-                  <TouchableOpacity
-                    onPress={() => takePhoto(setFieldValue)}
-                    style={[
-                      styles.photoButton,
-                      values.photo && styles.photoButtonWithImage,
-                    ]}
-                    disabled={imageProcessing}
-                  >
-                    {values.photo ? (
-                      <Image
-                        source={{ uri: values.photo }}
-                        style={styles.photoPreview}
-                      />
-                    ) : (
-                      <View style={styles.photoPlaceholder}>
-                        <MaterialDesignIcons
-                          name="camera-plus-outline"
-                          size={40}
-                          color={COLORS.text.black}
+          <View style={styles.container}>
+            <HeaderSection
+              title="تقديم شكوى"
+              subtitle="الإبلاغ عن مشكلة في منطقتك"
+              showBackButton={true}
+              onBackPress={() => navigation.goBack()}
+            />
+
+            <Formik
+              initialValues={{
+                indicator: null,
+                area: null,
+                description: '',
+                photo: null,
+              }}
+              validationSchema={ComplaintSchema}
+              // onSubmit={handleSubmitComplaint}
+              onSubmit={(values, { resetForm }) =>
+                handleSubmitComplaint(values, resetForm)
+              }
+            >
+              {({
+                handleChange,
+                handleSubmit,
+                setFieldValue,
+                values,
+                errors,
+                touched,
+              }) => (
+                <View style={styles.content}>
+                  {/* Form Card */}
+                  <View style={styles.formCard}>
+                    {/* Photo Capture */}
+                    <View style={styles.photoSection}>
+                      <TouchableOpacity
+                        onPress={() => takePhoto(setFieldValue)}
+                        style={[
+                          styles.photoButton,
+                          values.photo && styles.photoButtonWithImage,
+                        ]}
+                        disabled={imageProcessing}
+                      >
+                        {values.photo ? (
+                          <Image
+                            source={{ uri: values.photo }}
+                            style={styles.photoPreview}
+                          />
+                        ) : (
+                          <View style={styles.photoPlaceholder}>
+                            <MaterialDesignIcons
+                              name="camera-plus-outline"
+                              size={40}
+                              color={COLORS.text.black}
+                            />
+                            <Text style={styles.photoText}>
+                              التقط صورة لتوضيح المشكلة
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                      {touched.photo && errors.photo && (
+                        <Text style={styles.errorText}>{errors.photo}</Text>
+                      )}
+                    </View>
+
+                    {/* Pickers Section */}
+                    <View style={styles.pickersSection}>
+                      <View style={styles.pickerContainer}>
+                        <SimplePicker
+                          label="نوع المشكلة"
+                          options={indicators}
+                          labelKey="description_ar"
+                          selectedValue={values.indicator?.description_ar}
+                          onValueChange={val => setFieldValue('indicator', val)}
                         />
-                        <Text style={styles.photoText}>
-                          التقط صورة لتوضيح المشكلة
-                        </Text>
+                        {touched.indicator && errors.indicator && (
+                          <Text style={styles.errorText}>
+                            {errors.indicator}
+                          </Text>
+                        )}
                       </View>
-                    )}
-                  </TouchableOpacity>
-                  {touched.photo && errors.photo && (
-                    <Text style={styles.errorText}>{errors.photo}</Text>
-                  )}
-                </View>
 
-                {/* Pickers Section */}
-                <View style={styles.pickersSection}>
-                  <View style={styles.pickerContainer}>
-                    <SimplePicker
-                      label="نوع المشكلة"
-                      options={indicators}
-                      labelKey="description_ar"
-                      selectedValue={values.indicator?.description_ar}
-                      onValueChange={val => setFieldValue('indicator', val)}
-                    />
-                    {touched.indicator && errors.indicator && (
-                      <Text style={styles.errorText}>{errors.indicator}</Text>
-                    )}
+                      <View style={styles.pickerContainer}>
+                        <SimplePicker
+                          label="المنطقة"
+                          labelKey="name_ar"
+                          options={areas}
+                          selectedValue={values.area?.name_ar}
+                          onValueChange={val => setFieldValue('area', val)}
+                        />
+                        {touched.area && errors.area && (
+                          <Text style={styles.errorText}>{errors.area}</Text>
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Description Input */}
+                    <View style={styles.inputSection}>
+                      <Text style={styles.inputLabel}>وصف الشكوى</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="اكتب تفاصيل الشكوى هنا..."
+                        placeholderTextColor={COLORS.text.black}
+                        multiline
+                        maxLength={300}
+                        value={values.description}
+                        onChangeText={handleChange('description')}
+                        textAlign="right"
+                      />
+                      <Text style={styles.characterCount}>
+                        {values.description.length}/300
+                      </Text>
+                      {touched.description && errors.description && (
+                        <Text style={styles.errorText}>
+                          {errors.description}
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* Submit Button */}
+                    <TouchableOpacity
+                      disabled={submitting || imageProcessing}
+                      onPress={handleSubmit}
+                      style={[
+                        styles.submitButton,
+                        (submitting || imageProcessing) &&
+                          styles.submitButtonDisabled,
+                      ]}
+                    >
+                      <Text style={styles.submitButtonText}>
+                        {imageProcessing
+                          ? 'جاري معالجة الصورة...'
+                          : submitting
+                          ? 'جاري الإرسال...'
+                          : 'إرسال الشكوى'}
+                      </Text>
+                      <Ionicons
+                        name="send"
+                        // name="paper-plane"
+                        size={20}
+                        color={COLORS.white}
+                        style={styles.submitIcon}
+                      />
+                    </TouchableOpacity>
                   </View>
-
-                  <View style={styles.pickerContainer}>
-                    <SimplePicker
-                      label="المنطقة"
-                      labelKey="name_ar"
-                      options={areas}
-                      selectedValue={values.area?.name_ar}
-                      onValueChange={val => setFieldValue('area', val)}
-                    />
-                    {touched.area && errors.area && (
-                      <Text style={styles.errorText}>{errors.area}</Text>
-                    )}
-                  </View>
                 </View>
+              )}
+            </Formik>
 
-                {/* Description Input */}
-                <View style={styles.inputSection}>
-                  <Text style={styles.inputLabel}>وصف الشكوى</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="اكتب تفاصيل الشكوى هنا..."
-                    placeholderTextColor={COLORS.text.black}
-                    multiline
-                    maxLength={300}
-                    value={values.description}
-                    onChangeText={handleChange('description')}
-                    textAlign="right"
-                  />
-                  <Text style={styles.characterCount}>
-                    {values.description.length}/300
-                  </Text>
-                  {touched.description && errors.description && (
-                    <Text style={styles.errorText}>{errors.description}</Text>
-                  )}
-                </View>
-
-                {/* Submit Button */}
-                <TouchableOpacity
-                  disabled={submitting || imageProcessing}
-                  onPress={handleSubmit}
-                  style={[
-                    styles.submitButton,
-                    (submitting || imageProcessing) &&
-                      styles.submitButtonDisabled,
-                  ]}
-                >
-                  <Text style={styles.submitButtonText}>
-                    {imageProcessing
-                      ? 'جاري معالجة الصورة...'
-                      : submitting
-                      ? 'جاري الإرسال...'
-                      : 'إرسال الشكوى'}
-                  </Text>
-                  <Ionicons
-                    name="send"
-                    // name="paper-plane"
-                    size={20}
-                    color={COLORS.white}
-                    style={styles.submitIcon}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </Formik>
-
-        {/* Custom Alert Component */}
-        <AlertComponent />
-      </View>
-    </ScrollView>
+            {/* Custom Alert Component */}
+            <AlertComponent />
+          </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingTop: SPACING.xl,
   },
   content: {
     flex: 1,
