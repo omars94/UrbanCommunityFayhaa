@@ -67,7 +67,7 @@ export default function AddUserForm() {
     const isSupervisor = role === ROLES.SUPERVISOR;
 
     return {
-      title: isWorker ? 'إضافة موظف جديد' : 'إضافة مراقب جديد',
+      title: isWorker ? (!isUpdateMode? 'إضافة موظف جديد' : 'تعديل بيانات الموظف') : (!isUpdateMode? 'إضافة مراقب جديد' : 'تعديل بيانات المراقب'),
       subtitle: isWorker
         ? 'إدخال بيانات الموظف والمناطق المخصصة'
         : 'إدخال بيانات المراقب والمناطق المخصصة',
@@ -109,7 +109,10 @@ export default function AddUserForm() {
       setPhone(phoneNumber);
 
       setSelectedMunicipalities(userData.municipalities_ids || []);
-      setSelectedAreas(userData.assigned_areas_ids || []);
+      // setSelectedAreas(userData.assigned_areas_ids || []);
+      setTimeout(() => {
+        setSelectedAreas(userData.assigned_areas_ids || []);
+      }, 0);
     }
   }, [isUpdateMode, userData]);
 
@@ -177,13 +180,27 @@ export default function AddUserForm() {
         return;
       }
 
+      const validMunicipalities = selectedMunicipalities.filter(
+        municipalityId =>
+          areas.some(
+            area =>
+              area.municipality_id.toString() === municipalityId.toString() &&
+              selectedAreas.includes(area.id),
+          ),
+      );
+
+      if (validMunicipalities.length === 0) {
+        showCustomAlert('تنبيه', 'يجب اختيار منطقة واحدة على الأقل لكل بلدية');
+        return;
+      }
+
       setSubmitting(true);
 
       if (isUpdateMode) {
         // Update existing user
         try {
           await updateUserAssignments(userData.id, {
-            municipalities: selectedMunicipalities,
+            municipalities: validMunicipalities,
             areas: selectedAreas,
           });
 
@@ -241,7 +258,7 @@ export default function AddUserForm() {
                   try {
                     // Include municipalities and areas in the invite
                     await promoteToRole(id, role, {
-                      municipalities: selectedMunicipalities,
+                      municipalities: validMunicipalities,
                       areas: selectedAreas,
                     });
 

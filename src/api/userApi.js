@@ -53,6 +53,8 @@ export const promoteToRole = async (id, role, { municipalities, areas }) => {
         throw new Error('تم إرسال دعوة لهذا المستخدم ليكون مديراً مسبقاً');
       if (userData.invite_role === ROLES.WORKER)
         throw new Error('تم إرسال دعوة لهذا المستخدم ليكون موظفاً مسبقاً');
+      if(userData.invite_role === ROLES.SUPERVISOR)
+        throw new Error('تم إرسال دعوة لهذا المستخدم ليكون مراقباً مسبقاً');
     }
     await database()
       .ref(`users/${userKey}`)

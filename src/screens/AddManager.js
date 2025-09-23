@@ -98,6 +98,9 @@ export default function AddManagerScreen() {
       } else if (role === ROLES.ADMIN) {
         showCustomAlert('خطأ', 'المستخدم مدير ولا يمكن ترقيته');
         return;
+      } else if (role === ROLES.SUPERVISOR) {
+        showCustomAlert('خطأ', 'المستخدم مراقب ولا يمكن ترقيته');
+        return;
       }
 
       if (role === ROLES.CITIZEN || role === ROLES.WORKER) {
