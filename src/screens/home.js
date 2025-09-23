@@ -432,7 +432,7 @@ export default function HomeScreen() {
                 />
               </View>
               <Text style={styles.menuTitle}>طوارئ</Text>
-              <Text style={styles.menuSubtitle}> فوج الإطفاء </Text>
+              <Text style={styles.menuSubtitle}> اتصل بفوج الإطفاء</Text>
             </TouchableOpacity>
           </View>
 
