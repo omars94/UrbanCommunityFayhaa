@@ -12,3 +12,13 @@ export const fetchAreas = async () => {
         throw error;
     }
 }
+
+export const getMunicipalityByAreaId = async (areaId) => {
+    try {const snapshot = await database().ref(`/areas/${areaId}`).once('value');
+        console.log("fetched area:", snapshot.val());
+        return snapshot.val() ? snapshot.val().municipality_id : null;
+    } catch (error) {
+        console.log("get municipality failed:", error);
+        throw error;
+    }
+}

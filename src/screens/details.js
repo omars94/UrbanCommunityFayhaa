@@ -30,12 +30,14 @@ import {
   listenUsersByRole,
   getEmailbyId,
   getAdminEmails,
+  getWorkerByAreaId,
 } from '../api/userApi';
 import {
   assignComplaint,
   resolveComplaint,
   completeComplaint,
   rejectComplaint,
+  denyComplaint,
 } from '../api/complaints';
 import database from '@react-native-firebase/database';
 import {
@@ -68,6 +70,7 @@ import { formatLebanesePhone } from '../utils/index';
 import { checkLocationServicesEnabled } from '../utils/Permissions.js';
 import CustomAlert from '../components/customAlert';
 import moment from 'moment';
+import { getMunicipalityByAreaId } from '../api/areasApi.js';
 
 const { width } = Dimensions.get('window');
 
@@ -125,12 +128,10 @@ export default function ComplaintDetailsScreen() {
   const [selectedWorker, setSelectedWorker] = useState(
     complaint?.worker_assignee_id || [],
   );
-  const [managers, setManagers] = useState([]);
-  const [selectedManager, setSelectedManager] = useState(
-    complaint?.manager_assignee_id || null,
-  );
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showDenyModal, setShowDenyModal] = useState(false);
+  const [denyreason, setDenyReason] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -139,9 +140,10 @@ export default function ComplaintDetailsScreen() {
   const [capturedImageUri, setCapturedImageUri] = useState('');
   const [shouldRenderMap, setShouldRenderMap] = useState(false);
   const [capturedLocation, setCapturedLocation] = useState(null);
-  // Add custom alert hook
+  const [municipalityId, setMunicipalityId] = useState(null);
   const { showAlert, AlertComponent } = useCustomAlert();
   const [alertVisible, setAlertVisible] = useState(false);
+  const[areasWorkers,setAreasWorkers]=useState([]);
   const [alertData, setAlertData] = useState({
     title: '',
     message: '',
@@ -160,11 +162,6 @@ export default function ComplaintDetailsScreen() {
       // Get user email (complaint creator)
       const userEmail = await getEmailbyId(complaint.user_id);
 
-      // Get manager email if assigned
-      const managerEmail = complaint.manager_assignee_id
-        ? await getEmailbyId(complaint.manager_assignee_id)
-        : null;
-
       // Get worker emails if assigned (handle array)
       const workerEmails = complaint.worker_assignee_id
         ? await getEmailbyId(complaint.worker_assignee_id)
@@ -175,14 +172,7 @@ export default function ComplaintDetailsScreen() {
 
       switch (newStatus) {
         case COMPLAINT_STATUS.ASSIGNED:
-          // When admin assigns to manager
-          if (oldStatus === COMPLAINT_STATUS.PENDING && managerEmail) {
-            notifications.push({
-              emails: [managerEmail],
-              message: 'تم تعيين شكوى جديدة لك من قبل الإدارة',
-            });
-          }
-
+  
           // When manager assigns to worker(s)
           if (
             workerEmails.length > 0 &&
@@ -327,13 +317,17 @@ export default function ComplaintDetailsScreen() {
 
   const user = useSelector(state => state.user.user);
   useEffect(() => {
-    let managersUnsubscribe;
     let workersUnsubscribe;
 
     const setupListeners = async () => {
       try {
-        managersUnsubscribe = listenUsersByRole(ROLES.MANAGER, setManagers);
         workersUnsubscribe = listenUsersByRole(ROLES.WORKER, setWorkers);
+        if (complaint?.area_id) {
+          setAreasWorkers(await getWorkerByAreaId(complaint.area_id));
+          const municipality_id = await getMunicipalityByAreaId(complaint.area_id);
+          setMunicipalityId(municipality_id);
+          console.log("Fetched municipality ID:", municipality_id);
+        }
       } catch (error) {
         console.error('Setup error:', error);
         setError('خطأ في إعداد الاتصال بقاعدة البيانات');
@@ -341,7 +335,6 @@ export default function ComplaintDetailsScreen() {
     };
     setupListeners();
     return () => {
-      if (managersUnsubscribe) managersUnsubscribe();
       if (workersUnsubscribe) workersUnsubscribe();
     };
   }, []);
@@ -356,7 +349,6 @@ export default function ComplaintDetailsScreen() {
         if (data) {
           setComplaintData({ ...data, id: complaint.id });
           setStatus(data.status);
-          setSelectedManager(data.manager_assignee_id || null);
           setSelectedWorker(data.worker_assignee_id || []);
         }
       },
@@ -381,7 +373,6 @@ export default function ComplaintDetailsScreen() {
       if (data) {
         setComplaintData({ ...data, id: complaint.id });
         setStatus(data.status);
-        setSelectedManager(data.manager_assignee_id || null);
         setSelectedWorker(data.worker_assignee_id || []);
       }
     } catch (error) {
@@ -427,6 +418,7 @@ export default function ComplaintDetailsScreen() {
       [COMPLAINT_STATUS.RESOLVED]: COMPLAINT_STATUS_AR.RESOLVED,
       [COMPLAINT_STATUS.COMPLETED]: COMPLAINT_STATUS_AR.COMPLETED,
       [COMPLAINT_STATUS.REJECTED]: COMPLAINT_STATUS_AR.REJECTED,
+      [COMPLAINT_STATUS.DENIED]: COMPLAINT_STATUS_AR.DENIED,
     };
     return statusMap[status] || status || 'غير محدد';
   };
@@ -462,17 +454,12 @@ export default function ComplaintDetailsScreen() {
         );
 
         const updatedComplaint = {
-          ...complaint,
-          status: COMPLAINT_STATUS.ASSIGNED,
-          [user.role === ROLES.ADMIN
-            ? 'manager_assignee_id'
-            : 'worker_assignee_id']:
-            user.role === ROLES.ADMIN
-              ? assignedUserId
-              : Array.isArray(complaint.worker_assignee_id)
-              ? [...complaint.worker_assignee_id, assignedUserId]
-              : [assignedUserId],
-        };
+        ...complaint,
+        status: COMPLAINT_STATUS.ASSIGNED,
+        worker_assignee_id: Array.isArray(complaint.worker_assignee_id)
+          ? [...complaint.worker_assignee_id, assignedUserId]
+          : [assignedUserId],
+      };
 
         await sendNotificationsForStatusChange(
           updatedComplaint,
@@ -675,6 +662,36 @@ export default function ComplaintDetailsScreen() {
       ],
     );
   }, [complaint?.id, user?.id]);
+  
+  const handleDenyComplaint = useCallback(async () => {
+    if(!denyreason.trim()){
+      showCustomAlert('خطأ', 'يجب كتابة سبب الرفض');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const oldStatus = complaint.status;
+      await denyComplaint(complaint.id, denyreason.trim());
+      const updatedComplaint = {
+        ...complaint,
+        status: COMPLAINT_STATUS.DENIED,
+        deny_reason: denyreason.trim(),
+      };
+      await sendNotificationsForStatusChange(
+        updatedComplaint,
+        COMPLAINT_STATUS.DENIED,
+        oldStatus,
+      );
+      setShowDenyModal(false);
+      setDenyReason('');
+      showCustomAlert('تم', 'تم رفض الحل للشكوى');
+    } catch (error) {
+      console.error('Error denying complaint:', error);
+      showCustomAlert('خطأ', 'حدث خطأ أثناء رفض الحل ');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [complaint?.id, denyreason, user.id]);
 
   const handleRejectComplaint = useCallback(async () => {
     if (!rejectionReason.trim()) {
@@ -708,11 +725,8 @@ export default function ComplaintDetailsScreen() {
   }, [complaint?.id, rejectionReason, user.id]);
 
   const renderAssignModal = useCallback(() => {
-    const isAdmin = user?.role === ROLES.ADMIN;
-    const usersToShow = isAdmin ? managers : workers;
-    const modalTitle = isAdmin
-      ? 'اختر مدير لتعيين الشكوى'
-      : 'اختر عامل لتعيين الشكوى';
+    const usersToShow = areasWorkers;
+    const modalTitle = 'اختر عامل لتعيين الشكوى';
 
     return (
       <Modal
@@ -728,8 +742,8 @@ export default function ComplaintDetailsScreen() {
             {usersToShow.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyStateText}>
-                  {isAdmin ? 'لا يوجد مدراء متاحون' : 'لا يوجد عمال متاحون'}
-                </Text>
+                لا يوجد عمال متاحون في هذه المنطقة
+              </Text>
               </View>
             ) : (
               <ScrollView
@@ -773,11 +787,73 @@ export default function ComplaintDetailsScreen() {
   }, [
     showAssignModal,
     user?.role,
-    managers,
     workers,
     isLoading,
     handleAssignComplaint,
   ]);
+
+  const renderDenyModal = useCallback(() => {
+  return (
+    <Modal
+      visible={showDenyModal}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setShowDenyModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>سبب رفض الحل</Text>
+
+          <TextInput
+            style={styles.textInput}
+            placeholder=" اكتب سبب رفض الحل... "
+            multiline
+            numberOfLines={4}
+            value={denyreason}
+            onChangeText={setDenyReason}
+            textAlignVertical="top"
+            maxLength={500}
+            editable={!isLoading}
+          />
+
+          <Text style={styles.characterCount}>
+            {denyreason.length}/500 حرف
+          </Text>
+
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[
+                styles.modalButton,
+                styles.rejectButton,
+                (isLoading || denyreason.length < 1) &&
+                  styles.disabledButton,
+              ]}
+              onPress={handleDenyComplaint}
+              disabled={isLoading || denyreason.length < 1}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <Text style={styles.modalButtonText}>رفض الحل</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelModalButton]}
+              onPress={() => {
+                setShowDenyModal(false);
+                setDenyReason('');
+              }}
+              disabled={isLoading}
+            >
+              <Text style={styles.cancelButtonText}>إلغاء</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}, [showDenyModal, denyreason, isLoading, handleDenyComplaint]);
 
   const renderRejectModal = useCallback(() => {
     return (
@@ -842,134 +918,135 @@ export default function ComplaintDetailsScreen() {
     );
   }, [showRejectModal, rejectionReason, isLoading, handleRejectComplaint]);
 
-  const renderActionButtons = useCallback(() => {
-    const canAssign =
-      (user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.PENDING) ||
-      (user?.role === ROLES.MANAGER && status === COMPLAINT_STATUS.ASSIGNED);
+const renderActionButtons = useCallback(() => {
+  const canAssign =
+    (user?.role === ROLES.ADMIN || user?.role === ROLES.MANAGER) && 
+    (status === COMPLAINT_STATUS.PENDING || status === COMPLAINT_STATUS.ASSIGNED);
 
-    const canResolve =
-      (user?.role === ROLES.WORKER && status === COMPLAINT_STATUS.ASSIGNED) ||
-      (user?.role === ROLES.MANAGER && status === COMPLAINT_STATUS.ASSIGNED);
+  const canResolve =
+    (user?.role === ROLES.WORKER && status === COMPLAINT_STATUS.ASSIGNED) ||
+    (user?.role === ROLES.MANAGER);
 
-    const canComplete =
-      user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.RESOLVED;
+  const canComplete =
+    user?.role === ROLES.SUPERVISOR && status === COMPLAINT_STATUS.RESOLVED;
 
-    const canReject =
-      user?.role === ROLES.ADMIN &&
-      [COMPLAINT_STATUS.PENDING, COMPLAINT_STATUS.RESOLVED].includes(status);
+  const canReject =
+    user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.PENDING;
 
-    const isAlreadyAssigned =
-      user?.role === ROLES.MANAGER &&
-      status === COMPLAINT_STATUS.ASSIGNED &&
-      complaintData?.worker_assignee_id;
+  const canDeny =
+    user?.role === ROLES.SUPERVISOR && status === COMPLAINT_STATUS.RESOLVED;
 
-    if (
-      !canAssign &&
-      !canResolve &&
-      !canComplete &&
-      !canReject &&
-      !isAlreadyAssigned
-    ) {
-      return null;
-    }
+  if (!canAssign && !canResolve && !canComplete && !canReject && !canDeny) {
+    return null;
+  }
 
-    return (
-      <View style={styles.actionsContainer}>
-        {canAssign && (
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.assignButton,
-              isLoading && styles.disabledButton,
-            ]}
-            onPress={() => setShowAssignModal(true)}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
-            ) : (
-              <Text style={styles.actionButtonText}>
-                {user?.role === ROLES.ADMIN
-                  ? 'تعيين لمدير'
-                  : !complaintData?.worker_assignee_id
-                  ? 'تعيين لعامل'
-                  : 'إعادة تعيين العامل'}
-              </Text>
-            )}
-          </TouchableOpacity>
-        )}
+  return (
+    <View style={styles.actionsContainer}>
+      {canAssign && (
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.assignButton,
+            isLoading && styles.disabledButton,
+          ]}
+          onPress={() => setShowAssignModal(true)}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <Text style={styles.actionButtonText}>
+              {!complaintData?.worker_assignee_id
+                ? 'تعيين لعامل'
+                : 'إعادة تعيين العامل'}
+            </Text>
+          )}
+        </TouchableOpacity>
+      )}
 
-        {/* {isAlreadyAssigned && (
-        <View style={[styles.actionButton, styles.alreadyAssignedButton]}>
-          <Text style={styles.actionButtonText}>تم التعيين بالفعل</Text>
-        </View>
-      )} */}
+      {canResolve && (
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.resolveButton,
+            isLoading && styles.disabledButton,
+          ]}
+          onPress={handleResolveComplaint}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <Text style={styles.actionButtonText}>
+              حل المشكلة عن طريق صورة
+            </Text>
+          )}
+        </TouchableOpacity>
+      )}
 
-        {canResolve && (
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.resolveButton,
-              isLoading && styles.disabledButton,
-            ]}
-            onPress={handleResolveComplaint}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
-            ) : (
-              <Text style={styles.actionButtonText}>
-                حل المشكلة عن طريق صورة
-              </Text>
-            )}
-          </TouchableOpacity>
-        )}
+      {canDeny && (
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.rejectActionButton,
+            isLoading && styles.disabledButton,
+          ]}
+          onPress={() => setShowDenyModal(true)}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <Text style={styles.actionButtonText}>رفض الحل</Text>
+          )}
+        </TouchableOpacity>
+      )}
 
-        {canComplete && (
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.completeButton,
-              isLoading && styles.disabledButton,
-            ]}
-            onPress={handleCompleteComplaint}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
-            ) : (
-              <Text style={styles.actionButtonText}>تأكيد الإنجاز</Text>
-            )}
-          </TouchableOpacity>
-        )}
+      {canComplete && (
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.completeButton,
+            isLoading && styles.disabledButton,
+          ]}
+          onPress={handleCompleteComplaint}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <Text style={styles.actionButtonText}>تأكيد الإنجاز</Text>
+          )}
+        </TouchableOpacity>
+      )}
 
-        {canReject && (
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.rejectActionButton,
-              isLoading && styles.disabledButton,
-            ]}
-            onPress={() => setShowRejectModal(true)}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
-            ) : (
-              <Text style={styles.actionButtonText}>رفض الشكوى</Text>
-            )}
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  }, [
-    user?.role,
-    status,
-    complaintData?.worker_assignee_id,
-    isLoading,
-    handleResolveComplaint,
-    handleCompleteComplaint,
-  ]);
+      {canReject && (
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.rejectActionButton,
+            isLoading && styles.disabledButton,
+          ]}
+          onPress={() => setShowRejectModal(true)}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <Text style={styles.actionButtonText}>رفض الشكوى</Text>
+          )}
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}, [
+  user?.role,
+  status,
+  complaintData?.worker_assignee_id,
+  isLoading,
+  handleResolveComplaint,
+  handleCompleteComplaint,
+]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -1105,22 +1182,7 @@ export default function ComplaintDetailsScreen() {
                 <Text style={styles.infoValue}>{complaintData.user_name}</Text>
               </View>
             )}
-            {user.role === ROLES.ADMIN && complaintData.manager_name && (
-              <View style={styles.infoRow}>
-                <MaterialDesignIcons
-                  name="account-tie"
-                  size={20}
-                  color="#2E86AB"
-                  style={{ marginRight: 5 }}
-                />
-
-                <Text style={styles.infoLabel}>المدير المسؤول</Text>
-                <Text style={styles.infoValue}>
-                  {complaintData.manager_name}
-                </Text>
-              </View>
-            )}
-            {(user.role === ROLES.ADMIN || user.role === ROLES.MANAGER) &&
+            {(user.role === ROLES.ADMIN || user.role === ROLES.MANAGER || user.role === ROLES.SUPERVISOR) &&
               complaintData.worker_name && (
                 <View style={styles.infoRow}>
                   <Ionicons
@@ -1193,6 +1255,24 @@ export default function ComplaintDetailsScreen() {
             </Text>
           </View>
 
+          {status === COMPLAINT_STATUS.DENIED &&
+            complaintData.denial_reason && (
+              <View style={[styles.section, styles.rejectionSection]}>
+                <Text style={[styles.sectionTitle, styles.rejectionTitle]}>
+                  سبب رفض الحل
+                </Text>
+                <Text style={styles.rejectionReasonText}>
+                  {complaintData.denial_reason}
+                </Text>
+                {complaintData.denied_at && (
+                  <Text style={styles.rejectionDate}>
+                    تاريخ الرفض: {getTimeAgo(complaintData.denied_at)}
+                  </Text>
+                )}
+              </View>
+            )}
+
+
           {status === COMPLAINT_STATUS.REJECTED &&
             complaintData.rejection_reason && (
               <View style={[styles.section, styles.rejectionSection]}>
@@ -1214,6 +1294,7 @@ export default function ComplaintDetailsScreen() {
       {renderActionButtons()}
       {renderAssignModal()}
       {renderRejectModal()}
+      {renderDenyModal()}
       <ImageResolutionComponent
         capturedImageUri={capturedImageUri}
         onConfirm={async () => {

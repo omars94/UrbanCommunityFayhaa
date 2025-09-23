@@ -66,6 +66,14 @@ export const resolveComplaint = async (complaintId, photo_url, compressed_url, r
   return await updateComplaintInDB(complaintId, updates);
 };
 
+export const denyComplaint = async (complaintId, denialReason) => {
+  const updates = {
+    status: COMPLAINT_STATUS.DENIED,
+    denied_at: new Date().toISOString(),
+    denial_reason: denialReason,
+  };
+  return await updateComplaintInDB(complaintId, updates);
+};
 export const completeComplaint = async (complaintId) => {
   const updates = {
     status: COMPLAINT_STATUS.COMPLETED,

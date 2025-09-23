@@ -289,3 +289,28 @@ export const getEmailbyId = async ids => {
     throw error;
   }
 };
+
+
+export const getWorkerByAreaId = async areaId => {
+  try {
+    const snapshot = await database()
+      .ref('users')
+      .orderByChild('assigned_areas_ids')
+      .once('value');
+    const usersData = snapshot.val();
+    if (!usersData) {
+      return [];
+    }
+    const workers = Object.values(usersData).filter(user => {
+      return (
+        user.role === ROLES.WORKER && 
+        Array.isArray(user.assigned_areas_ids) &&
+        user.assigned_areas_ids.includes(areaId)
+      );
+    });
+    return workers;
+  } catch (error) {
+    console.log('Fetching workers by areaId failed:', error);
+    throw error;
+  }
+};

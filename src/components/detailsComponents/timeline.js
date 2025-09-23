@@ -11,13 +11,8 @@ const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
       return 'تم تعيين الشكوى';
     }
 
-    // For ADMIN and MANAGER, show detailed assignment info
+    // For ADMIN and MANAGER, show worker assignments only
     const labels = [];
-    
-    // Admin assignment
-    if (currentComplaint.manager_assignee_id) {
-      labels.push(`تم تعيين للإدارة `);
-    }
     
     // Worker assignments
     if (currentComplaint.worker_assignee_id && currentComplaint.worker_assignee_id.length > 0) {
@@ -33,28 +28,25 @@ const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
   // Function to get assignment dates based on user role
   const getAssignmentDates = () => {
     if (userRole === ROLES.CITIZEN) {
-      return [currentComplaint.assigned_at || currentComplaint.assigned_to_worker_at?.[0]];
+      return [currentComplaint.assigned_to_worker_at?.[0] || currentComplaint.assigned_at];
     }
 
     const dates = [];
     
-    // Admin assignment date
-    if (currentComplaint.assigned_at) {
-      dates.push(currentComplaint.assigned_at);
-    }
-    
-    // Worker assignment dates
+    // Worker assignment dates only
     if (currentComplaint.assigned_to_worker_at && currentComplaint.assigned_to_worker_at.length > 0) {
       dates.push(...currentComplaint.assigned_to_worker_at);
     }
     
-    return dates.length > 0 ? dates : [currentComplaint.assigned_at || currentComplaint.assigned_to_worker_at?.[0]];
+    return dates.length > 0 ? dates : [currentComplaint.assigned_to_worker_at?.[0] || currentComplaint.assigned_at];
   };
   
+  // Handle rejected complaints timeline
   if (status === COMPLAINT_STATUS.REJECTED) {
-    const hasAssigned = currentComplaint.assigned_at || currentComplaint.assigned_to_worker_at;
+    const hasAssigned = currentComplaint.assigned_to_worker_at || currentComplaint.assigned_at;
     const hasResolved = currentComplaint.resolved_at;
     const hasCompleted = currentComplaint.completed_at;
+    const hasDenied = currentComplaint.denied_at;
     
     const rejectedSteps = [
       {
@@ -99,6 +91,16 @@ const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
       });
     }
 
+    if (hasDenied) {
+      rejectedSteps.push({
+        key: 'denied',
+        label: 'تم رفض الحل',
+        completed: true,
+        date: currentComplaint.denied_at,
+        isDenied: true
+      });
+    }
+
     if (hasCompleted) {
       rejectedSteps.push({
         key: 'completed',
@@ -122,13 +124,16 @@ const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
           <View key={step.key} style={styles.timelineItem}>
             <View style={[
               styles.timelineDot,
-              step.completed && (step.isRejected ? styles.timelineDotRejected : styles.timelineDotCompleted),
+              step.completed && (step.isRejected ? styles.timelineDotRejected : 
+                               step.isDenied ? styles.timelineDotDenied : 
+                               styles.timelineDotCompleted),
               status === step.key && styles.timelineDotActive
             ]} />
             <View style={styles.timelineContent}>
               <Text style={[
                 styles.timelineLabel,
-                step.isRejected && styles.rejectedTimelineLabel
+                step.isRejected && styles.rejectedTimelineLabel,
+                step.isDenied && styles.deniedTimelineLabel
               ]}>{step.label}</Text>
               <Text style={styles.timelineDate}>
                 {getTimeAgo(step.date)}
@@ -141,7 +146,86 @@ const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
     );
   }
 
-  // Regular timeline steps
+  // Handle denied status timeline
+  if (status === COMPLAINT_STATUS.DENIED) {
+    const hasAssigned = currentComplaint.assigned_to_worker_at || currentComplaint.assigned_at;
+    
+    const deniedSteps = [
+      {
+        key: 'submitted',
+        label: 'تم استلام الشكوى',
+        completed: true,
+        date: currentComplaint.created_at
+      }
+    ];
+
+    if (hasAssigned) {
+      const assignmentLabels = getAssignmentLabel();
+      const assignmentDates = getAssignmentDates();
+      
+      if (Array.isArray(assignmentLabels)) {
+        // Multiple assignments (for admin/manager view)
+        assignmentLabels.forEach((label, index) => {
+          deniedSteps.push({
+            key: `assigned_${index}`,
+            label: label,
+            completed: true,
+            date: assignmentDates[index] || assignmentDates[0]
+          });
+        });
+      } else {
+        // Single assignment label (for citizen view)
+        deniedSteps.push({
+          key: 'assigned',
+          label: assignmentLabels,
+          completed: true,
+          date: assignmentDates[0]
+        });
+      }
+    }
+
+    deniedSteps.push(
+      {
+        key: 'resolved',
+        label: 'تم الحل',
+        completed: true,
+        date: currentComplaint.resolved_at
+      },
+      {
+        key: 'denied',
+        label: 'تم رفض الحل',
+        completed: true,
+        date: currentComplaint.denied_at,
+        isDenied: true
+      }
+    );
+
+    return (
+      <View style={styles.timelineContainer}>
+        {deniedSteps.map((step, index) => (
+          <View key={step.key} style={styles.timelineItem}>
+            <View style={[
+              styles.timelineDot,
+              step.completed && (step.isDenied ? styles.timelineDotDenied : styles.timelineDotCompleted),
+              status === step.key && styles.timelineDotActive
+            ]} />
+            <View style={styles.timelineContent}>
+              <Text style={[
+                styles.timelineLabel,
+                step.isDenied && styles.deniedTimelineLabel
+              ]}>{step.label}</Text>
+              <Text style={styles.timelineDate}>
+                {getTimeAgo(step.date)}
+              </Text>
+            </View>
+            {index < deniedSteps.length - 1 && <View style={styles.timelineLine} />}
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  // Regular timeline steps for other statuses
   const timelineSteps = [
     {
       key: 'submitted',
@@ -151,8 +235,8 @@ const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
     }
   ];
 
-  // Handle assignment steps based on user role
-  const hasAssigned = currentComplaint.assigned_at || currentComplaint.assigned_to_worker_at;
+  // Handle assignment steps based on user role (workers only now)
+  const hasAssigned = currentComplaint.assigned_to_worker_at || currentComplaint.assigned_at;
   if (hasAssigned) {
     const assignmentLabels = getAssignmentLabel();
     const assignmentDates = getAssignmentDates();
@@ -191,16 +275,29 @@ const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
     {
       key: 'resolved',
       label: 'تم الحل',
-      completed: [COMPLAINT_STATUS.RESOLVED, COMPLAINT_STATUS.COMPLETED].includes(status),
+      completed: [COMPLAINT_STATUS.RESOLVED, COMPLAINT_STATUS.COMPLETED, COMPLAINT_STATUS.DENIED].includes(status),
       date: currentComplaint.resolved_at
-    },
-    {
-      key: 'completed',
-      label: 'مكتملة',
-      completed: status === COMPLAINT_STATUS.COMPLETED,
-      date: currentComplaint.completed_at
     }
   );
+
+  // Add deny step if solution was denied
+  if (currentComplaint.denied_at) {
+    timelineSteps.push({
+      key: 'denied',
+      label: 'تم رفض الحل',
+      completed: status === COMPLAINT_STATUS.DENIED,
+      date: currentComplaint.denied_at,
+      isDenied: true
+    });
+  }
+
+  // Add completion step
+  timelineSteps.push({
+    key: 'completed',
+    label: 'مكتملة',
+    completed: status === COMPLAINT_STATUS.COMPLETED,
+    date: currentComplaint.completed_at
+  });
 
   return (
     <View style={styles.timelineContainer}>
@@ -208,11 +305,14 @@ const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
         <View key={step.key} style={styles.timelineItem}>
           <View style={[
             styles.timelineDot,
-            step.completed && styles.timelineDotCompleted,
+            step.completed && (step.isDenied ? styles.timelineDotDenied : styles.timelineDotCompleted),
             status === step.key && styles.timelineDotActive
           ]} />
           <View style={styles.timelineContent}>
-            <Text style={styles.timelineLabel}>{step.label}</Text>
+            <Text style={[
+              styles.timelineLabel,
+              step.isDenied && styles.deniedTimelineLabel
+            ]}>{step.label}</Text>
             <Text style={styles.timelineDate}>
               {getTimeAgo(step.date)}
             </Text>
@@ -253,6 +353,9 @@ const styles = StyleSheet.create({
   timelineDotRejected: {
     backgroundColor: COLORS.danger,
   },
+  timelineDotDenied: {
+    backgroundColor: COLORS.warning || '#f39c12', // Orange color for denied status
+  },
   timelineContent: {
     flex: 1,
   },
@@ -264,6 +367,10 @@ const styles = StyleSheet.create({
   },
   rejectedTimelineLabel: {
     color: COLORS.danger,
+    fontWeight: FONT_WEIGHTS.bold,
+  },
+  deniedTimelineLabel: {
+    color: COLORS.warning || '#f39c12', // Orange color for denied text
     fontWeight: FONT_WEIGHTS.bold,
   },
   timelineDate: {
