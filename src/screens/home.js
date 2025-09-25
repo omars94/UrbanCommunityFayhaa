@@ -114,8 +114,8 @@ export default function HomeScreen() {
 
       complaintFirstLabel = 'شكوى معيّنة';
       complaintFirstNumber = assignedComplaints;
-      complaintSecondNumber = 'شكوى جديدة';
-      complaintSecondLabel = pendingComplaints;
+      complaintSecondNumber = pendingComplaints;
+      complaintSecondLabel = 'شكوى جديدة';
       break;
     case 3:
       const workerAssignedComplaints = (complaints || []).filter(
