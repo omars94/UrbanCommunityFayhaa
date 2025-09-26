@@ -117,7 +117,7 @@ export default function AddManagerScreen() {
               text: 'تأكيد',
               onPress: async () => {
                 try {
-                  await promoteToRole(id, ROLES.MANAGER);
+                  await promoteToRole(id, ROLES.MANAGER, {});
                   setPhone('');
                   fetchManagers();
                   showCustomAlert('نجاح', 'تم  ارسال دعوة الترقية بنجاح');
