@@ -95,9 +95,9 @@ export default function HomeScreen() {
   });
 
   const role = user.role;
-  let complaintFirstNumber;
+  let complaintFirstNumber = 0;
   let complaintFirstLabel;
-  let complaintSecondNumber;
+  let complaintSecondNumber = 0;
   let complaintSecondLabel;
 
   switch (role) {
@@ -155,8 +155,8 @@ export default function HomeScreen() {
       ).length;
       console.log('notComletedComplaints', notCompletedComplaints);
       complaintFirstLabel = 'شكوى معيّنة';
-      complaintFirstNumber = workerAssignedComplaints;
-      complaintSecondNumber = assignedComplaints;
+      complaintFirstNumber = assignedAreaComplaints;
+      complaintSecondNumber = notCompletedComplaints;
       complaintSecondLabel = ' شكوى للمراجعة';
 
       break;

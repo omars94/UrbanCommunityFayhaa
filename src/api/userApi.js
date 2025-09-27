@@ -53,7 +53,7 @@ export const promoteToRole = async (id, role, { municipalities, areas }) => {
         throw new Error('تم إرسال دعوة لهذا المستخدم ليكون مديراً مسبقاً');
       if (userData.invite_role === ROLES.WORKER)
         throw new Error('تم إرسال دعوة لهذا المستخدم ليكون موظفاً مسبقاً');
-      if(userData.invite_role === ROLES.SUPERVISOR)
+      if (userData.invite_role === ROLES.SUPERVISOR)
         throw new Error('تم إرسال دعوة لهذا المستخدم ليكون مراقباً مسبقاً');
     }
     await database()
@@ -133,14 +133,12 @@ export const revokeRole = async id => {
     }
 
     const userKey = Object.keys(snapshot.val())[0];
-    await database()
-      .ref(`users/${userKey}`)
-      .update({
-        invite_role: null,
-        municipalities_ids: null,
-        assigned_areas_ids: null,
-        role: ROLES.CITIZEN,
-      });
+    await database().ref(`users/${userKey}`).update({
+      invite_role: null,
+      municipalities_ids: null,
+      assigned_areas_ids: null,
+      role: ROLES.CITIZEN,
+    });
     return true;
   } catch (error) {
     throw error;
@@ -171,8 +169,8 @@ export const updateUser = async user => {
   }
 };
 
-export const updateUserAssignments = async (id, {municipalities, areas}) => {
-  try{
+export const updateUserAssignments = async (id, { municipalities, areas }) => {
+  try {
     if (!id) throw new Error('لم يتم الحصول على رقم التعريف ID');
     const snapshot = await database()
       .ref('users')
@@ -184,14 +182,16 @@ export const updateUserAssignments = async (id, {municipalities, areas}) => {
       throw new Error('المستخدم غير موجود');
     }
 
-    await database().ref(`users/${id}`).update({
-      municipalities_ids: municipalities || null,
-      assigned_areas_ids: areas || null,
-    });
+    await database()
+      .ref(`users/${id}`)
+      .update({
+        municipalities_ids: municipalities || null,
+        assigned_areas_ids: areas || null,
+      });
   } catch (error) {
     throw error;
   }
-}
+};
 
 export const listenUsersByRole = (role, callback) => {
   const reference = database().ref('/users').orderByChild('role').equalTo(role);
@@ -213,12 +213,47 @@ export const listenUsersByRole = (role, callback) => {
   return () => reference.off('value', onValueChange);
 };
 
-export const getAdminEmails = async () => {
+export const getSupervisorEmailsByArea = async areaId => {
+  if (!areaId) {
+    return [];
+  }
+
+  try {
+    const supervisorsRef = database()
+      .ref('users')
+      .orderByChild('role')
+      .equalTo(ROLES.SUPERVISOR);
+
+    const snapshot = await supervisorsRef.once('value');
+
+    const supervisorEmails = [];
+
+    snapshot.forEach(supervisorSnapshot => {
+      const supervisor = supervisorSnapshot.val();
+
+      if (
+        supervisor.assigned_areas_ids &&
+        Array.isArray(supervisor.assigned_areas_ids) &&
+        supervisor.assigned_areas_ids.includes(areaId) &&
+        supervisor.email
+      ) {
+        supervisorEmails.push(supervisor.email);
+      }
+    });
+
+    return supervisorEmails;
+  } catch (error) {
+    console.error('Error fetching supervisor emails:', error);
+    return [];
+  }
+};
+
+export const getManagerEmail = async () => {
   try {
     const snapshot = await database()
       .ref('users')
       .orderByChild('role')
-      .equalTo(1)
+      .equalTo(ROLES.MANAGER)
       .once('value');
 
     const usersData = snapshot.val();
@@ -228,89 +263,9 @@ export const getAdminEmails = async () => {
     }
 
     const emails = Object.values(usersData).map(user => user.email || '');
-    // // Extract id and email
-    // const result = Object.entries(usersData).map(([key, user]) => ({
-    //   id: user.id || key,
-    //   email: user.email || '',
     return emails;
   } catch (error) {
-    console.log('Fetching users with role=1 failed:', error);
-    throw error;
-  }
-};
-
-export const getEmailbyId = async ids => {
-  try {
-    // Handle both single ID and array of IDs
-    const idsArray = Array.isArray(ids) ? ids : [ids];
-    const isInvalidInput = idsArray.length === 0 || idsArray.some(id => !id);
-
-    if (isInvalidInput) {
-      throw new Error('معرف المستخدم مطلوب');
-    }
-
-    const emailPromises = idsArray.map(async id => {
-      try {
-        const snapshot = await database()
-          .ref('users')
-          .orderByChild('id')
-          .equalTo(id)
-          .once('value');
-
-        if (!snapshot.exists()) {
-          return { id, email: null, error: 'المستخدم غير موجود' };
-        }
-
-        const userKey = Object.keys(snapshot.val())[0];
-        const userData = snapshot.val()[userKey];
-        return { id, email: userData.email || null };
-      } catch (error) {
-        return { id, email: null, error: error.message };
-      }
-    });
-
-    const results = await Promise.all(emailPromises);
-
-    // If single ID was passed, return single result
-    if (!Array.isArray(ids)) {
-      const result = results[0];
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      return result.email;
-    }
-
-    // For arrays, return array of emails (excluding failed ones)
-    return results
-      .filter(result => result.email !== null && !result.error)
-      .map(result => result.email);
-  } catch (error) {
-    console.log('Fetching emails failed:', error);
-    throw error;
-  }
-};
-
-
-export const getWorkerByAreaId = async areaId => {
-  try {
-    const snapshot = await database()
-      .ref('users')
-      .orderByChild('assigned_areas_ids')
-      .once('value');
-    const usersData = snapshot.val();
-    if (!usersData) {
-      return [];
-    }
-    const workers = Object.values(usersData).filter(user => {
-      return (
-        user.role === ROLES.WORKER && 
-        Array.isArray(user.assigned_areas_ids) &&
-        user.assigned_areas_ids.includes(areaId)
-      );
-    });
-    return workers;
-  } catch (error) {
-    console.log('Fetching workers by areaId failed:', error);
+    console.log('Fetching users with role=2 failed:', error);
     throw error;
   }
 };

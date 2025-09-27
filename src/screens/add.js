@@ -39,7 +39,11 @@ import {
   useCustomAlert,
 } from '../utils/Permissions.js';
 import { addNewComplaint } from '../api/complaintsApi.js';
-import { getAdminEmails } from '../api/userApi.js';
+import {
+  getAdminEmails,
+  getManagerEmail,
+  getSupervisorEmailsByArea,
+} from '../api/userApi.js';
 import { sendComplaintSttsNotification } from '../services/notifications.js';
 import ImageService from '../services/ImageService.js';
 import HeaderSection from '../components/headerSection.js';
@@ -203,21 +207,22 @@ export default function AddComplaintScreen() {
       console.log('Database result:', result);
 
       if (result.success) {
-        console.log('Complaint saved, fetching admin emails...');
-        const adminEmails = await getAdminEmails();
+        console.log(
+          'Complaint saved, fetching supervisor and manager emails...',
+        );
 
-        console.log('Admin emails:', adminEmails);
+        const [supervisorEmails, managerEmails] = await Promise.all([
+          getSupervisorEmailsByArea(complaintData.area_id),
+          getManagerEmail(),
+        ]);
 
-        if (adminEmails.length > 0) {
-          //   await sendComplaintSttsNotification(
-          //     adminEmails,
-          //     complaintData.status,
-          //     result.complaint,
-          //   );
-          // }
+        const allEmails = [...supervisorEmails, ...managerEmails];
+        console.log('All emails:', allEmails);
+
+        if (allEmails.length > 0) {
           try {
             await sendComplaintSttsNotification(
-              adminEmails,
+              allEmails,
               complaintData.status,
               result.complaint,
             );
@@ -225,6 +230,7 @@ export default function AddComplaintScreen() {
             console.error('Failed to send notification:', notifyError);
           }
         }
+
         console.log('Success! Showing alert...');
         resetForm();
         showAlert('تم الحفظ بنجاح', 'تم حفظ الشكوى بنجاح', [
