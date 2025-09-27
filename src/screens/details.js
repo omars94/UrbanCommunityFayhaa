@@ -925,7 +925,7 @@ const renderActionButtons = useCallback(() => {
 
   const canResolve =
     (user?.role === ROLES.WORKER && status === COMPLAINT_STATUS.ASSIGNED) ||
-    (user?.role === ROLES.MANAGER);
+    (user?.role === ROLES.MANAGER && (status == COMPLAINT_STATUS.ASSIGNED || status == COMPLAINT_STATUS.PENDING));
 
   const canComplete =
     user?.role === ROLES.SUPERVISOR && status === COMPLAINT_STATUS.RESOLVED;
