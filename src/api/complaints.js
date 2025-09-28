@@ -28,11 +28,7 @@ export const assignComplaint = async (complaintId, assignedUserId, assignedUserN
     status: COMPLAINT_STATUS.ASSIGNED,
   };
 
-  if (userRole === ROLES.ADMIN) {
-    updates.manager_assignee_id = assignedUserId;
-    updates.manager_name = assignedUserName;
-    updates.assigned_at = new Date().toISOString();
-  } else if (userRole === ROLES.MANAGER) {
+  if (userRole === ROLES.MANAGER || userRole === ROLES.ADMIN) {
     const complaintRef = database().ref(`complaints/${complaintId}`);
     const snapshot = await complaintRef.once('value');
     const currentData = snapshot.val();
