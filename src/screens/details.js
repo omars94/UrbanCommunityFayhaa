@@ -29,8 +29,9 @@ import { useSelector } from 'react-redux';
 import {
   listenUsersByRole,
   getEmailbyId,
-  getAdminEmails,
+  getManagerEmail,
   getWorkerByAreaId,
+  getSupervisorEmailsByArea
 } from '../api/userApi';
 import {
   assignComplaint,
@@ -168,132 +169,99 @@ export default function ComplaintDetailsScreen() {
         : [];
 
       // Get admin emails
-      const adminEmails = await getAdminEmails();
+      const managerEmails = await getManagerEmail();
 
-      switch (newStatus) {
-        case COMPLAINT_STATUS.ASSIGNED:
-  
-          // When manager assigns to worker(s)
-          if (
-            workerEmails.length > 0 &&
-            oldStatus === COMPLAINT_STATUS.ASSIGNED
-          ) {
-            notifications.push({
-              emails: workerEmails,
-              message: 'تم تعيين شكوى جديدة لك من قبل المدير',
-            });
-          }
+      const supervisorEmails = await getSupervisorEmailsByArea(complaintData.area_id);
 
-          // Notify user about assignment
-          // if (userEmail) {
-          //   notifications.push({
-          //     emails: [userEmail],
-          //     message: 'تم تعيين شكواك للجهة المختصة'
-          //   });
-          // }
-          break;
-
-        case COMPLAINT_STATUS.RESOLVED:
-          // Notify manager when worker resolves
-          // if (managerEmail) {
-          //   notifications.push({
-          //     emails: [managerEmail],
-          //     message: 'تم حل شكوى من قبل العامل المسؤول'
-          //   });
-          // }
-
-          // Notify admin when complaint is resolved
-          if (adminEmails.length > 0) {
-            notifications.push({
-              emails: adminEmails,
-              message: 'شكوى جديدة تحتاج إلى تأكيد الإنجاز',
-            });
-          }
-
-          // Notify user about resolution
-          // if (userEmail) {
-          //   notifications.push({
-          //     emails: [userEmail],
-          //     message: 'تم حل شكواك وفي انتظار تأكيد الإنجاز'
-          //   });
-          // }
-          break;
-
-        case COMPLAINT_STATUS.COMPLETED:
-          // Notify manager when admin completes
-          // if (managerEmail) {
-          //   notifications.push({
-          //     emails: [managerEmail],
-          //     message: 'تم تأكيد إنجاز شكوى من قبل الإدارة'
-          //   });
-          // }
-
-          // Notify worker(s) when admin completes
-          // if (workerEmails.length > 0) {
-          //   notifications.push({
-          //     emails: workerEmails,
-          //     message: 'تم تأكيد إنجاز شكوى عملت عليها'
-          //   });
-          // }
-
-          // Notify user about completion
-          if (userEmail) {
-            notifications.push({
-              emails: [userEmail],
-              message: 'تم إنجاز شكواك بنجاح',
-            });
-          }
-          break;
-
-        case COMPLAINT_STATUS.REJECTED:
-          // Notify manager when admin rejects
-          // if (managerEmail) {
-          //   notifications.push({
-          //     emails: [managerEmail],
-          //     message: 'تم رفض شكوى من قبل الإدارة'
-          //   });
-          // }
-
-          // Notify worker(s) when admin rejects
-          // if (workerEmails.length > 0) {
-          //   notifications.push({
-          //     emails: workerEmails,
-          //     message: 'تم رفض شكوى كنت مسؤولاً عنها'
-          //   });
-          // }
-
-          // Notify user about rejection
-          // if (userEmail) {
-          //   notifications.push({
-          //     emails: [userEmail],
-          //     message: 'تم رفض شكواك'
-          //   });
-          // }
-          break;
-      }
-
-      // Send all notifications
-      for (const notification of notifications) {
-        try {
-          await sendComplaintSttsNotification(
-            notification.emails,
-            newStatus,
-            complaint,
-          );
-          console.log(
-            `Notification sent to:`,
-            notification.emails,
-            `Message: ${notification.message}`,
-          );
-        } catch (error) {
-          console.error('Error sending notification:', error);
+switch (newStatus) {
+      case COMPLAINT_STATUS.ASSIGNED:
+        // When complaint is assigned, notify worker and supervisor of the specific municipality
+        if (workerEmails.length > 0 && oldStatus === COMPLAINT_STATUS.PENDING) {
+          notifications.push({
+            emails: workerEmails,
+            message: 'تم تعيين شكوى جديدة لك من قبل المدير',
+          });
         }
-      }
-    } catch (error) {
-      console.error('Error in sendNotificationsForStatusChange:', error);
-    }
-  };
 
+        // Notify supervisor of the specific municipality
+        if (supervisorEmails.length > 0) {
+          notifications.push({
+            emails: supervisorEmails,
+            message: 'تم تعيين شكوى جديدة في منطقتك',
+          });
+        }
+        break;
+
+      case COMPLAINT_STATUS.RESOLVED:
+        // When resolved by worker, notify managers and the specific supervisor
+        if (managerEmails.length > 0) {
+          notifications.push({
+            emails: managerEmails,
+            message: 'تم حل شكوى من قبل العامل المسؤول',
+          });
+        }
+
+        // Notify supervisor of the specific municipality
+        if (supervisorEmails.length > 0) {
+          notifications.push({
+            emails: supervisorEmails,
+            message: 'شكوى جديدة تحتاج إلى تأكيد الإنجاز في منطقتك',
+          });
+        }
+        break;
+
+      case COMPLAINT_STATUS.COMPLETED:
+        // When completed, only notify the citizen (complaint creator)
+        if (userEmail) {
+          notifications.push({
+            emails: [userEmail],
+            message: 'تم إنجاز شكواك بنجاح',
+          });
+        }
+        break;
+
+      case COMPLAINT_STATUS.REJECTED:
+        // When rejected, only notify the citizen (complaint creator)
+        if (userEmail) {
+          notifications.push({
+            emails: [userEmail],
+            message: 'تم رفض شكواك',
+          });
+        }
+        break;
+
+      case COMPLAINT_STATUS.DENIED:
+        // When solution is denied, notify the worker to redo the work
+        if (workerEmails.length > 0) {
+          notifications.push({
+            emails: workerEmails,
+            message: 'تم رفض الحل المقترح للشكوى، يرجى إعادة المحاولة',
+          });
+        }
+        break;
+    }
+
+    // Send all notifications
+    for (const notification of notifications) {
+      try {
+        await sendComplaintSttsNotification(
+          notification.emails,
+          newStatus,
+          complaint,
+        );
+        console.log(
+          `Notification sent to:`,
+          notification.emails,
+          `Message: ${notification.message}`,
+        );
+      } catch (error) {
+        console.error('Error sending notification:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Error in sendNotificationsForStatusChange:', error);
+  }
+};
   // Custom Alert Functions
   const showCustomAlert = (title, message, buttons = []) => {
     setAlertData({ title, message, buttons });
