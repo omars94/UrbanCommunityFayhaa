@@ -31,7 +31,7 @@ import {
 } from '../constants';
 // import database from '@react-native-firebase/database';
 import moment from 'moment';
-import { fetchComplaints } from '../api/complaintsApi';
+import { listenToComplaints } from '../api/complaintsApi';
 import { setComplaints } from '../slices/complaintsSlice';
 import HeaderSection from '../components/headerSection';
 import { getTimeAgo } from './details';
@@ -194,11 +194,11 @@ export default function ComplaintsScreen() {
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await getComplaints();
-    setRefreshing(false);
-  };
+  // const onRefresh = async () => {
+  //   setRefreshing(true);
+  //   await getComplaints();
+  //   setRefreshing(false);
+  // };
 
   // Enhanced filtering logic
   const filteredComplaints = useMemo(() => {
@@ -308,18 +308,18 @@ export default function ComplaintsScreen() {
     );
   }, [complaints, selectedArea, selectedIndicator, selectedFilter, user]);
 
-  const getComplaints = async () => {
-    setLoading(true);
-    try {
-      // const complaintsArray = await fetchComplaints();
-      fetchComplaints(dispatch, setComplaints);
-    } catch (error) {
-      console.error('خطأ في جلب الشكاوى:', error);
-      Alert.alert('خطأ', 'حدث خطأ أثناء جلب الشكاوى');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const getComplaints = async () => {
+  //   setLoading(true);
+  //   try {
+  //     // const complaintsArray = await fetchComplaints();
+  //     fetchComplaints(dispatch, setComplaints);
+  //   } catch (error) {
+  //     console.error('خطأ في جلب الشكاوى:', error);
+  //     Alert.alert('خطأ', 'حدث خطأ أثناء جلب الشكاوى');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   // Initialize filter based on user role
   useEffect(() => {
@@ -327,11 +327,28 @@ export default function ComplaintsScreen() {
   }, [user]);
 
   // Refresh complaints when screen comes into focus
+  // useFocusEffect(
+  //   React.useCallback(() => {
+  //     getComplaints();
+  //     // eslint-disable-next-line react-hooks/exhaustive-deps
+  //   }, []),
+  // );
+
+    // Listen for complaints in realtime
   useFocusEffect(
     React.useCallback(() => {
-      getComplaints();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
+      setLoading(true);
+
+      // Start listening
+      const unsubscribe = listenToComplaints(dispatch, setComplaints);
+
+      setLoading(false);
+
+      // Cleanup listener when screen loses focus
+      return () => {
+        unsubscribe();
+      };
+    }, [dispatch, setComplaints]),
   );
 
   const getStatusText = status => {
@@ -690,14 +707,14 @@ const clearAllFilters = () => {
         style={styles.flatList}
         keyExtractor={item => item.id}
         renderItem={renderComplaint}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
-          />
-        }
+        // refreshControl={
+        //   <RefreshControl
+        //     refreshing={refreshing}
+        //     onRefresh={onRefresh}
+        //     colors={[COLORS.primary]}
+        //     tintColor={COLORS.primary}
+        //   />
+        // }
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={

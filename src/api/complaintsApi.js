@@ -18,6 +18,27 @@ export const fetchComplaints = async (dispatch, setComplaints) => {
   }
 };
 
+export const listenToComplaints = (dispatch, setComplaints) => {
+  const ref = database().ref('/complaints');
+
+  // Attach a realtime listener
+  ref.on('value', snapshot => {
+    const complaintsData = snapshot.val();
+    const complaintsArray = complaintsData
+      ? Object.keys(complaintsData).map(key => ({
+          id: key,
+          ...complaintsData[key],
+        }))
+      : [];
+    dispatch(setComplaints(complaintsArray));
+  }, error => {
+    console.error('خطأ في الاستماع إلى الشكاوى:', error);
+  });
+
+  // Return unsubscribe function so you can stop listening when needed
+  return () => ref.off('value');
+};
+
 // export const addNewComplaint = async (
 //   complaintData,
 //   dispatch,
