@@ -94,7 +94,7 @@ export const sendComplaintSttsNotification = async (
     let message = null;
     switch (status) {
       case COMPLAINT_STATUS.ASSIGNED:
-        message = 'تم تعيين شكوى جديدة لك';
+        message = 'تم تعيين شكوى جديدة ';
         break;
       case COMPLAINT_STATUS.COMPLETED:
         message = 'تم حل الشكوى المقدمة بنجاح';
@@ -104,6 +104,9 @@ export const sendComplaintSttsNotification = async (
         break;
       case COMPLAINT_STATUS.RESOLVED:
         message = 'تم حل الشكوى المقدمة بنجاح';
+        break;
+      case COMPLAINT_STATUS.DENIED:
+        message = 'تم رفض الحل المقدم ';
         break;
       default:
         message = 'تم إضافة شكوى جديدة';
