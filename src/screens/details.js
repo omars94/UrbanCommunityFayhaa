@@ -238,6 +238,13 @@ switch (newStatus) {
             message: 'تم رفض الحل المقترح للشكوى، يرجى إعادة المحاولة',
           });
         }
+
+        if(managerEmails.length > 0) {
+          notifications.push({
+            emails: managerEmails,
+            message: 'تم رفض الحل المقترح للشكوى من قبل المشرف',
+          });
+        }
         break;
     }
 
