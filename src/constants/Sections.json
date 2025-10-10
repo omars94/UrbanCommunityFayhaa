@@ -1,0 +1,130 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [35.83114, 34.4358549, 0],
+            [35.8263763, 34.4232533, 0],
+            [35.8314404, 34.4224037, 0],
+            [35.8351311, 34.4324923, 0],
+            [35.83114, 34.4358549, 0]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Dam w Farez 1",
+        "styleUrl": "#poly-000000-1200-77-nodesc",
+        "styleHash": "4fc78414",
+        "styleMapHash": {
+          "normal": "#poly-000000-1200-77-nodesc-normal",
+          "highlight": "#poly-000000-1200-77-nodesc-highlight"
+        },
+        "stroke": "#000000",
+        "stroke-opacity": 1,
+        "stroke-width": 1.2,
+        "fill": "#000000",
+        "fill-opacity": 0.30196078431372547
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [35.8268913, 34.4315011, 0],
+            [35.8260759, 34.4317136, 0],
+            [35.8253464, 34.4317136, 0],
+            [35.8234581, 34.4313242, 0],
+            [35.8221707, 34.4310056, 0],
+            [35.8213124, 34.431218, 0],
+            [35.824016, 34.4225453, 0],
+            [35.8259472, 34.4222267, 0],
+            [35.8292088, 34.4314304, 0],
+            [35.8268913, 34.4315011, 0]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Dam w Farez 2",
+        "styleUrl": "#poly-000000-1200-77-nodesc",
+        "styleHash": "4fc78414",
+        "styleMapHash": {
+          "normal": "#poly-000000-1200-77-nodesc-normal",
+          "highlight": "#poly-000000-1200-77-nodesc-highlight"
+        },
+        "stroke": "#000000",
+        "stroke-opacity": 1,
+        "stroke-width": 1.2,
+        "fill": "#000000",
+        "fill-opacity": 0.30196078431372547
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [35.8292291, 34.4316144, 0],
+            [35.8312032, 34.436092, 0],
+            [35.8319328, 34.4372246, 0],
+            [35.8245943, 34.4430468, 0],
+            [35.8212469, 34.4423566, 0],
+            [35.8195946, 34.4408524, 0],
+            [35.8194015, 34.4380387, 0],
+            [35.8212254, 34.4316321, 0],
+            [35.8292291, 34.4316144, 0]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Maarad",
+        "styleUrl": "#poly-000000-1200-77-nodesc",
+        "styleHash": "4fc78414",
+        "styleMapHash": {
+          "normal": "#poly-000000-1200-77-nodesc-normal",
+          "highlight": "#poly-000000-1200-77-nodesc-highlight"
+        },
+        "stroke": "#000000",
+        "stroke-opacity": 1,
+        "stroke-width": 1.2,
+        "fill": "#000000",
+        "fill-opacity": 0.30196078431372547
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [35.8400363, 34.4413692, 0],
+            [35.8279771, 34.448005, 0],
+            [35.8266897, 34.4472618, 0],
+            [35.8388133, 34.4401481, 0],
+            [35.8400363, 34.4413692, 0]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Miten",
+        "styleUrl": "#poly-000000-1200-77-nodesc",
+        "styleHash": "4fc78414",
+        "styleMapHash": {
+          "normal": "#poly-000000-1200-77-nodesc-normal",
+          "highlight": "#poly-000000-1200-77-nodesc-highlight"
+        },
+        "stroke": "#000000",
+        "stroke-opacity": 1,
+        "stroke-width": 1.2,
+        "fill": "#000000",
+        "fill-opacity": 0.30196078431372547
+      }
+    }
+  ]
+}

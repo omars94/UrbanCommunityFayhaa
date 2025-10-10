@@ -1,10 +1,13 @@
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Geojson, Marker } from 'react-native-maps';
 import { View, StyleSheet, Alert, Linking, Dimensions } from 'react-native';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../constants';
+import Sections from '../../constants/Sections.json';
+import { findContainingFeature } from '../../services/mapService';
 
 const { width } = Dimensions.get('window');
 
 export const DisplayMap = ({ lat, long, resolvedLat, resolvedLong }) => {
+  const match = findContainingFeature({ long, lat });
   return (
     <View style={styles.mapContainer}>
       <MapView
@@ -20,6 +23,13 @@ export const DisplayMap = ({ lat, long, resolvedLat, resolvedLong }) => {
           longitudeDelta: 0.01,
         }}
       >
+        <Geojson
+          geojson={Sections}
+          strokeColor="red"
+          title="sections"
+          // fillColor="green"
+          strokeWidth={1}
+        />
         {/* Red marker for original coordinates */}
         <Marker
           coordinate={{
@@ -27,7 +37,7 @@ export const DisplayMap = ({ lat, long, resolvedLat, resolvedLong }) => {
             longitude: Number(long),
           }}
           pinColor="red"
-          title="موقع الشكوى"
+          title={match?.properties?.name ?? 'موقع الشكوى'}
           // description="الإحداثيات الأصلية"
           onPress={() => {
             Alert.alert('تأكيد', 'هل تريد فتح الموقع في خرائط جوجل؟', [
