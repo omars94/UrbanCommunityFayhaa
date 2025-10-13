@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { useNavigation } from '@react-navigation/native';
+import CustomAlert from '../components/customAlert';
 import {
   ROUTE_NAMES,
   COLORS,
@@ -35,6 +36,7 @@ export default function SettingsScreen() {
     state => state.data.constants?.emergency,
   );
   const link = 'tel:' + emergency_number;
+  const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   console.log(user);
   console.log('link', link);
 
@@ -79,6 +81,10 @@ export default function SettingsScreen() {
   };
 
   const signOut = async () => {
+    setShowLogoutAlert(true);
+  };
+
+  const handleLogout = async () => {
     try {
       await auth().signOut();
       dispatch(clearUser());
@@ -182,6 +188,23 @@ export default function SettingsScreen() {
           onPress={() => signOut()}
         />
       </ScrollView>
+
+      <CustomAlert
+        visible={showLogoutAlert}
+        title="تأكيد تسجيل الخروج"
+        message="هل أنت متأكد من أنك تريد تسجيل الخروج؟"
+        buttons={[
+          {
+            text: 'إلغاء',
+            style: 'cancel',
+          },
+          {
+            text: 'تسجيل خروج',
+            onPress: handleLogout,
+          },
+        ]}
+        onClose={() => setShowLogoutAlert(false)}
+      />
     </View>
   );
 }

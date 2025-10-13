@@ -258,25 +258,25 @@ export default function AddComplaintScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.container}>
-            <HeaderSection
-              title="تقديم شكوى"
-              subtitle="الإبلاغ عن مشكلة في منطقتك"
-              showBackButton={true}
-              onBackPress={() => navigation.goBack()}
-            />
+    <View style={styles.container}>
+      <HeaderSection
+        title="تقديم شكوى"
+        subtitle="الإبلاغ عن مشكلة في منطقتك"
+        showBackButton={true}
+        onBackPress={() => navigation.goBack()}
+      />
 
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+          >
             <Formik
               initialValues={{
                 indicator: null,
@@ -421,10 +421,10 @@ export default function AddComplaintScreen() {
 
             {/* Custom Alert Component */}
             <AlertComponent />
-          </View>
-        </ScrollView>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
+      </ScrollView>
+    </View>
   );
 }
 const styles = StyleSheet.create({
