@@ -355,6 +355,7 @@ export default function AddComplaintScreen() {
                         <SimplePicker
                           label="المنطقة"
                           labelKey="name_ar"
+                          columns={2}
                           options={areas}
                           selectedValue={values.area?.name_ar}
                           onValueChange={val => setFieldValue('area', val)}

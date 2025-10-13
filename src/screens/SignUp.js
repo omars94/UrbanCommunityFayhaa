@@ -482,7 +482,7 @@ export default function SignUp() {
                       {/* <View style={styles.pickerContainer}> */}
                       <SimplePicker
                         label="المنطقة"
-                        columns={1}
+                        columns={2}
                         showLabel={false}
                         options={areas}
                         labelKey={'name_ar'}

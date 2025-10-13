@@ -41,6 +41,7 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
 import { fetchWasteItems } from '../api/wasteApi';
 import { fetchComplaints } from '../api/complaintsApi';
+import { setSections } from '../slices/sectionsSlice';
 
 // Fetch all complaints
 export async function getData(dispatch) {
@@ -73,6 +74,13 @@ export async function getData(dispatch) {
       console.log('constants data: ', snapshot.val());
       dispatch(setConstants(snapshot.val()));
     });
+  database()
+    .ref('/sections')
+    .once('value', snapshot => {
+      console.log('sections data: ', snapshot.val());
+      dispatch(setSections(snapshot.val()));
+    })
+    .catch(e => console.log('sections data:', e));
   fetchWasteItems(dispatch, setWasteItems);
   fetchComplaints(dispatch, setComplaints);
 }

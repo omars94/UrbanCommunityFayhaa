@@ -1,12 +1,15 @@
 import MapView, { Geojson, Marker } from 'react-native-maps';
 import { View, StyleSheet, Alert, Linking, Dimensions } from 'react-native';
-import { COLORS, SPACING, BORDER_RADIUS } from '../../constants';
-import Sections from '../../constants/Sections.json';
+import { COLORS, SPACING, BORDER_RADIUS, ROLES } from '../../constants';
+// import Sections from '../../constants/Sections.json';
 import { findContainingFeature } from '../../services/mapService';
+import { useSelector } from 'react-redux';
 
 const { width } = Dimensions.get('window');
 
 export const DisplayMap = ({ lat, long, resolvedLat, resolvedLong }) => {
+  const Sections = useSelector(state => state.sections.sections);
+  const user = useSelector(state => state.user.user);
   const match = findContainingFeature({ long, lat });
   return (
     <View style={styles.mapContainer}>
@@ -23,13 +26,17 @@ export const DisplayMap = ({ lat, long, resolvedLat, resolvedLong }) => {
           longitudeDelta: 0.01,
         }}
       >
-        <Geojson
-          geojson={Sections}
-          strokeColor="red"
-          title="sections"
-          // fillColor="green"
-          strokeWidth={1}
-        />
+        {Sections &&
+          user?.role !== ROLES.CITIZEN &&
+          user?.role !== ROLES.WORKER && (
+            <Geojson
+              geojson={Sections}
+              strokeColor={COLORS.secondary}
+              title=""
+              fillColor={COLORS.primary + '22'}
+              strokeWidth={1}
+            />
+          )}
         {/* Red marker for original coordinates */}
         <Marker
           coordinate={{
@@ -37,7 +44,7 @@ export const DisplayMap = ({ lat, long, resolvedLat, resolvedLong }) => {
             longitude: Number(long),
           }}
           pinColor="red"
-          title={match?.properties?.name ?? 'موقع الشكوى'}
+          title={match?.properties?.admin3na_1 ?? 'موقع الشكوى'}
           // description="الإحداثيات الأصلية"
           onPress={() => {
             Alert.alert('تأكيد', 'هل تريد فتح الموقع في خرائط جوجل؟', [

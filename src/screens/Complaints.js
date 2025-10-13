@@ -11,10 +11,12 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  Pressable,
   View,
   ScrollView,
+  Dimensions,
 } from 'react-native';
-import Icon from '@react-native-vector-icons/ionicons';
+import Icon, { Ionicons } from '@react-native-vector-icons/ionicons';
 import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
 import { useSelector, useDispatch } from 'react-redux';
 import SimplePicker from '../components/SimplePicker';
@@ -29,12 +31,13 @@ import {
   BORDER_RADIUS,
   FONT_WEIGHTS,
 } from '../constants';
-// import database from '@react-native-firebase/database';
-import moment from 'moment';
+import database from '@react-native-firebase/database';
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { listenToComplaints } from '../api/complaintsApi';
 import { setComplaints } from '../slices/complaintsSlice';
 import HeaderSection from '../components/headerSection';
 import { getTimeAgo } from './details';
+import { findContainingFeature } from '../services/mapService';
 
 // const { width, height } = Dimensions.get('window');
 
@@ -49,6 +52,7 @@ export default function ComplaintsScreen() {
 
   const dispatch = useDispatch();
   const complaints = useSelector(state => state.complaints.complaints);
+  const sections = useSelector(state => state.sections);
   const { areas, indicators } = useSelector(state => state.data);
   const user = useSelector(state => state.user.user);
 
@@ -88,7 +92,7 @@ export default function ComplaintsScreen() {
           {
             id: COMPLAINT_STATUS.DENIED,
             label: COMPLAINT_STATUS_AR.DENIED,
-            value: COMPLAINT_STATUS.DENIED
+            value: COMPLAINT_STATUS.DENIED,
           },
           ...baseOptions,
         ];
@@ -135,7 +139,7 @@ export default function ComplaintsScreen() {
           {
             id: COMPLAINT_STATUS.DENIED,
             label: COMPLAINT_STATUS_AR.DENIED,
-            value: COMPLAINT_STATUS.DENIED
+            value: COMPLAINT_STATUS.DENIED,
           },
           ...baseOptions,
         ];
@@ -182,11 +186,10 @@ export default function ComplaintsScreen() {
           {
             id: COMPLAINT_STATUS.DENIED,
             label: COMPLAINT_STATUS_AR.DENIED,
-            value: COMPLAINT_STATUS.DENIED
+            value: COMPLAINT_STATUS.DENIED,
           },
           ...baseOptions,
         ];
-
 
       case ROLES.CITIZEN:
       default:
@@ -219,47 +222,54 @@ export default function ComplaintsScreen() {
 
         case COMPLAINT_STATUS.PENDING:
           return (
-            (user?.role !== ROLES.SUPERVISOR || user?.assigned_areas_ids?.includes(item.area_id))
-            && item.status === COMPLAINT_STATUS.PENDING
+            (user?.role !== ROLES.SUPERVISOR ||
+              user?.assigned_areas_ids?.includes(item.area_id)) &&
+            item.status === COMPLAINT_STATUS.PENDING
           );
 
         case COMPLAINT_STATUS.ASSIGNED:
           return (
-            (user?.role !== ROLES.SUPERVISOR || user?.assigned_areas_ids?.includes(item.area_id))
-            && item.status === COMPLAINT_STATUS.ASSIGNED
+            (user?.role !== ROLES.SUPERVISOR ||
+              user?.assigned_areas_ids?.includes(item.area_id)) &&
+            item.status === COMPLAINT_STATUS.ASSIGNED
           );
 
         case COMPLAINT_STATUS.RESOLVED:
           return (
-            (user?.role !== ROLES.SUPERVISOR || user?.assigned_areas_ids?.includes(item.area_id))
-            && item.status === COMPLAINT_STATUS.RESOLVED
+            (user?.role !== ROLES.SUPERVISOR ||
+              user?.assigned_areas_ids?.includes(item.area_id)) &&
+            item.status === COMPLAINT_STATUS.RESOLVED
           );
 
         case COMPLAINT_STATUS.COMPLETED:
           return (
-            (user?.role !== ROLES.SUPERVISOR || user?.assigned_areas_ids?.includes(item.area_id))
-            && item.status === COMPLAINT_STATUS.COMPLETED
+            (user?.role !== ROLES.SUPERVISOR ||
+              user?.assigned_areas_ids?.includes(item.area_id)) &&
+            item.status === COMPLAINT_STATUS.COMPLETED
           );
 
         case COMPLAINT_STATUS.REJECTED:
           return (
-            (user?.role !== ROLES.SUPERVISOR || user?.assigned_areas_ids?.includes(item.area_id))
-            && item.status === COMPLAINT_STATUS.REJECTED
+            (user?.role !== ROLES.SUPERVISOR ||
+              user?.assigned_areas_ids?.includes(item.area_id)) &&
+            item.status === COMPLAINT_STATUS.REJECTED
           );
 
         case COMPLAINT_STATUS.DENIED:
           return (
-            (user?.role !== ROLES.SUPERVISOR || user?.assigned_areas_ids?.includes(item.area_id))
-            && item.status === COMPLAINT_STATUS.DENIED
+            (user?.role !== ROLES.SUPERVISOR ||
+              user?.assigned_areas_ids?.includes(item.area_id)) &&
+            item.status === COMPLAINT_STATUS.DENIED
           );
 
         case 'assigned_to_me':
           return (
             // (user?.role === ROLES.MANAGER &&
             //   item.manager_assignee_id === user.id) ||
-            (user?.role === ROLES.WORKER &&
-              Array.isArray(item.worker_assignee_id) &&
-              item.worker_assignee_id[item.worker_assignee_id.length - 1] === user.id)
+            user?.role === ROLES.WORKER &&
+            Array.isArray(item.worker_assignee_id) &&
+            item.worker_assignee_id[item.worker_assignee_id.length - 1] ===
+              user.id
           );
 
         case 'assigned_by_me':
@@ -280,7 +290,7 @@ export default function ComplaintsScreen() {
               (user?.role === ROLES.WORKER &&
                 Array.isArray(item.worker_assignee_id) &&
                 item.worker_assignee_id[item.worker_assignee_id.length - 1] ===
-                user.id)) &&
+                  user.id)) &&
             (item.status === COMPLAINT_STATUS.RESOLVED ||
               item.status === COMPLAINT_STATUS.COMPLETED)
           );
@@ -334,7 +344,7 @@ export default function ComplaintsScreen() {
   //   }, []),
   // );
 
-    // Listen for complaints in realtime
+  // Listen for complaints in realtime
   useFocusEffect(
     React.useCallback(() => {
       setLoading(true);
@@ -397,35 +407,36 @@ export default function ComplaintsScreen() {
     }
   };
 
-// Role → default filter mapping
-const roleDefaultFilters = {
-  [ROLES.CITIZEN]: 'my',
-  [ROLES.ADMIN]: 'pending',
-  [ROLES.MANAGER]: 'pending',
-  [ROLES.WORKER]: 'assigned_to_me',
-  [ROLES.SUPERVISOR]: 'all',
-};
+  // Role → default filter mapping
+  const roleDefaultFilters = {
+    [ROLES.CITIZEN]: 'my',
+    [ROLES.ADMIN]: 'pending',
+    [ROLES.MANAGER]: 'pending',
+    [ROLES.WORKER]: 'assigned_to_me',
+    [ROLES.SUPERVISOR]: 'all',
+  };
 
-const getDefaultFilter = (role) => roleDefaultFilters[role] || 'pending';
+  const getDefaultFilter = role => roleDefaultFilters[role] || 'pending';
 
-// Check if any filters are active
-const hasActiveFilters = () => {
-  const defaultFilter = getDefaultFilter(user?.role);
-  return (
-    selectedArea || selectedIndicator || selectedFilter !== defaultFilter
-  );
-};
+  // Check if any filters are active
+  const hasActiveFilters = () => {
+    const defaultFilter = getDefaultFilter(user?.role);
+    return (
+      selectedArea || selectedIndicator || selectedFilter !== defaultFilter
+    );
+  };
 
-// Clear all filters
-const clearAllFilters = () => {
-  setSelectedArea(null);
-  setSelectedIndicator(null);
-  setSelectedFilter(getDefaultFilter(user?.role));
-};
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSelectedArea(null);
+    setSelectedIndicator(null);
+    setSelectedFilter(getDefaultFilter(user?.role));
+  };
 
   const renderComplaint = ({ item }) => {
     const {
       // user_id,
+      id,
       indicator_id,
       area_id,
       description,
@@ -434,8 +445,8 @@ const clearAllFilters = () => {
       // photo_url,
       created_at,
       updated_at,
-      // latitude,
-      // longitude,
+      latitude,
+      longitude,
       // manager_assignee_id,
       // worker_assignee_id[item.worker_assignee_id.length - 1],
       // resolved_photo_url,
@@ -445,39 +456,78 @@ const clearAllFilters = () => {
     const area = areas.find(a => a.id === area_id);
     const indicator = indicators.find(i => i.id === indicator_id);
     const statusColor = getStatusColor(status);
-
+    const name = findContainingFeature({
+      lat: latitude,
+      long: longitude,
+    });
     return (
-      <TouchableOpacity
-        style={styles.complaintCard}
-        onPress={() =>
-          navigation.navigate(ROUTE_NAMES.COMPLAINT_DETAILS, {
-            complaint: item,
-          })
+      <Swipeable
+        containerStyle={{
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+        friction={2}
+        enableTrackpadTwoFingerGesture
+        rightThreshold={40}
+        renderRightActions={
+          user?.role == ROLES.ADMIN
+            ? (prog, drag) =>
+                RightAction(prog, drag, async () => {
+                  Alert.alert(
+                    'تأكيد الحذف',
+                    'هل أنت متأكد من أنك تريد حذف هذه الشكوى؟',
+                    [
+                      {
+                        text: 'إلغاء',
+                        style: 'cancel',
+                      },
+                      {
+                        text: 'حذف',
+                        style: 'destructive',
+                        onPress: () => {
+                          database()
+                            .ref('/complaints/' + id)
+                            .set(null)
+                            .then(() => console.log('Data deleted.', id));
+                        },
+                      },
+                    ],
+                  );
+                })
+            : null
         }
       >
-        {/* Status Strip */}
-        {/* <View style={[styles.statusStrip, { backgroundColor: statusColor.background }]} /> */}
+        <Pressable
+          style={styles.complaintCard}
+          onPress={() =>
+            navigation.navigate(ROUTE_NAMES.COMPLAINT_DETAILS, {
+              complaint: item,
+            })
+          }
+        >
+          {/* Status Strip */}
+          {/* <View style={[styles.statusStrip, { backgroundColor: statusColor.background }]} /> */}
 
-        <View style={styles.cardContainer}>
-          {/* Right Image */}
-          {thumbnail_url && (
-            <View style={styles.imageSection}>
-              <View style={styles.imageContainer}>
-                <Image
-                  source={{ uri: thumbnail_url }}
-                  // source={{ uri: resolved_photo_url || photo_url }}
-                  style={styles.complaintImage}
-                  resizeMode="cover"
-                />
-                {/* {resolved_photo_url && photo_url && (
+          <View style={styles.cardContainer}>
+            {/* Right Image */}
+            {thumbnail_url && (
+              <View style={styles.imageSection}>
+                <View style={styles.imageContainer}>
+                  <Image
+                    source={{ uri: thumbnail_url }}
+                    // source={{ uri: resolved_photo_url || photo_url }}
+                    style={styles.complaintImage}
+                    resizeMode="cover"
+                  />
+                  {/* {resolved_photo_url && photo_url && (
                   <View style={styles.imageOverlay}>
                     <Text style={styles.imageOverlayText}>بعد الحل</Text>
                   </View>
                 )} */}
-              </View>
+                </View>
 
-              {/* Secondary Image */}
-              {/* {resolved_photo_url && photo_url && (
+                {/* Secondary Image */}
+                {/* {resolved_photo_url && photo_url && (
                 <View style={styles.secondaryImageContainer}>
                   <Image
                     source={{ uri: photo_url }}
@@ -487,81 +537,84 @@ const clearAllFilters = () => {
                   <Text style={styles.secondaryImageText}>قبل</Text>
                 </View>
               )} */}
-            </View>
-          )}
-
-          {/* Left Content */}
-          <View style={styles.leftContent}>
-            {/* Top Section */}
-            <View style={styles.topSection}>
-              {/* Location Section */}
-              <View style={styles.locationSection}>
-                <Icon
-                  name="location-outline"
-                  size={16}
-                  color={COLORS.primary}
-                />
-                <Text style={styles.areaText}>
-                  {area?.name_ar || 'غير محدد'}
-                </Text>
               </View>
-              {/* Status Badge - Top Left */}
-              <View
-                style={[
-                  styles.statusBadge,
-                  { backgroundColor: statusColor.background },
-                ]}
-              >
-                <Text
-                  style={[styles.statusText, { color: statusColor.text }]}
-                  numberOfLines={1}
+            )}
+
+            {/* Left Content */}
+            <View style={styles.leftContent}>
+              {/* Top Section */}
+              <View style={styles.topSection}>
+                {/* Location Section */}
+                <View style={styles.locationSection}>
+                  <Icon
+                    name="location-outline"
+                    size={16}
+                    color={COLORS.primary}
+                  />
+                  <Text style={styles.areaText}>
+                    {/* {name?.properties?.admin3na_1
+                    ? name?.properties?.admin3na_1 + ' - '
+                    : ''} */}
+                    {area?.name_ar || 'غير محدد'}
+                  </Text>
+                </View>
+                {/* Status Badge - Top Left */}
+                <View
+                  style={[
+                    styles.statusBadge,
+                    { backgroundColor: statusColor.background },
+                  ]}
                 >
-                  {getStatusText(status)}
+                  <Text
+                    style={[styles.statusText, { color: statusColor.text }]}
+                    numberOfLines={1}
+                  >
+                    {getStatusText(status)}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Title Section */}
+              <View style={styles.titleSection}>
+                <Text
+                  style={styles.indicatorTitle}
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                >
+                  {indicator?.description_ar || 'غير محدد'}
                 </Text>
               </View>
-            </View>
 
-            {/* Title Section */}
-            <View style={styles.titleSection}>
-              <Text
-                style={styles.indicatorTitle}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-              >
-                {indicator?.description_ar || 'غير محدد'}
-              </Text>
-            </View>
-
-            {/* Location Section */}
-            {/* <View style={styles.locationSection}>
+              {/* Location Section */}
+              {/* <View style={styles.locationSection}>
               <Text style={styles.areaText}>{area?.name_ar || 'غير محدد'}</Text>
               <Icon name="location-outline" size={16} color={COLORS.primary} />
             </View> */}
 
-            {/* Description */}
-            <Text
-              style={styles.description}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {description || 'لا يوجد وصف'}
-            </Text>
+              {/* Description */}
+              <Text
+                style={styles.description}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {description || 'لا يوجد وصف'}
+              </Text>
 
-            {/* Footer Info */}
-            <View style={styles.footerInfo}>
-              <View style={styles.dateContainer}>
-                <Text style={styles.dateText}>
-                  {/* {moment(created_at).format('DD/MM/YYYY hh:mm A')} -{' '} */}
-                  {getTimeAgo(new Date(updated_at || created_at))}{' '}
-                </Text>
-                <Icon
-                  name="time-outline"
-                  size={10}
-                  color={COLORS.text.secondary}
-                />
-              </View>
+              {/* Footer Info */}
+              <View style={styles.footerInfo}>
+                <View style={styles.dateContainer}>
+                  <Text style={styles.dateText}>
+                    {/* {moment(created_at).format('DD/MM/YYYY hh:mm A')} -{' '} */}
+                    {getTimeAgo(new Date(updated_at || created_at))}{' '}
+                  </Text>
+                  <Icon
+                    name="time-outline"
+                    size={10}
+                    color={COLORS.text.secondary}
+                  />
+                </View>
 
-              {/* {resolved_at && (
+                {/* {resolved_at && (
                 <View style={styles.resolvedContainer}>
                   <Text style={styles.resolvedText}>
                     تم الحل: {moment(resolved_at).format('DD/MM/YYYY')}
@@ -570,8 +623,8 @@ const clearAllFilters = () => {
                 </View>
               )} */}
 
-              {/* Assignment Tags */}
-              {/* {(manager_assignee_id || worker_assignee_id[item.worker_assignee_id.length - 1]) && (
+                {/* Assignment Tags */}
+                {/* {(manager_assignee_id || worker_assignee_id[item.worker_assignee_id.length - 1]) && (
                 <View style={styles.assignmentTags}>
                   {manager_assignee_id && (
                     <View style={styles.assignmentTag}>
@@ -587,12 +640,12 @@ const clearAllFilters = () => {
                   )}
                 </View>
               )} */}
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* Progress Indicator */}
-        {/* <View style={styles.progressContainer}>
+          {/* Progress Indicator */}
+          {/* <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
             <View
               style={[
@@ -607,7 +660,8 @@ const clearAllFilters = () => {
             />
           </View>
         </View> */}
-      </TouchableOpacity>
+        </Pressable>
+      </Swipeable>
     );
   };
 
@@ -663,6 +717,7 @@ const clearAllFilters = () => {
             {/* Area Filter */}
             <SimplePicker
               label="المنطقة"
+              columns={2}
               options={areas}
               labelKey="name_ar"
               selectedValue={selectedArea?.name_ar}
@@ -740,6 +795,44 @@ const clearAllFilters = () => {
   );
 }
 
+import Reanimated, {
+  SharedValue,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
+function RightAction(prog, drag, onPress) {
+  const styleAnimation = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: drag.value + 50 }],
+    };
+  });
+
+  return (
+    <Reanimated.View
+      style={[
+        {
+          width: 50,
+          height: '100%',
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        styleAnimation,
+      ]}
+    >
+      <Ionicons
+        name="trash"
+        size={20}
+        style={{
+          padding: 10,
+          marginLeft: 10,
+          borderRadius: 100,
+          backgroundColor: COLORS.secondary,
+        }}
+        color={COLORS.red + 'DD'}
+        onPress={onPress}
+      />
+    </Reanimated.View>
+  );
+}
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -842,6 +935,7 @@ const styles = StyleSheet.create({
     // shadowOpacity: 0.12,
     // shadowRadius: 8,
     elevation: 2,
+    width: Dimensions.get('window').width * 0.95,
     overflow: 'hidden',
   },
   statusStrip: {

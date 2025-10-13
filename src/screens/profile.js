@@ -191,7 +191,7 @@ export default function ProfileScreen() {
                 <Text style={[styles.label, { marginTop: 12 }]}>المنطقة</Text>
                 <SimplePicker
                   label="المنطقة"
-                  columns={1}
+                  columns={2}
                   showLabel={false}
                   options={areas}
                   labelKey={'name_ar'}

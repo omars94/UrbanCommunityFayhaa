@@ -5,6 +5,7 @@ import {
   View,
   TouchableOpacity,
   ScrollView,
+  Share,
   Linking,
 } from 'react-native';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
@@ -30,10 +31,12 @@ export default function SettingsScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const { user } = useSelector(state => state.user);
-  const emergency_number  = useSelector(state => state.data.constants?.emergency);
-  const link = 'tel:' + (emergency_number);
+  const emergency_number = useSelector(
+    state => state.data.constants?.emergency,
+  );
+  const link = 'tel:' + emergency_number;
   console.log(user);
-  console.log("link", link)
+  console.log('link', link);
 
   const phone = user?.phone_number;
   const fullname = user?.full_name;
@@ -152,6 +155,25 @@ export default function SettingsScreen() {
           label="اتصل بالدعم"
           subLabel="احصل على مساعدة"
           onPress={() => Linking.openURL(link)}
+        />
+        <MenuItem
+          icon="share"
+          label="شارك الطبيق"
+          subLabel="شارك التطبيق مع اصدقائك"
+          onPress={async () => {
+            const appLink =
+              Platform.OS === 'android'
+                ? 'https://play.google.com/store/apps/details?id=lb.urbancommunityfayhaa' // رابط تطبيقك على Google Play
+                : ''; // رابط تطبيقك على App Store
+
+            try {
+              await Share.share({
+                message: `حمّل تطبيق اتحاد بلديات الفيحاء من هنا:\n${appLink}`,
+              });
+            } catch (error) {
+              console.error(error);
+            }
+          }}
         />
         <MenuItem
           icon="log-out"
