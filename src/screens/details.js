@@ -1,22 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  Linking,
-  Alert,
-  StatusBar,
-  SafeAreaView,
-  FlatList,
-  Image,
-  Modal,
-  TextInput,
-  ActivityIndicator,
-  RefreshControl,
-} from 'react-native';
+import { StyleSheet, Linking, Alert, StatusBar, SafeAreaView, ActivityIndicator, Platform } from 'react-native';
 import { getCurrentLocation } from '../utils/CurrentLocation.js';
 import { launchCamera } from 'react-native-image-picker';
 import { sendComplaintSttsNotification } from '../services/notifications.js';
@@ -27,11 +10,10 @@ import {
 } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import {
-  listenUsersByRole,
   getEmailbyId,
   getManagerEmail,
   getWorkerByAreaId,
-  getSupervisorEmailsByArea
+  getSupervisorEmailsByArea,
 } from '../api/userApi';
 import {
   assignComplaint,
@@ -41,46 +23,23 @@ import {
   denyComplaint,
 } from '../api/complaints';
 import database from '@react-native-firebase/database';
-import {
-  COLORS,
-  COMPLAINT_STATUS,
-  FONT_WEIGHTS,
-  SHADOWS,
-  ROLES,
-  BORDER_RADIUS,
-  SPACING,
-  FONT_SIZES,
-  FONT_FAMILIES,
-  COMPLAINT_STATUS_AR,
-} from '../constants';
-import Ionicons from '@react-native-vector-icons/ionicons';
-import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
-import { DisplayMap } from '../components/detailsComponents/map.js';
-import ImageSlider from '../components/detailsComponents/imageSlider.js';
+import { COLORS, COMPLAINT_STATUS, ROLES, COMPLAINT_STATUS_AR } from '../constants';
 import {
   requestCameraPermissions,
   requestLocationPermission,
   useCustomAlert,
 } from '../utils/Permissions.js';
 import { ImageResolutionComponent } from '../components/resolveComponent.js';
-import storage from '@react-native-firebase/storage';
-import StatusTimeline from '../components/detailsComponents/timeline.js';
 import ImageService from '../services/ImageService.js';
 import HeaderSection from '../components/headerSection';
-import { formatLebanesePhone } from '../utils/index';
 import { checkLocationServicesEnabled } from '../utils/Permissions.js';
 import CustomAlert from '../components/customAlert';
-import moment from 'moment';
-import { getMunicipalityByAreaId } from '../api/areasApi.js';
-
-const { width } = Dimensions.get('window');
-
-const uploadPhoto = async uri => {
-  const filename = `issues/${Date.now()}.jpg`;
-  const reference = storage().ref(filename);
-  await reference.putFile(uri);
-  return await reference.getDownloadURL();
-};
+import ErrorBanner from '../components/complaintDetails/ErrorBanner';
+import AssignWorkerModal from '../components/complaintDetails/AssignWorkerModal';
+import RejectComplaintModal from '../components/complaintDetails/RejectComplaintModal';
+import DenySolutionModal from '../components/complaintDetails/DenySolutionModal';
+import ComplaintDetailsSections from '../components/complaintDetails/ComplaintDetailsSections';
+import ComplaintDetailsActionButtons from '../components/complaintDetails/ComplaintDetailsActionButtons';
 
 export const getTimeAgo = timestamp => {
   if (!timestamp) return '';
@@ -125,10 +84,6 @@ export default function ComplaintDetailsScreen() {
   console.log('Navigated to ComplaintDetailsScreen with complaint:', complaint);
   const [complaintData, setComplaintData] = useState(complaint);
   const [status, setStatus] = useState(complaint?.status);
-  const [workers, setWorkers] = useState([]);
-  const [selectedWorker, setSelectedWorker] = useState(
-    complaint?.worker_assignee_id || [],
-  );
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showDenyModal, setShowDenyModal] = useState(false);
@@ -141,7 +96,6 @@ export default function ComplaintDetailsScreen() {
   const [capturedImageUri, setCapturedImageUri] = useState('');
   const [shouldRenderMap, setShouldRenderMap] = useState(false);
   const [capturedLocation, setCapturedLocation] = useState(null);
-  const [municipalityId, setMunicipalityId] = useState(null);
   const { showAlert, AlertComponent } = useCustomAlert();
   const [alertVisible, setAlertVisible] = useState(false);
   const[areasWorkers,setAreasWorkers]=useState([]);
@@ -171,7 +125,9 @@ export default function ComplaintDetailsScreen() {
       // Get admin emails
       const managerEmails = await getManagerEmail();
 
-      const supervisorEmails = await getSupervisorEmailsByArea(complaintData.area_id);
+      const supervisorEmails = await getSupervisorEmailsByArea(
+        complaint?.area_id ?? complaintData?.area_id,
+      );
 
 switch (newStatus) {
       case COMPLAINT_STATUS.ASSIGNED:
@@ -292,16 +248,11 @@ switch (newStatus) {
 
   const user = useSelector(state => state.user.user);
   useEffect(() => {
-    let workersUnsubscribe;
-
     const setupListeners = async () => {
       try {
-        workersUnsubscribe = listenUsersByRole(ROLES.WORKER, setWorkers);
         if (complaint?.area_id) {
-          setAreasWorkers(await getWorkerByAreaId(complaint.area_id));
-          const municipality_id = await getMunicipalityByAreaId(complaint.area_id);
-          setMunicipalityId(municipality_id);
-          console.log("Fetched municipality ID:", municipality_id);
+          const workersByArea = await getWorkerByAreaId(complaint.area_id);
+          setAreasWorkers(workersByArea);
         }
       } catch (error) {
         console.error('Setup error:', error);
@@ -309,10 +260,7 @@ switch (newStatus) {
       }
     };
     setupListeners();
-    return () => {
-      if (workersUnsubscribe) workersUnsubscribe();
-    };
-  }, []);
+  }, [complaint?.area_id]);
 
   useEffect(() => {
     if (!complaint?.id) return;
@@ -324,7 +272,6 @@ switch (newStatus) {
         if (data) {
           setComplaintData({ ...data, id: complaint.id });
           setStatus(data.status);
-          setSelectedWorker(data.worker_assignee_id || []);
         }
       },
       error => {
@@ -348,7 +295,6 @@ switch (newStatus) {
       if (data) {
         setComplaintData({ ...data, id: complaint.id });
         setStatus(data.status);
-        setSelectedWorker(data.worker_assignee_id || []);
       }
     } catch (error) {
       console.error('Refresh error:', error);
@@ -699,329 +645,8 @@ switch (newStatus) {
     }
   }, [complaint?.id, rejectionReason, user.id]);
 
-  const renderAssignModal = useCallback(() => {
-    const usersToShow = areasWorkers;
-    const modalTitle = 'اختر عامل لتعيين الشكوى';
-
-    return (
-      <Modal
-        visible={showAssignModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowAssignModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>{modalTitle}</Text>
-
-            {usersToShow.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyStateText}>
-                لا يوجد عمال متاحون في هذه المنطقة
-              </Text>
-              </View>
-            ) : (
-              <ScrollView
-                style={styles.usersList}
-                showsVerticalScrollIndicator={false}
-              >
-                {usersToShow.map(userItem => (
-                  <TouchableOpacity
-                    key={userItem.id}
-                    style={styles.userItem}
-                    onPress={() =>
-                      handleAssignComplaint(userItem.id, userItem.full_name)
-                    }
-                    disabled={isLoading}
-                  >
-                    <View style={styles.userInfo}>
-                      <Text style={styles.userName}>{userItem.full_name}</Text>
-                      <Text style={styles.userPhone}>
-                        {formatLebanesePhone(userItem.phone_number)}
-                      </Text>
-                    </View>
-                    {isLoading && (
-                      <ActivityIndicator size="small" color={COLORS.primary} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setShowAssignModal(false)}
-              disabled={isLoading}
-            >
-              <Text style={styles.cancelButtonText}>إلغاء</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    );
-  }, [
-    showAssignModal,
-    user?.role,
-    workers,
-    isLoading,
-    handleAssignComplaint,
-  ]);
-
-  const renderDenyModal = useCallback(() => {
-  return (
-    <Modal
-      visible={showDenyModal}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={() => setShowDenyModal(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>سبب رفض الحل</Text>
-
-          <TextInput
-            style={styles.textInput}
-            placeholder=" اكتب سبب رفض الحل... "
-            multiline
-            numberOfLines={4}
-            value={denyreason}
-            onChangeText={setDenyReason}
-            textAlignVertical="top"
-            maxLength={500}
-            editable={!isLoading}
-          />
-
-          <Text style={styles.characterCount}>
-            {denyreason.length}/500 حرف
-          </Text>
-
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={[
-                styles.modalButton,
-                styles.rejectButton,
-                (isLoading || denyreason.length < 1) &&
-                  styles.disabledButton,
-              ]}
-              onPress={handleDenyComplaint}
-              disabled={isLoading || denyreason.length < 1}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color={COLORS.white} />
-              ) : (
-                <Text style={styles.modalButtonText}>رفض الحل</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.modalButton, styles.cancelModalButton]}
-              onPress={() => {
-                setShowDenyModal(false);
-                setDenyReason('');
-              }}
-              disabled={isLoading}
-            >
-              <Text style={styles.cancelButtonText}>إلغاء</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}, [showDenyModal, denyreason, isLoading, handleDenyComplaint]);
-
-  const renderRejectModal = useCallback(() => {
-    return (
-      <Modal
-        visible={showRejectModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowRejectModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>سبب رفض الشكوى</Text>
-
-            <TextInput
-              style={styles.textInput}
-              placeholder=" اكتب سبب الرفض... "
-              multiline
-              numberOfLines={4}
-              value={rejectionReason}
-              onChangeText={setRejectionReason}
-              textAlignVertical="top"
-              maxLength={500}
-              editable={!isLoading}
-            />
-
-            <Text style={styles.characterCount}>
-              {rejectionReason.length}/500 حرف
-            </Text>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  styles.rejectButton,
-                  (isLoading || rejectionReason.length < 1) &&
-                    styles.disabledButton,
-                ]}
-                onPress={handleRejectComplaint}
-                disabled={isLoading || rejectionReason.length < 1}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color={COLORS.white} />
-                ) : (
-                  <Text style={styles.modalButtonText}>رفض الشكوى</Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelModalButton]}
-                onPress={() => {
-                  setShowRejectModal(false);
-                  setRejectionReason('');
-                }}
-                disabled={isLoading}
-              >
-                <Text style={styles.cancelButtonText}>إلغاء</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    );
-  }, [showRejectModal, rejectionReason, isLoading, handleRejectComplaint]);
-
-const renderActionButtons = useCallback(() => {
-  const canAssign =
-    (user?.role === ROLES.ADMIN || user?.role === ROLES.MANAGER) && 
-    (status === COMPLAINT_STATUS.PENDING || status === COMPLAINT_STATUS.ASSIGNED);
-
-  const canResolve =
-    (user?.role === ROLES.WORKER && status === COMPLAINT_STATUS.ASSIGNED) ||
-    (user?.role === ROLES.MANAGER && (status == COMPLAINT_STATUS.ASSIGNED || status == COMPLAINT_STATUS.PENDING));
-
-  const canComplete =
-    user?.role === ROLES.SUPERVISOR && status === COMPLAINT_STATUS.RESOLVED;
-
-  const canReject =
-    user?.role === ROLES.ADMIN && status === COMPLAINT_STATUS.PENDING;
-
-  const canDeny =
-    user?.role === ROLES.SUPERVISOR && status === COMPLAINT_STATUS.RESOLVED;
-
-  if (!canAssign && !canResolve && !canComplete && !canReject && !canDeny) {
-    return null;
-  }
-
-  return (
-    <View style={styles.actionsContainer}>
-      {canAssign && (
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            styles.assignButton,
-            isLoading && styles.disabledButton,
-          ]}
-          onPress={() => setShowAssignModal(true)}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
-          ) : (
-            <Text style={styles.actionButtonText}>
-              {!complaintData?.worker_assignee_id
-                ? 'تعيين لعامل'
-                : 'إعادة تعيين العامل'}
-            </Text>
-          )}
-        </TouchableOpacity>
-      )}
-
-      {canResolve && (
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            styles.resolveButton,
-            isLoading && styles.disabledButton,
-          ]}
-          onPress={handleResolveComplaint}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
-          ) : (
-            <Text style={styles.actionButtonText}>
-              حل المشكلة عن طريق صورة
-            </Text>
-          )}
-        </TouchableOpacity>
-      )}
-
-      {canDeny && (
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            styles.rejectActionButton,
-            isLoading && styles.disabledButton,
-          ]}
-          onPress={() => setShowDenyModal(true)}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
-          ) : (
-            <Text style={styles.actionButtonText}>رفض الحل</Text>
-          )}
-        </TouchableOpacity>
-      )}
-
-      {canComplete && (
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            styles.completeButton,
-            isLoading && styles.disabledButton,
-          ]}
-          onPress={handleCompleteComplaint}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
-          ) : (
-            <Text style={styles.actionButtonText}>تأكيد الإنجاز</Text>
-          )}
-        </TouchableOpacity>
-      )}
-
-      {canReject && (
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            styles.rejectActionButton,
-            isLoading && styles.disabledButton,
-          ]}
-          onPress={() => setShowRejectModal(true)}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
-          ) : (
-            <Text style={styles.actionButtonText}>رفض الشكوى</Text>
-          )}
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}, [
-  user?.role,
-  status,
-  complaintData?.worker_assignee_id,
-  isLoading,
-  handleResolveComplaint,
-  handleCompleteComplaint,
-]);
+  // Inline modals and action buttons have been extracted into
+  // dedicated presentational components in `src/components/complaintDetails/`.
 
   return (
     <SafeAreaView style={styles.container}>
@@ -1042,14 +667,7 @@ const renderActionButtons = useCallback(() => {
       {isLoading && <ActivityIndicator size="small" color={COLORS.white} />}
       {/* </View> */}
 
-      {error && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorBannerText}>{error}</Text>
-          <TouchableOpacity onPress={() => setError(null)}>
-            <Text style={styles.errorDismiss}>✕</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <ErrorBanner message={error} onDismiss={() => setError(null)} />
 
       <CustomAlert
         visible={alertVisible}
@@ -1062,214 +680,62 @@ const renderActionButtons = useCallback(() => {
       {/* Custom Alert Component */}
       <AlertComponent />
 
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
-          />
-        }
-      >
-        <View style={styles.contentContainer}>
-          <View style={styles.section}>
-            <ImageSlider complaint={complaintData || complaint} />
-          </View>
-          <View style={styles.section}>
-            <View style={styles.statusHeader}>
-              <Text style={styles.sectionTitle}>حالة الشكوى</Text>
-              <View
-                style={[
-                  styles.statusBadge,
-                  { backgroundColor: getStatusColor(status).bg },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusText,
-                    { color: getStatusColor(status).text },
-                  ]}
-                >
-                  {getStatusText(status)}
-                </Text>
-              </View>
-            </View>
+      <ComplaintDetailsSections
+        complaint={complaint}
+        complaintData={complaintData}
+        status={status}
+        userRole={user?.role}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        shouldRenderMap={shouldRenderMap}
+        getStatusColor={getStatusColor}
+        getStatusText={getStatusText}
+        getTimeAgo={getTimeAgo}
+      />
 
-            <StatusTimeline
-              complaint={complaintData || complaint}
-              status={status}
-              getTimeAgo={getTimeAgo}
-              userRole={user?.role}
-            />
-          </View>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>نوع المشكلة</Text>
-            <Text style={styles.descriptionText}>
-              {complaintData.indicator_name || 'غير محدد'}
-            </Text>
-          </View>
+      <ComplaintDetailsActionButtons
+        userRole={user?.role}
+        status={status}
+        hasAssignedWorker={!!complaintData?.worker_assignee_id}
+        isLoading={isLoading}
+        onOpenAssign={() => setShowAssignModal(true)}
+        onResolve={handleResolveComplaint}
+        onOpenDeny={() => setShowDenyModal(true)}
+        onComplete={handleCompleteComplaint}
+        onOpenReject={() => setShowRejectModal(true)}
+      />
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>معلومات الشكوى</Text>
-            <View style={styles.infoRow}>
-              <Ionicons
-                name="calendar"
-                size={20}
-                color={COLORS.secondary}
-                style={{ marginRight: 5 }}
-              />
+      <AssignWorkerModal
+        visible={showAssignModal}
+        isLoading={isLoading}
+        users={areasWorkers}
+        onClose={() => setShowAssignModal(false)}
+        onAssign={handleAssignComplaint}
+      />
 
-              <Text style={styles.infoLabel}>تاريخ التقديم</Text>
-              <Text style={styles.infoValue}>
-                {complaintData.created_at
-                  ? moment(complaintData.created_at).format(
-                      'DD/MM/YYYY hh:mm A',
-                    )
-                  : 'غير محدد'}
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Ionicons
-                name="location"
-                size={20}
-                color={COLORS.red}
-                style={{ marginRight: 5 }}
-              />
+      <RejectComplaintModal
+        visible={showRejectModal}
+        isLoading={isLoading}
+        reason={rejectionReason}
+        onChangeReason={setRejectionReason}
+        onConfirm={handleRejectComplaint}
+        onClose={() => {
+          setShowRejectModal(false);
+          setRejectionReason('');
+        }}
+      />
 
-              <Text style={styles.infoLabel}>المنطقة</Text>
-              <Text style={styles.infoValue}>
-                {complaintData.area_name || 'غير محدد'}
-              </Text>
-            </View>
-            {complaintData.user_name && (
-              <View style={styles.infoRow}>
-                <Ionicons
-                  name="person"
-                  size={20}
-                  color="#2E86AB"
-                  style={{ marginRight: 5 }}
-                />
-
-                <Text style={styles.infoLabel}>مقدم الشكوى</Text>
-                <Text style={styles.infoValue}>{complaintData.user_name}</Text>
-              </View>
-            )}
-            {(user.role === ROLES.ADMIN || user.role === ROLES.MANAGER || user.role === ROLES.SUPERVISOR) &&
-              complaintData.worker_name && (
-                <View style={styles.infoRow}>
-                  <Ionicons
-                    name="construct"
-                    size={20}
-                    color="#2E86AB"
-                    style={{ marginRight: 5 }}
-                  />
-
-                  <Text style={styles.infoLabel}>العامل المسؤول</Text>
-                  <Text style={styles.infoValue}>
-                    {
-                      complaintData.worker_name[
-                        complaintData.worker_name.length - 1
-                      ]
-                    }
-                  </Text>
-                </View>
-              )}
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons
-                name="map"
-                size={20}
-                color="#2E86AB"
-                style={{ marginRight: 5, marginTop: 5 }}
-              />
-              <Text style={styles.sectionTitle}>الموقع على الخريطة</Text>
-            </View>
-            <View style={styles.locationContainer}>
-              {shouldRenderMap && (
-                <DisplayMap
-                  lat={complaintData.latitude}
-                  long={complaintData.longitude}
-                  resolvedLat={complaintData.resolved_lat}
-                  resolvedLong={complaintData.resolved_long}
-                  status={status}
-                />
-              )}
-              {/* <View style={styles.coordinatesContainer}>
-                <Ionicons
-                  name="pin"
-                  size={20}
-                  color={COLORS.red}
-                  style={{ marginRight: 5 }}
-                />
-                <Text style={styles.coordinatesText}>
-                  إحداثيات الشكوى: {complaintData.latitude},{' '}
-                  {complaintData.longitude}
-                </Text>
-              </View> */}
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <MaterialDesignIcons
-                name="text-box"
-                size={20}
-                color="#2E86AB"
-                style={{ marginRight: 5, marginTop: 7 }}
-              />
-
-              <Text style={styles.sectionTitle}>وصف المشكلة</Text>
-            </View>
-            <Text style={styles.descriptionText}>
-              {complaintData.description || 'لا يوجد وصف متاح'}
-            </Text>
-          </View>
-
-          {status === COMPLAINT_STATUS.DENIED &&
-            complaintData.denial_reason && (
-              <View style={[styles.section, styles.rejectionSection]}>
-                <Text style={[styles.sectionTitle, styles.rejectionTitle]}>
-                  سبب رفض الحل
-                </Text>
-                <Text style={styles.rejectionReasonText}>
-                  {complaintData.denial_reason}
-                </Text>
-                {complaintData.denied_at && (
-                  <Text style={styles.rejectionDate}>
-                    تاريخ الرفض: {getTimeAgo(complaintData.denied_at)}
-                  </Text>
-                )}
-              </View>
-            )}
-
-
-          {status === COMPLAINT_STATUS.REJECTED &&
-            complaintData.rejection_reason && (
-              <View style={[styles.section, styles.rejectionSection]}>
-                <Text style={[styles.sectionTitle, styles.rejectionTitle]}>
-                  سبب الرفض
-                </Text>
-                <Text style={styles.rejectionReasonText}>
-                  {complaintData.rejection_reason}
-                </Text>
-                {complaintData.rejected_at && (
-                  <Text style={styles.rejectionDate}>
-                    تاريخ الرفض: {getTimeAgo(complaintData.rejected_at)}
-                  </Text>
-                )}
-              </View>
-            )}
-        </View>
-      </ScrollView>
-      {renderActionButtons()}
-      {renderAssignModal()}
-      {renderRejectModal()}
-      {renderDenyModal()}
+      <DenySolutionModal
+        visible={showDenyModal}
+        isLoading={isLoading}
+        reason={denyreason}
+        onChangeReason={setDenyReason}
+        onConfirm={handleDenyComplaint}
+        onClose={() => {
+          setShowDenyModal(false);
+          setDenyReason('');
+        }}
+      />
       <ImageResolutionComponent
         capturedImageUri={capturedImageUri}
         onConfirm={async () => {
@@ -1287,318 +753,5 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  header: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xl,
-    flexDirection: 'row',
-    alignItems: 'center',
-    ...SHADOWS.lg,
-  },
-  backButtonText: {
-    color: COLORS.white,
-    fontSize: FONT_SIZES.massive,
-    fontWeight: FONT_WEIGHTS.bold,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  headerContent: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  complaintId: {
-    color: COLORS.white,
-    fontSize: FONT_SIZES.xxxl,
-    fontWeight: FONT_WEIGHTS.bold,
-    marginBottom: SPACING.xs,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  errorBanner: {
-    backgroundColor: COLORS.danger,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  errorBannerText: {
-    color: COLORS.white,
-    fontSize: FONT_SIZES.md,
-    flex: 1,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  errorDismiss: {
-    color: COLORS.white,
-    fontSize: FONT_SIZES.xl,
-    fontWeight: FONT_WEIGHTS.bold,
-    paddingLeft: SPACING.md,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: SPACING.xl,
-  },
-  section: {
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
-    marginBottom: SPACING.md,
-    // ...SHADOWS.xl,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
-  },
-  rejectionSection: {
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.danger,
-  },
-  sectionTitle: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: FONT_WEIGHTS.bold,
-    color: COLORS.text.primary,
-    marginBottom: SPACING.md,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  rejectionTitle: {
-    color: COLORS.danger,
-  },
-
-  statusHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-
-  statusBadge: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    borderRadius: BORDER_RADIUS.xl,
-  },
-  statusText: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: FONT_WEIGHTS.semibold,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: SPACING.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.gray[100],
-  },
-  infoLabel: {
-    fontSize: FONT_SIZES.xl,
-    fontWeight: FONT_WEIGHTS.semibold,
-    flex: 1,
-    color: COLORS.text.primary,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  infoValue: {
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.text.secondary,
-    flex: 1,
-    textAlign: 'right',
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  locationContainer: {
-    alignItems: 'center',
-  },
-  coordinatesContainer: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.gray[100],
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: BORDER_RADIUS.md,
-  },
-  coordinatesText: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  descriptionText: {
-    fontSize: FONT_SIZES.xl,
-    color: COLORS.text.primary,
-    lineHeight: 24,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  rejectionReasonText: {
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.danger,
-    lineHeight: 24,
-    fontWeight: FONT_WEIGHTS.medium,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  rejectionDate: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.text.secondary,
-    marginTop: SPACING.sm,
-    fontStyle: 'italic',
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  actionsContainer: {
-    padding: SPACING.lg,
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.gray[200],
-    ...SHADOWS.lg,
-  },
-  actionButton: {
-    paddingVertical: SPACING.lg,
-    borderRadius: BORDER_RADIUS.lg,
-    marginBottom: SPACING.xs,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    ...SHADOWS.md,
-  },
-  assignButton: {
-    backgroundColor: COLORS.secondary,
-  },
-  resolveButton: {
-    backgroundColor: COLORS.primary,
-  },
-  completeButton: {
-    backgroundColor: COLORS.primary,
-  },
-  rejectActionButton: {
-    backgroundColor: COLORS.red,
-  },
-  alreadyAssignedButton: {
-    backgroundColor: COLORS.gray[400],
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  actionButtonText: {
-    color: COLORS.white,
-    fontSize: FONT_SIZES.xl,
-    fontWeight: FONT_WEIGHTS.semibold,
-    marginLeft: SPACING.sm,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: COLORS.overlay || 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: COLORS.white,
-    borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.xl,
-    width: width * 0.9,
-    maxHeight: '80%',
-    ...SHADOWS.xl,
-  },
-  modalTitle: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: FONT_WEIGHTS.bold,
-    color: COLORS.text.primary,
-    textAlign: 'center',
-    marginBottom: SPACING.xl,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-  },
-  usersList: {
-    maxHeight: 300,
-    marginBottom: SPACING.lg,
-  },
-  emptyState: {
-    paddingVertical: SPACING.xxl,
-    alignItems: 'center',
-  },
-  emptyStateText: {
-    fontSize: FONT_SIZES.lg,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  userItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: SPACING.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.gray[200],
-    borderRadius: BORDER_RADIUS.md,
-    marginBottom: SPACING.xs,
-    backgroundColor: COLORS.surface,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: FONT_WEIGHTS.bold,
-    color: COLORS.text.primary,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  userPhone: {
-    fontSize: FONT_SIZES.md,
-    color: COLORS.text.secondary,
-    marginTop: SPACING.xs,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  cancelButton: {
-    backgroundColor: COLORS.gray[400],
-    paddingVertical: SPACING.lg,
-    borderRadius: BORDER_RADIUS.lg,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: COLORS.white,
-    fontSize: FONT_SIZES.lg,
-    fontWeight: FONT_WEIGHTS.semibold,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  textInput: {
-    borderWidth: 2,
-    borderColor: COLORS.gray[300],
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
-    fontSize: FONT_SIZES.lg,
-    minHeight: 120,
-    marginBottom: SPACING.sm,
-    textAlignVertical: 'top',
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  characterCount: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.text.secondary,
-    textAlign: 'right',
-    marginBottom: SPACING.lg,
-    fontFamily: FONT_FAMILIES.primary,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  modalButton: {
-    flex: 0.48,
-    paddingVertical: SPACING.lg,
-    borderRadius: BORDER_RADIUS.lg,
-    alignItems: 'center',
-    ...SHADOWS.md,
-  },
-  rejectButton: {
-    backgroundColor: COLORS.danger,
-  },
-  cancelModalButton: {
-    backgroundColor: COLORS.gray[400],
-  },
-  modalButtonText: {
-    color: COLORS.white,
-    fontSize: FONT_SIZES.lg,
-    fontWeight: FONT_WEIGHTS.semibold,
-    fontFamily: FONT_FAMILIES.primary,
   },
 });
