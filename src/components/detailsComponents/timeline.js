@@ -5,6 +5,18 @@ import { COMPLAINT_STATUS, COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING, FONT_FAMIL
 const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
   const currentComplaint = complaint;
 
+  const getFirstSupervisorAcceptanceDate = () =>
+    currentComplaint.first_supervisor_acceptance_at ||
+    currentComplaint.supervisor_first_acceptance_at ||
+    currentComplaint.supervisor_acceptance_at ||
+    currentComplaint.created_at;
+
+  const getSupervisorRejectedDate = () =>
+    currentComplaint.supervisor_rejected_at ||
+    currentComplaint.rejected_by_supervisor_at ||
+    currentComplaint.rejected_at ||
+    currentComplaint.updated_at;
+
   // Function to get assignment label based on user role
   const getAssignmentLabel = () => {
     if (userRole === ROLES.CITIZEN) {
@@ -42,6 +54,63 @@ const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
   };
   
   // Handle rejected complaints timeline
+  if (status === COMPLAINT_STATUS.SUPERVISOR_REJECTED) {
+    const supervisorRejectedSteps = [
+      {
+        key: 'submitted',
+        label: 'تم استلام الشكوى',
+        completed: true,
+        date: currentComplaint.created_at,
+      },
+      {
+        key: COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE,
+        label: 'انتظار موافقة أولية',
+        completed: true,
+        date: getFirstSupervisorAcceptanceDate(),
+      },
+      {
+        key: COMPLAINT_STATUS.SUPERVISOR_REJECTED,
+        label: 'تم رفض الشكوى بواسطة المشرف',
+        completed: true,
+        date: getSupervisorRejectedDate(),
+        isRejected: true,
+      },
+    ];
+
+    return (
+      <View style={styles.timelineContainer}>
+        {supervisorRejectedSteps.map((step, index) => (
+          <View key={step.key} style={styles.timelineItem}>
+            <View
+              style={[
+                styles.timelineDot,
+                step.completed &&
+                  (step.isRejected
+                    ? styles.timelineDotRejected
+                    : styles.timelineDotCompleted),
+                status === step.key && styles.timelineDotActive,
+              ]}
+            />
+            <View style={styles.timelineContent}>
+              <Text
+                style={[
+                  styles.timelineLabel,
+                  step.isRejected && styles.rejectedTimelineLabel,
+                ]}
+              >
+                {step.label}
+              </Text>
+              <Text style={styles.timelineDate}>{getTimeAgo(step.date)}</Text>
+            </View>
+            {index < supervisorRejectedSteps.length - 1 && (
+              <View style={styles.timelineLine} />
+            )}
+          </View>
+        ))}
+      </View>
+    );
+  }
+
   if (status === COMPLAINT_STATUS.REJECTED) {
     const hasAssigned = currentComplaint.assigned_to_worker_at || currentComplaint.assigned_at;
     const hasResolved = currentComplaint.resolved_at;
@@ -235,6 +304,13 @@ const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
     }
   ];
 
+  timelineSteps.push({
+    key: COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE,
+    label: 'انتظار موافقة أولية',
+    completed: ![COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE].includes(status),
+    date: getFirstSupervisorAcceptanceDate(),
+  });
+
   // Handle assignment steps based on user role (workers only now)
   const hasAssigned = currentComplaint.assigned_to_worker_at || currentComplaint.assigned_at;
   if (hasAssigned) {
@@ -247,7 +323,10 @@ const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
         timelineSteps.push({
           key: `assigned_${index}`,
           label: label,
-          completed: status !== COMPLAINT_STATUS.PENDING,
+          completed: ![
+            COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE,
+            COMPLAINT_STATUS.PENDING,
+          ].includes(status),
           date: assignmentDates[index] || assignmentDates[0]
         });
       });
@@ -256,7 +335,10 @@ const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
       timelineSteps.push({
         key: 'assigned',
         label: Array.isArray(assignmentLabels) ? assignmentLabels[0] : assignmentLabels,
-        completed: status !== COMPLAINT_STATUS.PENDING,
+        completed: ![
+          COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE,
+          COMPLAINT_STATUS.PENDING,
+        ].includes(status),
         date: assignmentDates[0]
       });
     }
@@ -265,7 +347,10 @@ const StatusTimeline = ({ complaint, status, getTimeAgo, userRole }) => {
     timelineSteps.push({
       key: 'assigned',
       label: 'تم تعيين الشكوى',
-      completed: status !== COMPLAINT_STATUS.PENDING,
+      completed: ![
+        COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE,
+        COMPLAINT_STATUS.PENDING,
+      ].includes(status),
       date: null
     });
   }

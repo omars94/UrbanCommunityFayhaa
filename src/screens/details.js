@@ -39,6 +39,8 @@ import {
   completeComplaint,
   rejectComplaint,
   denyComplaint,
+  approveComplaintFirstSupervisor,
+  rejectComplaintBySupervisor,
 } from '../api/complaints';
 import database from '@react-native-firebase/database';
 import {
@@ -380,6 +382,14 @@ switch (newStatus) {
         bg: COLORS.status.rejected.background,
         text: COLORS.status.rejected.text,
       },
+      [COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE]: {
+        bg: COLORS.status.first_supervisor_acceptance.background,
+        text: COLORS.status.first_supervisor_acceptance.text,
+      },
+      [COMPLAINT_STATUS.SUPERVISOR_REJECTED]: {
+        bg: COLORS.status.supervisor_rejected.background,
+        text: COLORS.status.supervisor_rejected.text,
+      },
     };
     return (
       statusMap[status] || { bg: COLORS.gray[200], text: COLORS.text.secondary }
@@ -394,6 +404,8 @@ switch (newStatus) {
       [COMPLAINT_STATUS.COMPLETED]: COMPLAINT_STATUS_AR.COMPLETED,
       [COMPLAINT_STATUS.REJECTED]: COMPLAINT_STATUS_AR.REJECTED,
       [COMPLAINT_STATUS.DENIED]: COMPLAINT_STATUS_AR.DENIED,
+      [COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE]: COMPLAINT_STATUS_AR.FIRST_SUPERVISOR_ACCEPTANCE,
+      [COMPLAINT_STATUS.SUPERVISOR_REJECTED]: COMPLAINT_STATUS_AR.SUPERVISOR_REJECTED,
     };
     return statusMap[status] || status || 'غير محدد';
   };
@@ -699,6 +711,77 @@ switch (newStatus) {
     }
   }, [complaint?.id, rejectionReason, user.id]);
 
+  const handleSupervisorApproveComplaint = useCallback(() => {
+    showCustomAlert(
+      'تأكيد الموافقة',
+      'هل أنت متأكد من الموافقة على هذه الشكوى؟',
+      [
+        { text: 'إلغاء', style: 'cancel', onPress: hideCustomAlert },
+        {
+          text: 'تأكيد',
+          onPress: async () => {
+            setIsLoading(true);
+            try {
+              const oldStatus = complaint.status;
+              await approveComplaintFirstSupervisor(complaint.id, user?.id);
+
+              const updatedComplaint = {
+                ...complaint,
+                status: COMPLAINT_STATUS.PENDING,
+              };
+              showCustomAlert('نجح', 'تمت الموافقة على الشكوى');
+            } catch (error) {
+              console.error('Error approving complaint (supervisor):', error);
+              showCustomAlert('خطأ', 'حدث خطأ أثناء الموافقة على الشكوى');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  }, [complaint?.id, user?.id, complaint?.status]);
+
+  const handleSupervisorRejectComplaint = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const oldStatus = complaint.status;
+      await rejectComplaintBySupervisor(complaint.id, user?.id);
+
+      const updatedComplaint = {
+        ...complaint,
+        status: COMPLAINT_STATUS.SUPERVISOR_REJECTED,
+      };
+
+      await sendNotificationsForStatusChange(
+        updatedComplaint,
+        COMPLAINT_STATUS.SUPERVISOR_REJECTED,
+        oldStatus,
+      );
+
+      showCustomAlert('تم', 'تم رفض الشكوى بواسطة المشرف');
+    } catch (error) {
+      console.error('Error rejecting complaint (supervisor):', error);
+      showCustomAlert('خطأ', 'حدث خطأ أثناء رفض الشكوى');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [complaint?.id, user?.id, complaint?.status]);
+
+  const handleSupervisorRejectPress = useCallback(() => {
+    showCustomAlert(
+      'تأكيد الرفض',
+      'هل أنت متأكد من رفض هذه الشكوى؟',
+      [
+        { text: 'إلغاء', style: 'cancel', onPress: hideCustomAlert },
+        {
+          text: 'تأكيد',
+          onPress: () => handleSupervisorRejectComplaint(),
+        },
+      ],
+    );
+  }, [handleSupervisorRejectComplaint]);
+
   const renderAssignModal = useCallback(() => {
     const usersToShow = areasWorkers;
     const modalTitle = 'اختر عامل لتعيين الشكوى';
@@ -911,7 +994,18 @@ const renderActionButtons = useCallback(() => {
   const canDeny =
     user?.role === ROLES.SUPERVISOR && status === COMPLAINT_STATUS.RESOLVED;
 
-  if (!canAssign && !canResolve && !canComplete && !canReject && !canDeny) {
+  const canSupervisorApproveOrReject =
+    user?.role === ROLES.SUPERVISOR &&
+    status === COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE;
+
+  if (
+    !canAssign &&
+    !canResolve &&
+    !canComplete &&
+    !canReject &&
+    !canDeny &&
+    !canSupervisorApproveOrReject
+  ) {
     return null;
   }
 
@@ -957,6 +1051,46 @@ const renderActionButtons = useCallback(() => {
             </Text>
           )}
         </TouchableOpacity>
+      )}
+
+      {canSupervisorApproveOrReject && (
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.actionButtonHalf,
+              styles.actionButtonCompact,
+              styles.completeButton,
+              isLoading && styles.disabledButton,
+            ]}
+            onPress={handleSupervisorApproveComplaint}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Text style={styles.actionButtonText}>موافقة</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.actionButtonHalf,
+              styles.actionButtonCompact,
+              styles.rejectActionButton,
+              isLoading && styles.disabledButton,
+            ]}
+            onPress={handleSupervisorRejectPress}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Text style={styles.actionButtonText}>رفض</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       )}
 
       {canDeny && (
@@ -1021,6 +1155,8 @@ const renderActionButtons = useCallback(() => {
   isLoading,
   handleResolveComplaint,
   handleCompleteComplaint,
+  handleSupervisorApproveComplaint,
+  handleSupervisorRejectPress,
 ]);
 
   return (
@@ -1264,6 +1400,7 @@ const renderActionButtons = useCallback(() => {
                 )}
               </View>
             )}
+
         </View>
       </ScrollView>
       {renderActionButtons()}
@@ -1449,6 +1586,11 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.gray[200],
     ...SHADOWS.lg,
   },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.xs,
+  },
   actionButton: {
     paddingVertical: SPACING.lg,
     borderRadius: BORDER_RADIUS.lg,
@@ -1457,6 +1599,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     ...SHADOWS.md,
+  },
+  actionButtonHalf: {
+    width: '48%',
+    marginBottom: 0,
+  },
+  actionButtonCompact: {
+    paddingVertical: SPACING.md,
   },
   assignButton: {
     backgroundColor: COLORS.secondary,

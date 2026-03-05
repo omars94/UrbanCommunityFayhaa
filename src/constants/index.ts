@@ -74,6 +74,14 @@ export const COLORS = {
     denied: {
       background: '#f8d7da',
       text: '#721c24',
+    },
+    first_supervisor_acceptance: {
+      background: '#f5e4fcff',
+      text: '#8918c2ff',
+    },
+    supervisor_rejected: {
+      background: '#f8d7da',
+      text: '#721c24',
     }
   },
   
@@ -282,6 +290,8 @@ export const COMPLAINT_STATUS = {
   RESOLVED: 'resolved',
   COMPLETED: 'completed',
   DENIED: 'denied',
+  FIRST_SUPERVISOR_ACCEPTANCE: 'first_supervisor_acceptance',
+  SUPERVISOR_REJECTED: 'supervisor_rejected',
 };
 
 export const COMPLAINT_STATUS_AR = {
@@ -291,6 +301,8 @@ export const COMPLAINT_STATUS_AR = {
   RESOLVED: 'محلولة',
   COMPLETED: 'مكتملة',
   DENIED: 'مرفوضة',
+  FIRST_SUPERVISOR_ACCEPTANCE: 'انتظار موافقة أولية',
+  SUPERVISOR_REJECTED: 'مرفوضة بواسطة المشرف',
 };
 
 // Complaint Types

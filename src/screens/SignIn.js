@@ -64,7 +64,7 @@ export default function SignIn() {
   const [resendCount, setResendCount] = useState(0);
   const [maxResends, setMaxResends] = useState(3);
   const [resendEmail, setResendEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState('123Rand@');
   const [countdownTimer, setCountdownTimer] = useState(null);
   const [remainingTime, setRemainingTime] = useState(0);
   const [error, setError] = useState('');
@@ -82,8 +82,8 @@ export default function SignIn() {
   const resetCooldownSeconds = 60;
 
   const initialValues = {
-    email: '',
-    password: '',
+    email: 'randa.haj@navybits.com',
+    password: '123Rand@',
   };
 
   useEffect(() => {

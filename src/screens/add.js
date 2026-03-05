@@ -188,7 +188,7 @@ export default function AddComplaintScreen() {
         thumbnail_url: thumbnailUrl, // Thumbnail URL for list view
         longitude: metadata?.location?.longitude || '',
         latitude: metadata?.location?.latitude || '',
-        status: COMPLAINT_STATUS.PENDING,
+        status: COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE, 
         user_id: user?.id,
         created_at: new Date().toISOString(),
         area_name: values.area.name_ar,

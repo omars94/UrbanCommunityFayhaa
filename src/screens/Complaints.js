@@ -56,11 +56,12 @@ export default function ComplaintsScreen() {
   const { areas, indicators } = useSelector(state => state.data);
   const user = useSelector(state => state.user.user);
 
+  
   // Get role-based filter options
   const getFilterOptions = () => {
     const baseOptions = [{ id: 'my', label: 'شكاواي', value: 'my' }];
-
     switch (user?.role) {
+      
       case ROLES.ADMIN:
         return [
           {
@@ -188,10 +189,25 @@ export default function ComplaintsScreen() {
             label: COMPLAINT_STATUS_AR.DENIED,
             value: COMPLAINT_STATUS.DENIED,
           },
+          {
+            id: COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE,
+            label: COMPLAINT_STATUS_AR.FIRST_SUPERVISOR_ACCEPTANCE,
+            value: COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE,
+          },
+          {
+            id: COMPLAINT_STATUS.SUPERVISOR_REJECTED,
+            label: COMPLAINT_STATUS_AR.SUPERVISOR_REJECTED,
+            value: COMPLAINT_STATUS.SUPERVISOR_REJECTED,
+          },
           ...baseOptions,
         ];
 
       case ROLES.CITIZEN:
+        return [{
+          id: COMPLAINT_STATUS.DENIED,
+          label: COMPLAINT_STATUS_AR.DENIED,
+          value: COMPLAINT_STATUS.DENIED,
+        }]
       default:
         return [{ id: 'my', label: 'شكاواي', value: 'my' }];
     }
@@ -206,6 +222,7 @@ export default function ComplaintsScreen() {
   // Enhanced filtering logic
   const filteredComplaints = useMemo(() => {
     let filtered = complaints.filter(item => {
+      
       // Area filter
       let areaMatch = selectedArea ? item.area_id === selectedArea.id : true;
       // Indicator filter
@@ -215,6 +232,8 @@ export default function ComplaintsScreen() {
 
       if (!areaMatch || !indicatorMatch) return false;
 
+      console.log({item,selectedFilter});
+      
       // Role-based filter logic
       switch (selectedFilter) {
         case 'my':
@@ -261,7 +280,20 @@ export default function ComplaintsScreen() {
               user?.assigned_areas_ids?.includes(item.area_id)) &&
             item.status === COMPLAINT_STATUS.DENIED
           );
-
+          case COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE:
+            return (
+              (user?.role !== ROLES.SUPERVISOR ||
+                user?.assigned_areas_ids?.includes(item.area_id)) &&
+              item.status === COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE
+            );
+  
+          case COMPLAINT_STATUS.SUPERVISOR_REJECTED:
+            return (
+              (user?.role !== ROLES.SUPERVISOR ||
+                user?.assigned_areas_ids?.includes(item.area_id)) &&
+              item.status === COMPLAINT_STATUS.SUPERVISOR_REJECTED
+            );
+  
         case 'assigned_to_me':
           return (
             // (user?.role === ROLES.MANAGER &&
@@ -318,6 +350,8 @@ export default function ComplaintsScreen() {
     );
   }, [complaints, selectedArea, selectedIndicator, selectedFilter, user]);
 
+  console.log({filteredComplaints});
+  
   // const getComplaints = async () => {
   //   setLoading(true);
   //   try {
@@ -333,6 +367,8 @@ export default function ComplaintsScreen() {
 
   // Initialize filter based on user role
   useEffect(() => {
+    console.log("EEFEFEFEFCT");
+    
     clearAllFilters();
   }, [user]);
 
@@ -378,7 +414,12 @@ export default function ComplaintsScreen() {
       case COMPLAINT_STATUS.REJECTED:
         return COMPLAINT_STATUS_AR.REJECTED;
       case COMPLAINT_STATUS.DENIED:
-        return COMPLAINT_STATUS_AR.DENIED;
+        return COMPLAINT_STATUS_AR.DENIED; 
+      case COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE:
+        return COMPLAINT_STATUS_AR.FIRST_SUPERVISOR_ACCEPTANCE;
+      case COMPLAINT_STATUS.SUPERVISOR_REJECTED:
+        return COMPLAINT_STATUS_AR.SUPERVISOR_REJECTED;
+
       default:
         return 'غير محدد';
     }
@@ -402,6 +443,10 @@ export default function ComplaintsScreen() {
         return COLORS.status.rejected;
       case COMPLAINT_STATUS.DENIED:
         return COLORS.status.denied;
+      case COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE:
+        return COLORS.status.first_supervisor_acceptance;
+      case COMPLAINT_STATUS.SUPERVISOR_REJECTED:
+        return COLORS.status.supervisor_rejected;
       default:
         return { background: COLORS.gray[200], text: COLORS.gray[600] };
     }
@@ -430,6 +475,8 @@ export default function ComplaintsScreen() {
   const clearAllFilters = () => {
     setSelectedArea(null);
     setSelectedIndicator(null);
+    console.log("get defailt--------",getDefaultFilter(user?.role));
+    
     setSelectedFilter(getDefaultFilter(user?.role));
   };
 

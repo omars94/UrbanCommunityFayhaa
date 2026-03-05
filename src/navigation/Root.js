@@ -19,6 +19,7 @@ import { navigationRef } from '../services/notifications';
 import { setPendingNavigation } from '../services/notifications';
 
 const Stack = createNativeStackNavigator();
+console.log({ onesignalID: process.env.ONESIGNAL_APP_ID, env: process.env });
 OneSignal.initialize(process.env.ONESIGNAL_APP_ID);
 
 const { width, height } = Dimensions.get('window');

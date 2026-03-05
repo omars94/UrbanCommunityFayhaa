@@ -26,6 +26,7 @@ import CustomAlert from '../components/customAlert';
 import { getUserByFbUID, handlePromotion } from '../api/userApi';
 import {
   COMPLAINT_STATUS,
+  COMPLAINT_STATUS_AR,
   COLORS,
   ROLES,
   ROUTE_NAMES,
@@ -107,6 +108,8 @@ export default function HomeScreen() {
   let complaintFirstLabel;
   let complaintSecondNumber = 0;
   let complaintSecondLabel;
+  let complaintThirdNumber = null;
+  let complaintThirdLabel = null;
 
   switch (role) {
     case 2:
@@ -162,10 +165,19 @@ export default function HomeScreen() {
           c.status === COMPLAINT_STATUS.RESOLVED,
       ).length;
       console.log('notComletedComplaints', notCompletedComplaints);
+
+      const firstSupervisorAcceptanceComplaints = (complaints || []).filter(
+        c =>
+          assignedAreas.includes(c.area_id) &&
+          c.status === COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE,
+      ).length;
+
       complaintFirstLabel = 'شكوى معيّنة';
       complaintFirstNumber = assignedAreaComplaints;
       complaintSecondNumber = notCompletedComplaints;
       complaintSecondLabel = ' شكوى للمراجعة';
+      complaintThirdNumber = firstSupervisorAcceptanceComplaints;
+      complaintThirdLabel = COMPLAINT_STATUS_AR.FIRST_SUPERVISOR_ACCEPTANCE;
 
       break;
     default:
@@ -454,6 +466,14 @@ export default function HomeScreen() {
               <Text style={styles.menuTitle}>{complaintSecondLabel}</Text>
             </View>
           </View>
+          {role === ROLES.SUPERVISOR && complaintThirdLabel != null && (
+            <View style={styles.menuRow}>
+              <View style={styles.menuCard}>
+                <Text style={styles.statNumber}>{complaintThirdNumber}</Text>
+                <Text style={styles.menuTitle}>{complaintThirdLabel}</Text>
+              </View>
+            </View>
+          )}
         </View>
       </View>
     </ScrollView>

@@ -88,3 +88,25 @@ export const rejectComplaint = async (complaintId, rejectionReason) => {
 
   return await updateComplaintInDB(complaintId, updates);
 };
+
+export const approveComplaintFirstSupervisor = async (complaintId, supervisorId) => {
+  const updates = {
+    status: COMPLAINT_STATUS.PENDING,
+    first_supervisor_acceptance_at: new Date().toISOString(),
+  };
+
+  return await updateComplaintInDB(complaintId, updates);
+};
+
+export const rejectComplaintBySupervisor = async (
+  complaintId,
+  supervisorId,
+) => {
+  const updates = {
+    status: COMPLAINT_STATUS.SUPERVISOR_REJECTED,
+    supervisor_rejected_at: new Date().toISOString(),
+    supervisor_rejected_by_id: supervisorId || null,
+  };
+
+  return await updateComplaintInDB(complaintId, updates);
+};
