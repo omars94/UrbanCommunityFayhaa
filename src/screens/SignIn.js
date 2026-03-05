@@ -82,8 +82,8 @@ export default function SignIn() {
   const resetCooldownSeconds = 60;
 
   const initialValues = {
-    email: 'randa.haj@navybits.com',
-    password: '123Rand@',
+    email: '',
+    password: '',
   };
 
   useEffect(() => {
