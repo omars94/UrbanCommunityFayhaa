@@ -27,6 +27,8 @@ import {
  * - onOpenDeny: () => void
  * - onComplete: () => void
  * - onOpenReject: () => void
+ * - onSupervisorApprove: () => void
+ * - onSupervisorReject: () => void
  */
 export default function ComplaintDetailsActionButtons({
   userRole,
@@ -38,6 +40,8 @@ export default function ComplaintDetailsActionButtons({
   onOpenDeny,
   onComplete,
   onOpenReject,
+  onSupervisorApprove,
+  onSupervisorReject,
 }) {
   const canAssign =
     (userRole === ROLES.ADMIN || userRole === ROLES.MANAGER) &&
@@ -54,7 +58,17 @@ export default function ComplaintDetailsActionButtons({
 
   const canDeny = userRole === ROLES.SUPERVISOR && status === COMPLAINT_STATUS.RESOLVED;
 
-  if (!canAssign && !canResolve && !canComplete && !canReject && !canDeny) {
+  const canSupervisorApproveOrReject =
+    userRole === ROLES.SUPERVISOR && status === COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE;
+
+  if (
+    !canAssign &&
+    !canResolve &&
+    !canComplete &&
+    !canReject &&
+    !canDeny &&
+    !canSupervisorApproveOrReject
+  ) {
     return null;
   }
 
@@ -88,6 +102,46 @@ export default function ComplaintDetailsActionButtons({
             <Text style={styles.actionButtonText}>حل المشكلة عن طريق صورة</Text>
           )}
         </TouchableOpacity>
+      )}
+
+      {canSupervisorApproveOrReject && (
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.actionButtonHalf,
+              styles.actionButtonCompact,
+              styles.completeButton,
+              isLoading && styles.disabledButton,
+            ]}
+            onPress={onSupervisorApprove}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Text style={styles.actionButtonText}>موافقة</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.actionButtonHalf,
+              styles.actionButtonCompact,
+              styles.rejectActionButton,
+              isLoading && styles.disabledButton,
+            ]}
+            onPress={onSupervisorReject}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Text style={styles.actionButtonText}>رفض</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       )}
 
       {canDeny && (
@@ -151,6 +205,11 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.gray[200],
     ...SHADOWS.lg,
   },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.xs,
+  },
   actionButton: {
     paddingVertical: SPACING.lg,
     borderRadius: BORDER_RADIUS.lg,
@@ -159,6 +218,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     ...SHADOWS.md,
+  },
+  actionButtonHalf: {
+    width: '48%',
+    marginBottom: 0,
+  },
+  actionButtonCompact: {
+    paddingVertical: SPACING.md,
   },
   assignButton: {
     backgroundColor: COLORS.secondary,

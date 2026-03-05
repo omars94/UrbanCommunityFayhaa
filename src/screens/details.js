@@ -21,6 +21,8 @@ import {
   completeComplaint,
   rejectComplaint,
   denyComplaint,
+  approveComplaintFirstSupervisor,
+  rejectComplaintBySupervisor,
 } from '../api/complaints';
 import database from '@react-native-firebase/database';
 import { COLORS, COMPLAINT_STATUS, ROLES, COMPLAINT_STATUS_AR } from '../constants';
@@ -326,6 +328,14 @@ switch (newStatus) {
         bg: COLORS.status.rejected.background,
         text: COLORS.status.rejected.text,
       },
+      [COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE]: {
+        bg: COLORS.status.first_supervisor_acceptance.background,
+        text: COLORS.status.first_supervisor_acceptance.text,
+      },
+      [COMPLAINT_STATUS.SUPERVISOR_REJECTED]: {
+        bg: COLORS.status.supervisor_rejected.background,
+        text: COLORS.status.supervisor_rejected.text,
+      },
     };
     return (
       statusMap[status] || { bg: COLORS.gray[200], text: COLORS.text.secondary }
@@ -340,6 +350,10 @@ switch (newStatus) {
       [COMPLAINT_STATUS.COMPLETED]: COMPLAINT_STATUS_AR.COMPLETED,
       [COMPLAINT_STATUS.REJECTED]: COMPLAINT_STATUS_AR.REJECTED,
       [COMPLAINT_STATUS.DENIED]: COMPLAINT_STATUS_AR.DENIED,
+      [COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE]:
+        COMPLAINT_STATUS_AR.FIRST_SUPERVISOR_ACCEPTANCE,
+      [COMPLAINT_STATUS.SUPERVISOR_REJECTED]:
+        COMPLAINT_STATUS_AR.SUPERVISOR_REJECTED,
     };
     return statusMap[status] || status || 'غير محدد';
   };
@@ -645,6 +659,71 @@ switch (newStatus) {
     }
   }, [complaint?.id, rejectionReason, user.id]);
 
+  const handleSupervisorApproveComplaint = useCallback(() => {
+    showCustomAlert(
+      'تأكيد الموافقة',
+      'هل أنت متأكد من الموافقة على هذه الشكوى؟',
+      [
+        { text: 'إلغاء', style: 'cancel', onPress: hideCustomAlert },
+        {
+          text: 'تأكيد',
+          onPress: async () => {
+            setIsLoading(true);
+            try {
+              await approveComplaintFirstSupervisor(complaint.id, user?.id);
+              showCustomAlert('نجح', 'تمت الموافقة على الشكوى');
+            } catch (error) {
+              console.error('Error approving complaint (supervisor):', error);
+              showCustomAlert('خطأ', 'حدث خطأ أثناء الموافقة على الشكوى');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  }, [complaint?.id, user?.id]);
+
+  const handleSupervisorRejectComplaint = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const oldStatus = status;
+      await rejectComplaintBySupervisor(complaint.id, user?.id);
+
+      const updatedComplaint = {
+        ...complaint,
+        status: COMPLAINT_STATUS.SUPERVISOR_REJECTED,
+      };
+
+      await sendNotificationsForStatusChange(
+        updatedComplaint,
+        COMPLAINT_STATUS.SUPERVISOR_REJECTED,
+        oldStatus,
+      );
+
+      showCustomAlert('تم', 'تم رفض الشكوى بواسطة المشرف');
+    } catch (error) {
+      console.error('Error rejecting complaint (supervisor):', error);
+      showCustomAlert('خطأ', 'حدث خطأ أثناء رفض الشكوى');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [complaint?.id, user?.id, status]);
+
+  const handleSupervisorRejectPress = useCallback(() => {
+    showCustomAlert(
+      'تأكيد الرفض',
+      'هل أنت متأكد من رفض هذه الشكوى؟',
+      [
+        { text: 'إلغاء', style: 'cancel', onPress: hideCustomAlert },
+        {
+          text: 'تأكيد',
+          onPress: () => handleSupervisorRejectComplaint(),
+        },
+      ],
+    );
+  }, [handleSupervisorRejectComplaint]);
+
   // Inline modals and action buttons have been extracted into
   // dedicated presentational components in `src/components/complaintDetails/`.
 
@@ -703,6 +782,8 @@ switch (newStatus) {
         onOpenDeny={() => setShowDenyModal(true)}
         onComplete={handleCompleteComplaint}
         onOpenReject={() => setShowRejectModal(true)}
+        onSupervisorApprove={handleSupervisorApproveComplaint}
+        onSupervisorReject={handleSupervisorRejectPress}
       />
 
       <AssignWorkerModal
