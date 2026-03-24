@@ -267,6 +267,7 @@ export const ROUTE_NAMES = {
   MAIN: 'Main',
   DASHBOARD: 'Dashboard',
   COMPLAINTS: 'Complaints',
+  REPORTS: 'Reports',
   ADD_COMPLAINT: 'Add Complaint',
   COMPLAINT_DETAILS: 'Complaint Details',
   PROFILE: 'Profile',

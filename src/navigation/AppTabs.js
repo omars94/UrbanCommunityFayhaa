@@ -2,9 +2,9 @@ import { Ionicons } from '@react-native-vector-icons/ionicons';
 import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import HomeScreen from '../screens/home';
 import WasteScreen from '../screens/waste';
 import ComplaintsStack from './ComplaintsStack';
+import HomeStack from './HomeStack';
 import { COLORS, ROUTE_NAMES } from '../constants';
 // import { View } from 'react-native';
 import SettingsStack from './SettingsStack';
@@ -35,7 +35,7 @@ export default function TabLayout(props) {
     >
       <Tab.Screen
         name={ROUTE_NAMES.HOME}
-        component={HomeScreen}
+        component={HomeStack}
         options={{ title: 'الرئيسية' }}
       />
       <Tab.Screen

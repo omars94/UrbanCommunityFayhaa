@@ -457,6 +457,22 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.menuRow}>
+            <TouchableOpacity
+              style={[styles.menuCard, styles.menuCardFull]}
+              onPress={() => navigation.navigate(ROUTE_NAMES.REPORTS)}
+            >
+              <View style={styles.iconContainer}>
+                <Ionicons
+                  name="stats-chart"
+                  style={[styles.icon, { color: COLORS.primary }]}
+                />
+              </View>
+              <Text style={styles.menuTitle}>تقرير الشكاوى</Text>
+              <Text style={styles.menuSubtitle}>تصدير PDF بالإحصاءات</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.menuRow}>
             <View style={styles.menuCard}>
               <Text style={styles.statNumber}>{complaintFirstNumber}</Text>
               <Text style={styles.menuTitle}>{complaintFirstLabel}</Text>
@@ -572,6 +588,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  menuCardFull: {
+    width: '100%',
   },
   iconContainer: {
     marginBottom: SPACING.xs,
