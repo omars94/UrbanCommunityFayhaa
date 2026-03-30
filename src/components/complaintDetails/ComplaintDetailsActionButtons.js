@@ -61,13 +61,17 @@ export default function ComplaintDetailsActionButtons({
   const canSupervisorApproveOrReject =
     userRole === ROLES.SUPERVISOR && status === COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE;
 
+  const canSupervisorReassign =
+    userRole === ROLES.SUPERVISOR && status === COMPLAINT_STATUS.SUPERVISOR_REJECTED;
+
   if (
     !canAssign &&
     !canResolve &&
     !canComplete &&
     !canReject &&
     !canDeny &&
-    !canSupervisorApproveOrReject
+    !canSupervisorApproveOrReject &&
+    !canSupervisorReassign
   ) {
     return null;
   }
@@ -142,6 +146,26 @@ export default function ComplaintDetailsActionButtons({
             )}
           </TouchableOpacity>
         </View>
+      )}
+
+      {canSupervisorReassign && (
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.actionButtonCompact,
+            styles.reassignFullWidth,
+            styles.reassignButton,
+            isLoading && styles.disabledButton,
+          ]}
+          onPress={onSupervisorApprove}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <Text style={styles.actionButtonText}>إعادة تعيين للمسؤول</Text>
+          )}
+        </TouchableOpacity>
       )}
 
       {canDeny && (
@@ -234,6 +258,13 @@ const styles = StyleSheet.create({
   },
   completeButton: {
     backgroundColor: COLORS.primary,
+  },
+  reassignButton: {
+    backgroundColor: COLORS.success,
+  },
+  reassignFullWidth: {
+    width: '100%',
+    marginBottom: SPACING.xs,
   },
   rejectActionButton: {
     backgroundColor: COLORS.red,

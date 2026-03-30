@@ -20,6 +20,7 @@ import database from '@react-native-firebase/database';
 import { generatePDF } from 'react-native-html-to-pdf';
 import RNFS from 'react-native-fs';
 import FileViewer from 'react-native-file-viewer';
+import XLSX from 'xlsx';
 import HeaderSection from '../components/headerSection';
 import {
   BORDER_RADIUS,
@@ -33,6 +34,54 @@ function safeDate(value) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return null;
   return d;
+}
+
+function toXlsxBase64(rows, columns, { sheetName = 'Complaints' } = {}) {
+  const aoa = [
+    columns.map(c => c.header),
+    ...rows.map(r => columns.map(c => r?.[c.key] ?? '')),
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+  return XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+}
+
+function normalizeDateCell(value) {
+  const d = safeDate(value);
+  if (!d) return '';
+  return d.toISOString();
+}
+
+function getFirstSupervisorAcceptanceDate(c) {
+  return (
+    c?.first_supervisor_acceptance_at || null
+  );
+}
+
+function getSupervisorRejectedDate(c) {
+  return (
+    c?.supervisor_rejected_at ||
+    c?.rejected_by_supervisor_at ||
+    c?.rejected_at ||
+    c?.updated_at ||
+    null
+  );
+}
+
+function getAssignmentDates(c) {
+  if (Array.isArray(c?.assigned_to_worker_at) && c.assigned_to_worker_at.length) {
+    return c.assigned_to_worker_at.filter(Boolean);
+  }
+  const fallback = c?.assigned_to_worker_at?.[0] || c?.assigned_at || null;
+  return fallback ? [fallback] : [];
+}
+
+function joinList(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).join(' | ');
+  return value ?? '';
 }
 
 function startOfDay(d) {
@@ -235,6 +284,7 @@ export default function ReportsScreen() {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const [error, setError] = useState('');
   const [pdfLink, setPdfLink] = useState('');
 
@@ -269,6 +319,7 @@ export default function ReportsScreen() {
             ...complaintsData[key],
           }))
         : [];
+      console.log({arr});
       setComplaints(arr);
     } catch (e) {
       console.error('Error loading complaints:', e);
@@ -362,6 +413,132 @@ export default function ReportsScreen() {
       setError('حدث خطأ أثناء تصدير ملف PDF');
     } finally {
       setExporting(false);
+    }
+  }, [from, to]);
+
+  const onExportExcel = useCallback(async () => {
+    setExportingExcel(true);
+    setError('');
+    try {
+      // Refresh just before exporting to keep it accurate (and match the filter)
+      const snapshot = await database().ref('/complaints').once('value');
+      const complaintsData = snapshot.val();
+      const arr = complaintsData
+        ? Object.keys(complaintsData).map(key => ({
+            id: key,
+            ...complaintsData[key],
+          }))
+        : [];
+
+      const filteredArr = filterComplaintsByCreatedAt(arr, from, to);
+
+      const rows = filteredArr.map(c => ({
+        id: c?.id ?? '',
+        status: c?.status ?? '',
+        status_ar:
+          COMPLAINT_STATUS_AR?.[String(c?.status || '').toUpperCase()] ||
+          COMPLAINT_STATUS_AR?.[c?.status] ||
+          c?.status ||
+          '',
+        indicator_name: c?.indicator_name ?? '',
+        description: c?.description ?? '',
+        area_id: c?.area_id ?? '',
+        area_name: c?.area_name ?? '',
+        latitude: c?.latitude ?? '',
+        longitude: c?.longitude ?? '',
+        resolved_lat: c?.resolved_lat ?? '',
+        resolved_long: c?.resolved_long ?? '',
+        user_id: c?.user_id ?? '',
+        user_name: c?.user_name ?? '',
+        worker_assignee_id: joinList(c?.worker_assignee_id),
+        worker_name: joinList(c?.worker_name),
+        created_at: normalizeDateCell(c?.created_at),
+        first_supervisor_acceptance_at: normalizeDateCell(
+          getFirstSupervisorAcceptanceDate(c),
+        ),
+        assigned_dates: getAssignmentDates(c).map(normalizeDateCell).join(' | '),
+        resolved_at: normalizeDateCell(c?.resolved_at),
+        denied_at: normalizeDateCell(c?.denied_at),
+        completed_at: normalizeDateCell(c?.completed_at),
+        rejected_at: normalizeDateCell(c?.rejected_at),
+        supervisor_rejected_at: normalizeDateCell(getSupervisorRejectedDate(c)),
+        updated_at: normalizeDateCell(c?.updated_at),
+      }));
+
+      const columns = [
+        { key: 'id', header: 'id' },
+        { key: 'status', header: 'status' },
+        { key: 'status_ar', header: 'status_ar' },
+        { key: 'indicator_name', header: 'indicator_name' },
+        { key: 'description', header: 'description' },
+        { key: 'area_id', header: 'area_id' },
+        { key: 'area_name', header: 'area_name' },
+        { key: 'latitude', header: 'latitude' },
+        { key: 'longitude', header: 'longitude' },
+        { key: 'resolved_lat', header: 'resolved_lat' },
+        { key: 'resolved_long', header: 'resolved_long' },
+        { key: 'user_id', header: 'user_id' },
+        { key: 'user_name', header: 'user_name' },
+        { key: 'worker_assignee_id', header: 'worker_assignee_id' },
+        { key: 'worker_name', header: 'worker_name' },
+        { key: 'created_at', header: 'created_at' },
+        {
+          key: 'first_supervisor_acceptance_at',
+          header: 'first_supervisor_acceptance_at',
+        },
+        { key: 'assigned_dates', header: 'assigned_dates' },
+        { key: 'resolved_at', header: 'resolved_at' },
+        { key: 'denied_at', header: 'denied_at' },
+        { key: 'completed_at', header: 'completed_at' },
+        { key: 'rejected_at', header: 'rejected_at' },
+        { key: 'supervisor_rejected_at', header: 'supervisor_rejected_at' },
+        { key: 'updated_at', header: 'updated_at' },
+      ];
+
+      const xlsxBase64 = toXlsxBase64(rows, columns, {
+        sheetName: 'Complaints',
+      });
+
+      const fileName = `complaints-export-${Date.now()}.xlsx`;
+      // Match the PDF export flow:
+      // 1) Save into "Documents" first (react-native-html-to-pdf uses getExternalFilesDir()/Documents on Android)
+      // 2) On Android, copy to public Download folder so the user can access it
+      // react-native-html-to-pdf on Android writes to:
+      //   getExternalFilesDir(null)/Documents
+      // which maps to:
+      //   RNFS.ExternalDirectoryPath + '/Documents'
+      const documentsPath =
+        Platform.OS === 'android' && RNFS.ExternalDirectoryPath
+          ? `${RNFS.ExternalDirectoryPath}/Documents`
+          : RNFS.DocumentDirectoryPath;
+      const srcPath = `${documentsPath}/${fileName}`;
+
+      await RNFS.writeFile(srcPath, xlsxBase64, 'base64');
+
+      let destPath = srcPath;
+      if (Platform.OS === 'android') {
+        const downloadsPath = RNFS.DownloadDirectoryPath;
+        destPath = `${downloadsPath}/${fileName}`;
+        try {
+          // If external storage is blocked on some devices/OS versions,
+          // we still keep the file in Documents (srcPath).
+          await RNFS.copyFile(srcPath, destPath);
+        } catch (copyErr) {
+          console.warn('Excel copy to Download failed, keeping Documents copy:', copyErr);
+          destPath = srcPath;
+        }
+      }
+
+      FileViewer?.open &&
+        FileViewer?.open(
+          destPath,
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ).catch(() => {});
+    } catch (e) {
+      console.error('Error exporting excel:', e);
+      setError('حدث خطأ أثناء تصدير ملف Excel');
+    } finally {
+      setExportingExcel(false);
     }
   }, [from, to]);
 
@@ -490,6 +667,22 @@ export default function ReportsScreen() {
               <ActivityIndicator size="small" color={COLORS.white} />
             ) : (
               <Text style={styles.primaryBtnText}>تصدير PDF</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.secondaryBtn,
+              styles.excelBtn,
+              exportingExcel && styles.primaryBtnDisabled,
+            ]}
+            onPress={onExportExcel}
+            disabled={exportingExcel}
+          >
+            {exportingExcel ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <Text style={styles.secondaryBtnText}>Export excel</Text>
             )}
           </TouchableOpacity>
         </ScrollView>
@@ -638,6 +831,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  excelBtn: {
+    marginTop: SPACING.md,
   },
   secondaryBtnText: {
     color: COLORS.primary,

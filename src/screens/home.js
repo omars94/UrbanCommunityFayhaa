@@ -456,21 +456,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.menuRow}>
-            <TouchableOpacity
-              style={[styles.menuCard, styles.menuCardFull]}
-              onPress={() => navigation.navigate(ROUTE_NAMES.REPORTS)}
-            >
-              <View style={styles.iconContainer}>
-                <Ionicons
-                  name="stats-chart"
-                  style={[styles.icon, { color: COLORS.primary }]}
-                />
-              </View>
-              <Text style={styles.menuTitle}>تقرير الشكاوى</Text>
-              <Text style={styles.menuSubtitle}>تصدير PDF بالإحصاءات</Text>
-            </TouchableOpacity>
-          </View>
+          
 
           <View style={styles.menuRow}>
             <View style={styles.menuCard}>
@@ -488,6 +474,23 @@ export default function HomeScreen() {
                 <Text style={styles.statNumber}>{complaintThirdNumber}</Text>
                 <Text style={styles.menuTitle}>{complaintThirdLabel}</Text>
               </View>
+            </View>
+          )}
+          {(role === ROLES.ADMIN || role === ROLES.SUPERVISOR) && (
+            <View style={styles.menuRow}>
+              <TouchableOpacity
+                style={[styles.menuCard, styles.menuCard]}
+                onPress={() => navigation.navigate(ROUTE_NAMES.REPORTS)}
+              >
+                <View style={styles.iconContainer}>
+                  <Ionicons
+                    name="stats-chart"
+                    style={[styles.icon, { color: COLORS.primary }]}
+                  />
+                </View>
+                <Text style={styles.menuTitle}>تقرير الشكاوى</Text>
+                <Text style={styles.menuSubtitle}>تصدير PDF بالإحصاءات</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>

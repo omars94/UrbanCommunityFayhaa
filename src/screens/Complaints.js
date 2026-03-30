@@ -56,12 +56,10 @@ export default function ComplaintsScreen() {
   const { areas, indicators } = useSelector(state => state.data);
   const user = useSelector(state => state.user.user);
 
-  
   // Get role-based filter options
   const getFilterOptions = () => {
     const baseOptions = [{ id: 'my', label: 'شكاواي', value: 'my' }];
     switch (user?.role) {
-      
       case ROLES.ADMIN:
         return [
           {
@@ -100,23 +98,11 @@ export default function ComplaintsScreen() {
 
       case ROLES.MANAGER:
         return [
-          // {
-          //   id: 'assigned_to_me',
-          //   label: 'المُعيّنة لي',
-          //   value: 'assigned_to_me',
-          // },
-          // {
-          //   id: 'assigned_by_me',
-          //   label: 'عيّنتها للعمال',
-          //   value: 'assigned_by_me',
-          // },
-          // { id: 'resolved_by_me', label: 'حلّيتها', value: 'resolved_by_me' },
           {
             id: COMPLAINT_STATUS.PENDING,
             label: COMPLAINT_STATUS_AR.PENDING,
             value: COMPLAINT_STATUS.PENDING,
           },
-          { id: 'all', label: 'جميع الشكاوى', value: 'all' },
           {
             id: COMPLAINT_STATUS.ASSIGNED,
             label: COMPLAINT_STATUS_AR.ASSIGNED,
@@ -203,11 +189,34 @@ export default function ComplaintsScreen() {
         ];
 
       case ROLES.CITIZEN:
-        return [{
-          id: COMPLAINT_STATUS.DENIED,
-          label: COMPLAINT_STATUS_AR.DENIED,
-          value: COMPLAINT_STATUS.DENIED,
-        }]
+        return [
+          {
+            id: COMPLAINT_STATUS.PENDING,
+            label: COMPLAINT_STATUS_AR.PENDING,
+            value: COMPLAINT_STATUS.PENDING,
+          },
+          {
+            id: COMPLAINT_STATUS.ASSIGNED,
+            label: COMPLAINT_STATUS_AR.ASSIGNED,
+            value: COMPLAINT_STATUS.ASSIGNED,
+          },
+          {
+            id: COMPLAINT_STATUS.RESOLVED,
+            label: COMPLAINT_STATUS_AR.RESOLVED,
+            value: COMPLAINT_STATUS.RESOLVED,
+          },
+          {
+            id: COMPLAINT_STATUS.COMPLETED,
+            label: COMPLAINT_STATUS_AR.COMPLETED,
+            value: COMPLAINT_STATUS.COMPLETED,
+          },
+          {
+            id: COMPLAINT_STATUS.DENIED,
+            label: COMPLAINT_STATUS_AR.DENIED,
+            value: COMPLAINT_STATUS.DENIED,
+          },
+          ...baseOptions,
+        ];
       default:
         return [{ id: 'my', label: 'شكاواي', value: 'my' }];
     }
@@ -222,7 +231,6 @@ export default function ComplaintsScreen() {
   // Enhanced filtering logic
   const filteredComplaints = useMemo(() => {
     let filtered = complaints.filter(item => {
-      
       // Area filter
       let areaMatch = selectedArea ? item.area_id === selectedArea.id : true;
       // Indicator filter
@@ -232,14 +240,18 @@ export default function ComplaintsScreen() {
 
       if (!areaMatch || !indicatorMatch) return false;
 
-      console.log({item,selectedFilter});
-      
+      console.log({ item, selectedFilter });
+
       // Role-based filter logic
       switch (selectedFilter) {
         case 'my':
           return item.user_id === user.id;
 
         case COMPLAINT_STATUS.PENDING:
+          // Citizens should only see their own complaints (even for status-based filters).
+          if (user?.role === ROLES.CITIZEN) {
+            return item.user_id === user.id && item.status === COMPLAINT_STATUS.PENDING;
+          }
           return (
             (user?.role !== ROLES.SUPERVISOR ||
               user?.assigned_areas_ids?.includes(item.area_id)) &&
@@ -247,6 +259,9 @@ export default function ComplaintsScreen() {
           );
 
         case COMPLAINT_STATUS.ASSIGNED:
+          if (user?.role === ROLES.CITIZEN) {
+            return item.user_id === user.id && item.status === COMPLAINT_STATUS.ASSIGNED;
+          }
           return (
             (user?.role !== ROLES.SUPERVISOR ||
               user?.assigned_areas_ids?.includes(item.area_id)) &&
@@ -254,6 +269,9 @@ export default function ComplaintsScreen() {
           );
 
         case COMPLAINT_STATUS.RESOLVED:
+          if (user?.role === ROLES.CITIZEN) {
+            return item.user_id === user.id && item.status === COMPLAINT_STATUS.RESOLVED;
+          }
           return (
             (user?.role !== ROLES.SUPERVISOR ||
               user?.assigned_areas_ids?.includes(item.area_id)) &&
@@ -261,6 +279,9 @@ export default function ComplaintsScreen() {
           );
 
         case COMPLAINT_STATUS.COMPLETED:
+          if (user?.role === ROLES.CITIZEN) {
+            return item.user_id === user.id && item.status === COMPLAINT_STATUS.COMPLETED;
+          }
           return (
             (user?.role !== ROLES.SUPERVISOR ||
               user?.assigned_areas_ids?.includes(item.area_id)) &&
@@ -268,6 +289,9 @@ export default function ComplaintsScreen() {
           );
 
         case COMPLAINT_STATUS.REJECTED:
+          if (user?.role === ROLES.CITIZEN) {
+            return item.user_id === user.id && item.status === COMPLAINT_STATUS.REJECTED;
+          }
           return (
             (user?.role !== ROLES.SUPERVISOR ||
               user?.assigned_areas_ids?.includes(item.area_id)) &&
@@ -275,25 +299,30 @@ export default function ComplaintsScreen() {
           );
 
         case COMPLAINT_STATUS.DENIED:
+          if (user?.role === ROLES.CITIZEN) {
+            return item.user_id === user.id && item.status === COMPLAINT_STATUS.DENIED;
+          }
           return (
             (user?.role !== ROLES.SUPERVISOR ||
               user?.assigned_areas_ids?.includes(item.area_id)) &&
             item.status === COMPLAINT_STATUS.DENIED
           );
-          case COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE:
-            return (
-              (user?.role !== ROLES.SUPERVISOR ||
-                user?.assigned_areas_ids?.includes(item.area_id)) &&
-              item.status === COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE
-            );
-  
-          case COMPLAINT_STATUS.SUPERVISOR_REJECTED:
-            return (
-              (user?.role !== ROLES.SUPERVISOR ||
-                user?.assigned_areas_ids?.includes(item.area_id)) &&
-              item.status === COMPLAINT_STATUS.SUPERVISOR_REJECTED
-            );
-  
+        case COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE:
+          // Managers should not see first-supervisor acceptance complaints
+          if (user?.role === ROLES.MANAGER) return false;
+          return (
+            (user?.role !== ROLES.SUPERVISOR ||
+              user?.assigned_areas_ids?.includes(item.area_id)) &&
+            item.status === COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE
+          );
+
+        case COMPLAINT_STATUS.SUPERVISOR_REJECTED:
+          return (
+            (user?.role !== ROLES.SUPERVISOR ||
+              user?.assigned_areas_ids?.includes(item.area_id)) &&
+            item.status === COMPLAINT_STATUS.SUPERVISOR_REJECTED
+          );
+
         case 'assigned_to_me':
           return (
             // (user?.role === ROLES.MANAGER &&
@@ -350,8 +379,8 @@ export default function ComplaintsScreen() {
     );
   }, [complaints, selectedArea, selectedIndicator, selectedFilter, user]);
 
-  console.log({filteredComplaints});
-  
+  console.log({ filteredComplaints });
+
   // const getComplaints = async () => {
   //   setLoading(true);
   //   try {
@@ -367,8 +396,8 @@ export default function ComplaintsScreen() {
 
   // Initialize filter based on user role
   useEffect(() => {
-    console.log("EEFEFEFEFCT");
-    
+    console.log('EEFEFEFEFCT');
+
     clearAllFilters();
   }, [user]);
 
@@ -414,7 +443,7 @@ export default function ComplaintsScreen() {
       case COMPLAINT_STATUS.REJECTED:
         return COMPLAINT_STATUS_AR.REJECTED;
       case COMPLAINT_STATUS.DENIED:
-        return COMPLAINT_STATUS_AR.DENIED; 
+        return COMPLAINT_STATUS_AR.DENIED;
       case COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE:
         return COMPLAINT_STATUS_AR.FIRST_SUPERVISOR_ACCEPTANCE;
       case COMPLAINT_STATUS.SUPERVISOR_REJECTED:
@@ -454,7 +483,7 @@ export default function ComplaintsScreen() {
 
   // Role → default filter mapping
   const roleDefaultFilters = {
-    [ROLES.CITIZEN]: 'my',
+    [ROLES.CITIZEN]: COMPLAINT_STATUS.PENDING,
     [ROLES.ADMIN]: 'pending',
     [ROLES.MANAGER]: 'pending',
     [ROLES.WORKER]: 'assigned_to_me',
@@ -475,8 +504,8 @@ export default function ComplaintsScreen() {
   const clearAllFilters = () => {
     setSelectedArea(null);
     setSelectedIndicator(null);
-    console.log("get defailt--------",getDefaultFilter(user?.role));
-    
+    console.log('get defailt--------', getDefaultFilter(user?.role));
+
     setSelectedFilter(getDefaultFilter(user?.role));
   };
 
@@ -746,20 +775,20 @@ export default function ComplaintsScreen() {
             style={styles.filtersContainer}
           >
             {/* Role-based Filter */}
-            {user?.role !== ROLES.CITIZEN && (
-              <SimplePicker
-                label="نوع الشكاوى"
-                options={getFilterOptions()}
-                labelKey="label"
-                selectedValue={
-                  getFilterOptions().find(opt => opt.value === selectedFilter)
-                    ?.label
-                }
-                onValueChange={item => setSelectedFilter(item.value)}
-                style={styles.filterPicker}
-                showLabel={false}
-              />
-            )}
+            {/* {user?.role !== ROLES.CITIZEN && ( */}
+            <SimplePicker
+              label="نوع الشكاوى"
+              options={getFilterOptions()}
+              labelKey="label"
+              selectedValue={
+                getFilterOptions().find(opt => opt.value === selectedFilter)
+                  ?.label
+              }
+              onValueChange={item => setSelectedFilter(item.value)}
+              style={styles.filterPicker}
+              showLabel={false}
+            />
+            {/* )} */}
 
             {/* Area Filter */}
             <SimplePicker
