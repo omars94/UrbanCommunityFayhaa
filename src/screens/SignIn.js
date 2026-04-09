@@ -51,7 +51,7 @@ const validationSchema = Yup.object().shape({
     .required('كلمة المرور مطلوبة'),
 });
 
-export default function SignIn() {
+export default function SignIn({ toggleLoading = () => {} }) {
   // const [error, setError] = useState('');
   // const phoneInput = useRef(null);
   const navigation = useNavigation();
@@ -81,6 +81,7 @@ export default function SignIn() {
   const [resetCooldown, setResetCooldown] = useState(0);
   const resetCooldownSeconds = 60;
 
+  let passwordRef = useRef(null);
   const initialValues = {
     email: '',
     password: '',
@@ -213,7 +214,7 @@ export default function SignIn() {
   ) => {
     setStatus(null);
     setShowResendLink(false);
-
+    toggleLoading(true);
     try {
       // Check if user exists
       const exist = await checkIfUserExistByEmail(values.email);
@@ -226,8 +227,10 @@ export default function SignIn() {
       } else {
         setStatus('الرجاء انشاء حساب قبل تسجيل الدخول');
       }
+      toggleLoading(false);
     } catch (error) {
       console.log(error);
+      toggleLoading(false);
       if (
         error?.message?.includes(
           'يجب عليك تفعيل الحساب عن طريق الرابط المرسل على بريدك الإلكتروني قبل تسجيل الدخول',
@@ -264,6 +267,7 @@ export default function SignIn() {
         );
       }
     } finally {
+      toggleLoading(false);
       setSubmitting(false);
     }
   };
@@ -320,6 +324,9 @@ export default function SignIn() {
                 <View style={styles.fieldContainer}>
                   <View style={styles.inputContainer}>
                     <TextInput
+                      onSubmitEditing={() =>
+                        passwordRef?.focus && passwordRef?.focus()
+                      }
                       style={[
                         styles.input,
                         touched.email && errors.email && styles.inputError,
@@ -349,6 +356,7 @@ export default function SignIn() {
                 <View style={styles.fieldContainer}>
                   <View style={styles.inputContainer}>
                     <TextInput
+                      ref={ref => (passwordRef = ref)}
                       style={[
                         styles.input,
                         // styles.inputWithIcon,

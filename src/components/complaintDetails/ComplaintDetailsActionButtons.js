@@ -62,7 +62,8 @@ export default function ComplaintDetailsActionButtons({
     userRole === ROLES.SUPERVISOR && status === COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE;
 
   const canSupervisorReassign =
-    userRole === ROLES.SUPERVISOR && status === COMPLAINT_STATUS.SUPERVISOR_REJECTED;
+    (userRole === ROLES.SUPERVISOR || userRole === ROLES.ADMIN) &&
+    status === COMPLAINT_STATUS.SUPERVISOR_REJECTED;
 
   if (
     !canAssign &&

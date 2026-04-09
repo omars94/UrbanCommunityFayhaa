@@ -19,12 +19,14 @@ function SimplePicker({
   labelKey,
   idKey,
   columns = 1,
+  wrapperStyle,
+  buttonStyle,
 }) {
   const [visible, setVisible] = useState(false);
 
   return (
     // <View style={{ paddingHorizontal: 5, flex: 1, maxHeight: 120 }}>
-    <View style={{ paddingHorizontal: 5, marginBottom: 5 }}>
+    <View style={[styles.rootWrapper, wrapperStyle]}>
       {showLabel && (
         <Text
           style={{
@@ -38,7 +40,7 @@ function SimplePicker({
         </Text>
       )}
       <TouchableOpacity
-        style={styles.pickerButton}
+        style={[styles.pickerButton, buttonStyle]}
         onPress={() => setVisible(true)}
       >
         <Text
@@ -85,6 +87,10 @@ function SimplePicker({
 }
 
 const styles = StyleSheet.create({
+  rootWrapper: {
+    paddingHorizontal: 5,
+    marginBottom: 5,
+  },
   pickerButton: {
     // textAlign: 'right',
     backgroundColor: '#fff',

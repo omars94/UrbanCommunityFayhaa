@@ -6,9 +6,7 @@ import {
   TouchableOpacity,
   View,
   TextInput,
-  Keyboard,
   KeyboardAvoidingView,
-  TouchableWithoutFeedback,
   Platform,
   Linking,
 } from 'react-native';
@@ -266,17 +264,19 @@ export default function AddComplaintScreen() {
         onBackPress={() => navigation.goBack()}
       />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoiding}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-          >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        >
+          <View style={styles.scrollInner}>
             <Formik
               initialValues={{
                 indicator: null,
@@ -421,9 +421,9 @@ export default function AddComplaintScreen() {
 
             {/* Custom Alert Component */}
             <AlertComponent />
-          </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
-      </ScrollView>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -432,9 +432,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  keyboardAvoiding: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollInner: {
+    flexGrow: 1,
+  },
   scrollContainer: {
     flexGrow: 1,
     paddingTop: SPACING.xl,
+    paddingBottom: SPACING.xxxl,
   },
   content: {
     flex: 1,

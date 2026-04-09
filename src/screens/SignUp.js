@@ -83,8 +83,12 @@ const validationSchema = Yup.object().shape({
     }),
 });
 
-export default function SignUp() {
+export default function SignUp({ toggleLoading = ()=>{} }) {
   const phoneInput = useRef(null);
+  let phoneTextInputRef = useRef(null);
+  let emailRef = useRef(null);
+  let passwordRef = useRef(null);
+  let confirmPasswordRef = useRef(null);
   const navigation = useNavigation();
   const [formattedValue, setFormattedValue] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -125,6 +129,7 @@ export default function SignUp() {
     values,
     { setSubmitting, setFieldError, setStatus, resetForm },
   ) => {
+    toggleLoading(true);
     setStatus(null);
 
     try {
@@ -189,13 +194,17 @@ export default function SignUp() {
           'تم التسجيل بنجاح الرجاء التحقق من البريد الالكتروني او مجلد الرسائل غير المرغوب (spam) فيها  ثم تسجيل الدخول',
           [{ text: 'حسناً', onPress: hideCustomAlert }],
         );
+        toggleLoading(false);
       } else {
+        toggleLoading(false);
         setStatus('الرقم مسجل مسبقاً، الرجاء تسجيل الدخول');
       }
     } catch (error) {
+      toggleLoading(false);
       console.log(error);
       setStatus(error?.message || 'خطأ في التسجيل، يرجى المحاولة مرة أخرى');
     } finally {
+      toggleLoading(false);
       setSubmitting(false);
     }
   };
@@ -264,6 +273,10 @@ export default function SignUp() {
                         onBlur={handleBlur('fullName')}
                         placeholder="الاسم الكامل"
                         placeholderTextColor={COLORS.gray?.[500]}
+                        returnKeyType="next"
+                        onSubmitEditing={() =>
+                          emailRef?.focus && emailRef?.focus()
+                        }
                       />
                     </View>
                     {touched.fullName && errors.fullName && (
@@ -275,6 +288,7 @@ export default function SignUp() {
                   <View style={styles.fieldContainer}>
                     <View style={styles.inputContainer}>
                       <TextInput
+                        ref={ref => (emailRef = ref)}
                         style={[styles.input, touched.email && errors.email]}
                         placeholder="البريد الإلكتروني"
                         placeholderTextColor={COLORS.gray?.[500]}
@@ -284,6 +298,10 @@ export default function SignUp() {
                         onChangeText={handleChange('email')}
                         onBlur={handleBlur('email')}
                         maxLength={128}
+                        returnKeyType="next"
+                        onSubmitEditing={() =>
+                          passwordRef?.focus && passwordRef?.focus()
+                        }
                       />
                       <MaterialDesignIcons
                         name="email"
@@ -301,6 +319,7 @@ export default function SignUp() {
                   <View style={styles.fieldContainer}>
                     <View style={styles.inputContainer}>
                       <TextInput
+                        ref={ref => (passwordRef = ref)}
                         style={[
                           styles.input,
                           styles.passwordInput,
@@ -314,6 +333,11 @@ export default function SignUp() {
                         onBlur={handleBlur('password')}
                         maxLength={20}
                         textAlign="right"
+                        returnKeyType="next"
+                        onSubmitEditing={() =>
+                          confirmPasswordRef?.focus &&
+                          confirmPasswordRef?.focus()
+                        }
                       />
                       <TouchableOpacity
                         onPress={() => setShowPassword(!showPassword)}
@@ -335,6 +359,7 @@ export default function SignUp() {
                   <View style={styles.fieldContainer}>
                     <View style={styles.inputContainer}>
                       <TextInput
+                        ref={ref => (confirmPasswordRef = ref)}
                         style={[
                           styles.input,
                           styles.passwordInput, // Add specific style for password
@@ -348,6 +373,11 @@ export default function SignUp() {
                         onBlur={handleBlur('confirmPassword')}
                         maxLength={20}
                         textAlign="right"
+                        returnKeyType="next"
+                        onSubmitEditing={() =>
+                          phoneTextInputRef?.focus &&
+                          phoneTextInputRef?.focus()
+                        }
                       />
                       <TouchableOpacity
                         onPress={() =>
@@ -407,8 +437,11 @@ export default function SignUp() {
                           // { flexDirection: 'row-reverse' },
                         ]}
                         textInputProps={{
+                          ref: ref => (phoneTextInputRef = ref),
                           keyboardType: 'number-pad',
                           maxLength: 8,
+                          returnKeyType: 'done',
+                          onSubmitEditing: () => Keyboard.dismiss(),
                         }}
                         codeTextStyle={styles.codeTextStyle}
                       />
@@ -423,9 +456,9 @@ export default function SignUp() {
               )} */}
                   {/* </View> */}
 
-                  {/* Date of Birth */}
-                  <View style={{ flexDirection: 'row' }}>
-                    <View style={[styles.fieldContainer, { width: '50%' }]}>
+                  {/* Date of Birth + Area (matched row height) */}
+                  <View style={styles.pickerRow}>
+                    <View style={[styles.fieldContainer, styles.pickerRowHalf]}>
                       <View style={styles.inputContainer}>
                         {showDatePicker || Platform.OS === 'ios' ? (
                           <View style={styles.datePickerContainer}>
@@ -478,8 +511,7 @@ export default function SignUp() {
                     </View>
 
                     {/* Area Picker */}
-                    <View style={[styles.fieldContainer, { width: '50%' }]}>
-                      {/* <View style={styles.pickerContainer}> */}
+                    <View style={[styles.fieldContainer, styles.pickerRowHalf]}>
                       <SimplePicker
                         label="المنطقة"
                         columns={2}
@@ -490,6 +522,8 @@ export default function SignUp() {
                         onValueChange={selectedArea =>
                           setFieldValue('area', selectedArea)
                         }
+                        wrapperStyle={styles.areaPickerWrapper}
+                        buttonStyle={styles.areaPickerButton}
                       />
                       {/* </View> */}
                       {touched.area && errors.area && (
@@ -583,6 +617,29 @@ const styles = StyleSheet.create({
   },
   fieldContainer: {
     marginBottom: SPACING.md,
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: SPACING.sm,
+  },
+  pickerRowHalf: {
+    flex: 1,
+    minWidth: 0,
+  },
+  areaPickerWrapper: {
+    flex: 1,
+    paddingHorizontal: 0,
+    marginBottom: 0,
+    justifyContent: 'center',
+  },
+  areaPickerButton: {
+    height: 55,
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderColor: COLORS.gray[400],
+    paddingVertical: 0,
+    paddingHorizontal: SPACING.sm,
   },
   inputContainer: {
     flexDirection: 'row',
