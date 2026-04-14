@@ -32,10 +32,11 @@ export default function SettingsScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const { user } = useSelector(state => state.user);
-  const emergency_number = useSelector(
-    state => state.data.constants?.emergency,
+  const support_number = useSelector(
+    state => state.data.constants?.support,
   );
-  const link = 'tel:' + emergency_number;
+  
+  const link = 'tel:' + support_number;
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   console.log(user);
   console.log('link', link);

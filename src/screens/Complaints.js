@@ -63,6 +63,11 @@ export default function ComplaintsScreen() {
       case ROLES.ADMIN:
         return [
           {
+            id: COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE,
+            label: COMPLAINT_STATUS_AR.FIRST_SUPERVISOR_ACCEPTANCE,
+            value: COMPLAINT_STATUS.FIRST_SUPERVISOR_ACCEPTANCE,
+          },
+          {
             id: COMPLAINT_STATUS.PENDING,
             label: COMPLAINT_STATUS_AR.PENDING,
             value: COMPLAINT_STATUS.PENDING,

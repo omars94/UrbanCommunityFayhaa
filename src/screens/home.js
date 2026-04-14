@@ -102,7 +102,9 @@ export default function HomeScreen() {
     buttons: [],
     loading: false,
   });
-
+  const emergency_number = useSelector(
+    state => state.data.constants?.emergency,
+  );
   const role = user.role;
   let complaintFirstNumber = 0;
   let complaintFirstLabel;
@@ -433,7 +435,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.menuCard}
-              onPress={() => Linking.openURL('tel:175')}
+              onPress={() => Linking.openURL(`tel:${emergency_number}`)} 
             >
               <View style={styles.iconContainer}>
                 <MaterialDesignIcons
