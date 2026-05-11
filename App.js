@@ -29,4 +29,4 @@ function App() {
   );
 }
 
-export default codePush(App);
+export default __DEV__ ? App : codePush(App);

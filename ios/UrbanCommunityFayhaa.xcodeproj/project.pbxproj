@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04AB32DB2FA09878004BB8FC /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 04AB32DA2FA09878004BB8FC /* GoogleService-Info.plist */; };
 		04D555A12F91677F004C33E8 /* OneSignalNotificationServiceExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 04D5559A2F91677F004C33E8 /* OneSignalNotificationServiceExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
@@ -41,6 +42,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		04AB32DA2FA09878004BB8FC /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		04D555952F916727004C33E8 /* UrbanCommunityFayhaa.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = UrbanCommunityFayhaa.entitlements; path = UrbanCommunityFayhaa/UrbanCommunityFayhaa.entitlements; sourceTree = "<group>"; };
 		04D5559A2F91677F004C33E8 /* OneSignalNotificationServiceExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OneSignalNotificationServiceExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07F961A680F5B00A75B9A /* UrbanCommunityFayhaa.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UrbanCommunityFayhaa.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -125,6 +127,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
+				04AB32DA2FA09878004BB8FC /* GoogleService-Info.plist */,
 				13B07FAE1A68108700A75B9A /* UrbanCommunityFayhaa */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				04D5559B2F91677F004C33E8 /* OneSignalNotificationServiceExtension */,
@@ -254,6 +257,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
+				04AB32DB2FA09878004BB8FC /* GoogleService-Info.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				E7F6330F88ED01C34CEEEEBB /* PrivacyInfo.xcprivacy in Resources */,
 			);
@@ -513,7 +517,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -542,7 +546,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
