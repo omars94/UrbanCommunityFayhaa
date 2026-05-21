@@ -32,14 +32,11 @@ export default function SettingsScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const { user } = useSelector(state => state.user);
-  const support_number = useSelector(
-    state => state.data.constants?.support,
-  );
-  
+  const support_number = useSelector(state => state.data.constants?.support);
+
   const link = 'tel:' + support_number;
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   console.log(user);
-  console.log('link', link);
 
   const phone = user?.phone_number;
   const fullname = user?.full_name;
@@ -164,6 +161,12 @@ export default function SettingsScreen() {
           onPress={() => Linking.openURL(link)}
         />
         <MenuItem
+          icon="trash"
+          label="حذف الحساب"
+          subLabel="تواصل معنا لحذف حسابك"
+          onPress={() => navigation.navigate(ROUTE_NAMES.DELETE_ACCOUNT)}
+        />
+        <MenuItem
           icon="share"
           label="شارك الطبيق"
           subLabel="شارك التطبيق مع اصدقائك"
@@ -269,6 +272,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xl,
     fontWeight: FONT_WEIGHTS.bold,
     marginBottom: SPACING.xs,
+    textAlign: 'left',
   },
   profileInfo: {
     fontSize: FONT_SIZES.sm,
@@ -288,6 +292,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.lg,
     fontWeight: FONT_WEIGHTS.semibold,
     color: COLORS.black,
+    textAlign: 'left',
   },
   menuSubLabel: {
     fontSize: FONT_SIZES.sm,

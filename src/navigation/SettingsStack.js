@@ -7,6 +7,7 @@ import AddWorkerScreen from '../screens/AddWorker';
 import SettingsScreen from '../screens/Settings';
 import AddUserForm from '../screens/AddUserForm';
 import AddSupervisorScreen from '../screens/AddSupervisor';
+import DeleteAccountScreen from '../screens/deleteAccount';
 const Stack = createNativeStackNavigator();
 
 export default function SettingsStack() {
@@ -41,6 +42,11 @@ export default function SettingsStack() {
           name={ROUTE_NAMES.ADD_USER_FORM}
           component={AddUserForm}
           options={{ title: 'اضافة ', headerShown: false  }}
+        />
+        <Stack.Screen
+          name={ROUTE_NAMES.DELETE_ACCOUNT}
+          component={DeleteAccountScreen}
+          options={{ title: 'حذف الحساب', headerShown: false }}
         />
       </Stack.Navigator>
     );

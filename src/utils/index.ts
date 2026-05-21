@@ -84,8 +84,13 @@ export const formatLebanesePhone = (phoneNumber: string) => {
   if (!phoneNumber) return '';
   
   // Remove all non-digit characters
-  let cleanNumber = phoneNumber.replace(/\D/g, '');
+  let cleanNumber = phoneNumber;
   
+  try {
+    cleanNumber = (phoneNumber || '')?.replace(/\D/g, '');
+  } catch (error) {
+    
+  }
   // Handle different input formats
   if (cleanNumber.startsWith('961')) {
     // Already has country code

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -23,50 +23,68 @@ import LoadingOverlay from '../components/LoadingIndicator';
 
 const SPRING = { damping: 22, stiffness: 220, mass: 0.8 };
 
-/** LTR: signin left (0), signup right (+half). RTL row mirrors children so signin is right → offset +half. */
-function pillTranslateX(mode, halfWidth, not_rtl) {
-  if (halfWidth <= 0) return 0;
-  const signinX = not_rtl ? halfWidth : 0;
-  const signupX = not_rtl ? 0 : halfWidth;
-  return mode === 'signin' ? signinX : signupX;
-}
-
 export default function AuthScreen() {
   const [mode, setMode] = useState('signin'); // 'signin' or 'signup'
   const [loadingVisible, setLoadingVisible] = useState(false);
-  const [segmentReady, setSegmentReady] = useState(false);
   const halfWidth = useSharedValue(0);
   const translateX = useSharedValue(0);
+  // Stores measured layouts of each toggle button. Using refs keeps this
+  // independent of render cycles and avoids stale closures inside onLayout.
+  const layoutsRef = useRef({ signin: null, signup: null });
   const modeRef = useRef(mode);
   modeRef.current = mode;
   const dispatch = useDispatch();
 
   const pillStyle = useAnimatedStyle(() => ({
     width: halfWidth.value,
-    transform: [{ translateX: -translateX.value }],
+    transform: [{ translateX: translateX.value }],
   }));
 
-  const not_rtl = !I18nManager.isRTL;
+  // Computes the pill's translateX from measured button positions so the
+  // animation works under both LTR and RTL without relying on
+  // I18nManager.isRTL, which is unreliable on the first iOS launch after a
+  // fresh install (e.g. via TestFlight) because forceRTL(true) does not
+  // take effect until the next app launch.
+  const computePillX = useCallback(targetMode => {
+    const { signin, signup } = layoutsRef.current;
+    if (!signin || !signup) return null;
+    // Detect rendered layout direction directly from measurements. In RTL the
+    // first child (signin) renders to the right of the second child (signup).
+    const isReverseRow = signin.x > signup.x;
+    // React Native auto-swaps `left: 0` -> `right: 0` for absolute children
+    // in RTL, so the pill's untranslated left edge is at containerWidth
+    // - pillWidth = signin.width. In LTR it stays at 0.
+    const pillBaseX = isReverseRow ? signin.width : 0;
+    const targetButtonX = targetMode === 'signin' ? signin.x : signup.x;
+    return targetButtonX - pillBaseX;
+  }, []);
 
-  const onToggleLayout = e => {
-    const half = e.nativeEvent.layout.width / 2;
-    halfWidth.value = half;
-    setSegmentReady(true);
-    translateX.value = withSpring(
-      pillTranslateX(modeRef.current, half, not_rtl),
-      SPRING,
-    );
+  const applyPill = useCallback(
+    animated => {
+      const target = computePillX(modeRef.current);
+      if (target === null) return;
+      halfWidth.value = layoutsRef.current.signin.width;
+      if (animated) {
+        translateX.value = withSpring(target, SPRING);
+      } else {
+        translateX.value = target;
+      }
+    },
+    [computePillX, halfWidth, translateX],
+  );
+
+  const onButtonLayout = key => e => {
+    const { x, width } = e.nativeEvent.layout;
+    const prev = layoutsRef.current[key];
+    if (prev && prev.x === x && prev.width === width) return;
+    const isFirstMeasure = !prev;
+    layoutsRef.current[key] = { x, width };
+    applyPill(!isFirstMeasure);
   };
 
   useEffect(() => {
-    if (!segmentReady) return;
-    translateX.value = withSpring(
-      pillTranslateX(mode, halfWidth.value, not_rtl),
-      SPRING,
-    );
-    // halfWidth / translateX are Reanimated shared values (stable); omit from deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, segmentReady]);
+    applyPill(true);
+  }, [mode, applyPill]);
 
   const getAreas = useCallback(async () => {
     try {
@@ -81,12 +99,13 @@ export default function AuthScreen() {
     getAreas();
   }, [getAreas]);
 
-  const toggleLoading = (val) => {
+  const toggleLoading = val => {
     setLoadingVisible(val);
   };
+
   return (
     <View style={styles.container}>
-      <View style={styles.toggleContainer} onLayout={onToggleLayout}>
+      <View style={styles.toggleContainer}>
         <Animated.View style={[styles.slidingPill, pillStyle]} />
         <Pressable
           accessibilityRole="button"
@@ -95,6 +114,7 @@ export default function AuthScreen() {
             styles.toggleButton,
             pressed && styles.togglePressed,
           ]}
+          onLayout={onButtonLayout('signin')}
           onPress={() => setMode('signin')}
         >
           <Text
@@ -114,6 +134,7 @@ export default function AuthScreen() {
             styles.toggleButton,
             pressed && styles.togglePressed,
           ]}
+          onLayout={onButtonLayout('signup')}
           onPress={() => setMode('signup')}
         >
           <Text
@@ -128,9 +149,13 @@ export default function AuthScreen() {
         </Pressable>
       </View>
 
-      {mode === 'signup' && <SignUp toggleLoading={(val)=>toggleLoading(val)} />}
+      {mode === 'signup' && (
+        <SignUp toggleLoading={val => toggleLoading(val)} />
+      )}
 
-      {mode === 'signin' && <SignIn toggleLoading={(val)=>toggleLoading(val)} />}
+      {mode === 'signin' && (
+        <SignIn toggleLoading={val => toggleLoading(val)} />
+      )}
       <LoadingOverlay visible={loadingVisible} />
     </View>
   );

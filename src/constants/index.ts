@@ -279,6 +279,7 @@ export const ROUTE_NAMES = {
   ADD_USER_FORM:'AddUserForm',
   WASTE: 'Waste',
   SETTINGS: 'Settings',
+  DELETE_ACCOUNT: 'DeleteAccount',
   EMERGENCY: 'Emergency',
   LOCATION: 'Location',
 };
