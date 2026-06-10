@@ -94,6 +94,10 @@ export const loginUser = async user => {
     const userKey = Object.keys(userData)[0];
     const userRecord = userData[userKey];
 
+    if (userRecord.archived) {
+      throw new Error('تم حذف هذا الحساب');
+    }
+
     // Compare password with hashed password using bcrypt
     // const isPasswordValid = await bcrypt.compareSync(password, userRecord.password);
     

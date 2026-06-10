@@ -163,7 +163,7 @@ export default function SettingsScreen() {
         <MenuItem
           icon="trash"
           label="حذف الحساب"
-          subLabel="تواصل معنا لحذف حسابك"
+          subLabel="قم بحذف حسابك"
           onPress={() => navigation.navigate(ROUTE_NAMES.DELETE_ACCOUNT)}
         />
         <MenuItem

@@ -245,8 +245,6 @@ export default function ComplaintsScreen() {
 
       if (!areaMatch || !indicatorMatch) return false;
 
-      console.log({ item, selectedFilter });
-
       // Role-based filter logic
       switch (selectedFilter) {
         case 'my':
@@ -384,7 +382,6 @@ export default function ComplaintsScreen() {
     );
   }, [complaints, selectedArea, selectedIndicator, selectedFilter, user]);
 
-  console.log({ filteredComplaints });
 
   // const getComplaints = async () => {
   //   setLoading(true);
@@ -401,8 +398,6 @@ export default function ComplaintsScreen() {
 
   // Initialize filter based on user role
   useEffect(() => {
-    console.log('EEFEFEFEFCT');
-
     clearAllFilters();
   }, [user]);
 

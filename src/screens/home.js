@@ -46,8 +46,6 @@ import { setSections } from '../slices/sectionsSlice';
 
 // Fetch all complaints
 export async function getData(dispatch) {
-  console.log('get data');
-  console.log('get data2');
   database()
     .ref('/areas')
     .once('value', snapshot => {

@@ -19,7 +19,6 @@ import { navigationRef } from '../services/notifications';
 import { setPendingNavigation } from '../services/notifications';
 
 const Stack = createNativeStackNavigator();
-console.log({ onesignalID: process.env.ONESIGNAL_APP_ID, env: process.env });
 OneSignal.initialize(process.env.ONESIGNAL_APP_ID);
 
 const { width, height } = Dimensions.get('window');
@@ -111,6 +110,12 @@ function Layout() {
         console.log('UID from user object:', firebaseUser.uid);
         const user = await getUserByFbUID(firebaseUser.uid);
         console.log(user);
+        if (user?.archived) {
+          await auth().signOut();
+          dispatch(clearUser());
+          setReady(true);
+          return;
+        }
         dispatch(setUser(user));
         console.log('user email:', user.email);
         if (user && user.email) {

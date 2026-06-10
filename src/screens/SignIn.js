@@ -39,6 +39,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../utils/firebase';
 import CustomAlert from '../components/customAlert';
+import AccountDeletedModal from '../components/AccountDeletedModal';
 import { set } from '@react-native-firebase/database';
 
 const validationSchema = Yup.object().shape({
@@ -69,6 +70,8 @@ export default function SignIn({ toggleLoading = () => {} }) {
   const [remainingTime, setRemainingTime] = useState(0);
   const [error, setError] = useState('');
   const [alertVisible, setAlertVisible] = useState(false);
+  const [accountDeletedModalVisible, setAccountDeletedModalVisible] =
+    useState(false);
   const [alertData, setAlertData] = useState({
     title: '',
     message: '',
@@ -223,7 +226,9 @@ export default function SignIn({ toggleLoading = () => {} }) {
           email: values.email,
           password: values.password,
         });
-        console.log('Login response:', response);
+        // console.log('Login response:', response);
+        if (response?.archived) {
+        }
       } else {
         setStatus('الرجاء انشاء حساب قبل تسجيل الدخول');
       }
@@ -259,6 +264,10 @@ export default function SignIn({ toggleLoading = () => {} }) {
         } finally {
           setShowResendLink(true);
         }
+      } else if (error?.message?.includes('تم حذف هذا الحساب')) {
+        setTimeout(() => {
+          setAccountDeletedModalVisible(true);
+        }, 1000);
       } else if (error?.message?.includes('auth/invalid-credential')) {
         setStatus('كلمة المرور التي أدخلتها غير صحيحة. يرجى المحاولة مرة أخرى');
       } else {
@@ -301,6 +310,11 @@ export default function SignIn({ toggleLoading = () => {} }) {
             message={alertData.message}
             buttons={alertData.buttons}
             onClose={hideCustomAlert}
+          />
+
+          <AccountDeletedModal
+            visible={accountDeletedModalVisible}
+            onClose={() => setAccountDeletedModalVisible(false)}
           />
 
           <Formik

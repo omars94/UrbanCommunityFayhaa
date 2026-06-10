@@ -169,6 +169,27 @@ export const updateUser = async user => {
   }
 };
 
+export const archiveUser = async id => {
+  try {
+    if (!id) throw new Error('لم يتم الحصول على رقم التعريف ID');
+
+    const snapshot = await database()
+      .ref('users')
+      .orderByChild('id')
+      .equalTo(id)
+      .once('value');
+
+    if (!snapshot.exists()) {
+      throw new Error('المستخدم غير موجود');
+    }
+
+    await database().ref(`users/${id}`).update({ archived: true });
+    return true;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const updateUserAssignments = async (id, { municipalities, areas }) => {
   try {
     if (!id) throw new Error('لم يتم الحصول على رقم التعريف ID');

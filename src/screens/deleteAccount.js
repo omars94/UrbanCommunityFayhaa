@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,15 @@ import {
   Linking,
   Alert,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { useNavigation } from '@react-navigation/native';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import auth from '@react-native-firebase/auth';
 import HeaderSection from '../components/headerSection';
+import { archiveUser } from '../api/userApi';
+import { clearUser } from '../slices/userSlice';
 import {
   COLORS,
   SPACING,
@@ -23,14 +27,44 @@ import {
   SIZES,
   SHADOWS,
 } from '../constants';
-import { formatLebanesePhone } from '../utils';
 
 export default function DeleteAccountScreen() {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
+  const { user } = useSelector(state => state.user);
   const supportNumber =
     useSelector(state => state.data.constants?.deleteAccountSupportNb) || '';
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const formattedPhone = formatLebanesePhone(supportNumber?.toString());
+  const confirmDeleteAccount = async () => {
+    if (!user?.id) {
+      Alert.alert('خطأ', 'تعذر العثور على بيانات المستخدم');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await archiveUser(user.id);
+      await auth().signOut();
+      dispatch(clearUser());
+      Alert.alert('تم', 'تم حذف حسابك بنجاح');
+    } catch (error) {
+      Alert.alert('خطأ', error.message || 'حدث خطأ أثناء حذف الحساب');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert('تأكيد', 'هل أنت متأكد أنك تريد حذف حسابك؟', [
+      { text: 'إلغاء', style: 'cancel' },
+      {
+        text: 'حذف',
+        style: 'destructive',
+        onPress: confirmDeleteAccount,
+      },
+    ]);
+  };
 
   const handlePhonePress = () => {
     if (!supportNumber) {
@@ -56,7 +90,6 @@ export default function DeleteAccountScreen() {
     <View style={styles.container}>
       <HeaderSection
         title="حذف الحساب"
-        subtitle="تواصل معنا لحذف حسابك"
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
@@ -74,7 +107,30 @@ export default function DeleteAccountScreen() {
           <Text style={styles.logoSubtitle}>Urban Community Fayhaa</Text>
         </View>
 
-        <Text style={styles.message}>لحذف حسابك، يرجى التواصل معنا</Text>
+        <View style={styles.emailContainer}>
+          <Text style={styles.emailLabel}>البريد الإلكتروني</Text>
+          <Text style={styles.emailText}>{user?.email || '-'}</Text>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.actionButton, styles.deleteButton]}
+          onPress={handleDeleteAccount}
+          activeOpacity={0.8}
+          disabled={isDeleting}
+        >
+          {isDeleting ? (
+            <ActivityIndicator color={COLORS.white} />
+          ) : (
+            <>
+              <Ionicons name="trash" size={22} color={COLORS.white} />
+              <Text style={styles.actionButtonText}>احذف حسابي</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <Text style={styles.contactText}>
+          أو، إذا واجهت مشكلة يمكنك التواصل معنا
+        </Text>
 
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
@@ -146,13 +202,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: FONT_FAMILIES.primary,
   },
-  message: {
-    fontSize: FONT_SIZES.lg,
+  emailContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+  },
+  emailLabel: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text.secondary,
+    fontFamily: FONT_FAMILIES.primary,
+    marginBottom: SPACING.xs,
+  },
+  emailText: {
+    fontSize: FONT_SIZES.md,
     color: COLORS.text.primary,
+    fontFamily: FONT_FAMILIES.primary,
+    writingDirection: 'ltr',
+    textAlign: 'center',
+  },
+  deleteButton: {
+    backgroundColor: COLORS.danger,
+    marginBottom: SPACING.lg,
+  },
+  contactText: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text.secondary,
     textAlign: 'center',
     fontFamily: FONT_FAMILIES.primary,
-    marginBottom: SPACING.xl,
-    lineHeight: 28,
+    marginBottom: SPACING.lg,
+    lineHeight: 24,
   },
   buttonsContainer: {
     width: '100%',
