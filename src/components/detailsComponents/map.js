@@ -1,5 +1,12 @@
-import MapView, { Geojson, Marker } from 'react-native-maps';
-import { View, StyleSheet, Alert, Linking, Dimensions } from 'react-native';
+import MapView, { Geojson, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import {
+  View,
+  StyleSheet,
+  Alert,
+  Linking,
+  Dimensions,
+  Platform,
+} from 'react-native';
 import { COLORS, SPACING, BORDER_RADIUS, ROLES } from '../../constants';
 // import Sections from '../../constants/Sections.json';
 import { findContainingFeature } from '../../services/mapService';
@@ -14,7 +21,7 @@ export const DisplayMap = ({ lat, long, resolvedLat, resolvedLong }) => {
   return (
     <View style={styles.mapContainer}>
       <MapView
-        provider="google"
+        provider={PROVIDER_GOOGLE}
         scrollEnabled={false}
         pitchEnabled={false}
         rotateEnabled={false}

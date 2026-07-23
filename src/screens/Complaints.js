@@ -237,10 +237,10 @@ export default function ComplaintsScreen() {
   const filteredComplaints = useMemo(() => {
     let filtered = complaints.filter(item => {
       // Area filter
-      let areaMatch = selectedArea ? item.area_id === selectedArea.id : true;
+      let areaMatch = selectedArea ? item?.area?.id === selectedArea?.id : true;
       // Indicator filter
       let indicatorMatch = selectedIndicator
-        ? item.indicator_id === selectedIndicator.id
+        ? item?.indicator?.id === selectedIndicator.id
         : true;
 
       if (!areaMatch || !indicatorMatch) return false;
@@ -529,8 +529,8 @@ export default function ComplaintsScreen() {
       // resolved_at
     } = item;
 
-    const area = areas.find(a => a.id === area_id);
-    const indicator = indicators.find(i => i.id === indicator_id);
+    const area = areas.find(a => a?.id === area_id);
+    const indicator = indicators.find(i => i?.id === indicator_id);
     const statusColor = getStatusColor(status);
     const name = findContainingFeature({
       lat: latitude,

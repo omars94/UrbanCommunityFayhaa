@@ -5,6 +5,18 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
+# Xcode 16 writes objectVersion 70 (with synchronized file groups), but the
+# latest xcodeproj gem (1.27.0, pinned by CocoaPods 1.16.2) only maps 63 and 77,
+# so `pod install` dies with "Unable to find compatibility version string for
+# object version `70`". Teach xcodeproj about 70 before the Pods project is built.
+require 'xcodeproj'
+unless Xcodeproj::Constants::COMPATIBILITY_VERSION_BY_OBJECT_VERSION.key?(70)
+  patched = Xcodeproj::Constants::COMPATIBILITY_VERSION_BY_OBJECT_VERSION
+            .merge(70 => 'Xcode 16.0').freeze
+  Xcodeproj::Constants.send(:remove_const, :COMPATIBILITY_VERSION_BY_OBJECT_VERSION)
+  Xcodeproj::Constants.const_set(:COMPATIBILITY_VERSION_BY_OBJECT_VERSION, patched)
+end
+
 # @revopush/react-native-code-push (CodePush.podspec) requires iOS 15.5+; RN min is 15.1.
 platform :ios, '15.5'
 prepare_react_native_project!
@@ -16,6 +28,10 @@ if linkage != nil
 end
 
 target 'UrbanCommunityFayhaa' do
+  # React Native Maps dependencies (Google Maps provider on iOS)
+  rn_maps_path = '../node_modules/react-native-maps'
+  pod 'react-native-maps/Google', :path => rn_maps_path
+
   config = use_native_modules!
 
   use_frameworks! :linkage => :static
